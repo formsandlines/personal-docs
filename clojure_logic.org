@@ -1,0 +1,49 @@
+#+title: Docs/Clojure/core.logic
+
+Source: https://github.com/clojure/core.logic
+
+Docs:
+- wiki: https://github.com/clojure/core.logic/wiki
+
+Guides:
+- Primer: https://github.com/clojure/core.logic/wiki/A-Core.logic-Primer
+
+#+begin_src clojure
+(ns my.namespace
+  (:refer-clojure :exclude [==])
+  (:use clojure.core.logic))
+#+end_src
+
+
+* Library
+
+** : (run* [q & lvars] & goals)
+
+Executes goals until results are exhausted.
+
+** : (run n [q & lvars] & goals)
+
+Executes goals until a maximum of ~n~ results are found.
+
+** : (== u v)
+
+A goal that attempts to unify terms ~u~ and ~v~.
+
+** : (conde & clauses)
+
+Logical disjunction of the clauses.
+- each clause is a series of at least one goal composed in conjunction
+- conde succeeds for each clause that succeeds, independently
+
+** : (fresh [& lvars] & goals)
+
+Creates fresh variables. Goals occuring within form a logical conjunction.
+
+
+* Concepts
+
+** Logical variables (lvars)
+
+** Goals
+
+- either succeeed, fail or have no value

@@ -1,0 +1,384 @@
+#+TITLE: Docs/Cljfx
+
+* Resources
+
+- Repo: https://github.com/cljfx/cljfx
+- JavaFX classes: https://openjfx.io/javadoc/15/index.html
+- Components: https://github.com/cljfx/cljfx/tree/master/src/cljfx/fx
+- Exploration template: https://github.com/cljfx/exploration-template
+
+** Examples
+- [[https://github.com/cljfx/cljfx/tree/master/examples][Official Examples]]
+- [[https://github.com/cljfx/hn][Cljfx-based Hacker News reader app]]
+- [[https://github.com/goober99/lisp-gui-examples/tree/master/examples/cljfx][Bleep Tutorial]]
+- [[https://github.com/torkus/clojure-javafx][Calculator example by torkus]]
+  - orignal with pure JavaFX: https://github.com/andrenventer/clojure-javafx
+
+* Getting started
+
+** Installation
+
+Add as dependency:
+: [cljfx "1.7.19"]
+
+** Creating components
+
+Minimal example:
+
+#+begin_src clojure
+(ns example
+  (:require [cljfx.api :as fx]))
+
+(fx/on-fx-thread
+  (fx/create-component
+    {:fx/type :stage
+     :showing true
+     :title "Cljfx example"
+     :width 300
+     :height 100
+     :scene {:fx/type :scene
+             :root {:fx/type :v-box
+                    :alignment :center
+                    :children [{:fx/type :label
+                                :text "Hello world"}]}}}))
+#+end_src
+
+** Renderer
+
+Minimal render setup:
+
+#+begin_src clojure
+(def renderer
+  (fx/create-renderer))
+
+(defn root [{:keys [my-param]}]
+  {:fx/type :stage
+   :title my-param
+   ...})
+
+(defn -main [& args]
+  (Platform/setImplicitExit true) ; quits the app if windows are closed
+  (renderer {:fx/type root
+             :my-param "Hello world"}))
+#+end_src
+
+
+Add middleware to the renderer that maps incoming data from the global state atom to the component description to be rendered.
+
+Then modify =-main= to use =fx/mount-renderer= instead of calling renderer directly. This will watch the global state atom for changes and rerender the GUI accordingly.
+
+#+begin_src clojure
+(def renderer
+  (fx/create-renderer
+   :middleware (fx/wrap-map-desc assoc :fx/type root)))
+
+(defn -main [& args]
+  (Platform/setImplicitExit true)
+  (fx/mount-renderer *state renderer))
+#+end_src
+
+* Compilation/Building
+
+** GraalVM
+
+GraalVM currently fails to compile native binary
+- see https://github.com/cljfx/cljfx/issues/77
+GraalVM setup for Clojure:
+- https://github.com/clj-easy/graalvm-clojure/blob/master/doc/clojure-graalvm-native-binary.md
+- https://www.graalvm.org/22.0/docs/getting-started/macos/
+GraalVM compatibility: https://github.com/clj-easy/graalvm-clojure
+
+One approach is to use GluonHQ fork of GraalVM:
+https://github.com/michaelsbradleyjr/hello-cljfx-native
+
+* State
+
+Use a global state atom:
+
+#+begin_src clojure
+(def *state
+  (atom {:my-prop "Init state"}))
+#+end_src
+
+
+* Event Handling
+
+
+** Functions
+
+Mutate the state atom using a function as event handler:
+
+#+begin_src clojure
+{...
+ :on-something-happened #(swap! *state assoc :my-prop %)}
+#+end_src
+
+Problems:
+- makes component depend on mutable =*state=
+- complects logic with view
+- unnecessary reassignments to =:on-...= on every change to the view
+
+
+** Map Events
+
+Event handlers can be defined as arbitrary maps. Map-events can then be handled
+by the renderer by providing a function:
+
+#+begin_src clojure
+(defn my-component ...
+  {...
+   ; event map can have other properties too
+   :on-something-happened {:event/type ::my-event :other-key 42}})
+
+;; Define single map-event-handler that does mutation
+
+(defn map-event-handler [event]
+  (case (:event/type event)
+    ::my-event (swap! *state assoc-in [(:id other-key) :my-prop] (:fx/event event))
+    ::my-other-event ...))
+
+;; Provide map-event-handler to renderer as an option
+
+(fx/mount-renderer
+  *state
+  (fx/create-renderer
+   :middleware (fx/wrap-map-desc assoc :fx/type root)
+   :opts {:fx.opt/map-event-handler map-event-handler}))
+#+end_src
+
+Example: https://github.com/cljfx/cljfx/blob/master/examples/e09_todo_app.clj
+
+Problems:
+- coupling between event handler and state atom by dereferencing
+- coupling between event handler and state atom by mutation
+
+
+** (Co-)Effect wrapper for Map Event Handler
+
+Similar approach to re-frame.
+
+Allows for pure event handlers by using:
+- co-effects -> pure inputs
+- effects -> pure outputs
+
+#+begin_src clojure
+(defn my-component ...
+  {...
+   :on-something-happened {:event/type ::my-event :foo "bar"}})
+
+(defn handle [event]
+  (let [{:keys [event/type foo state]} event]
+    (case type
+      ::my-event {:state (update state :my-prop conj {:foo foo})})))
+
+(def actual-handler
+  (-> handle
+      (fx/wrap-co-effects {:state #(deref *state)})
+      (fx/wrap-effects {:state (fn [state _] (reset! *state state))})))
+
+(fx/mount-renderer
+  *state
+  (fx/create-renderer
+   :middleware (fx/wrap-map-desc assoc :fx/type root)
+   :opts {:fx.opt/map-event-handler actual-handler}))
+#+end_src
+
+
+* JavaFX Components
+
+** Layout Components
+
+For =:alignment= constants see [[https://openjfx.io/javadoc/15/javafx.graphics/javafx/geometry/Pos.html][JavaFX Pos Enum]]
+
+*** Stage & Scene
+
+#+begin_src clojure
+(defn root [& args]
+  {:fx/type :stage
+   :showing true
+   :title "My Window title"
+   :scene {:fx/type :scene
+           :root my-root-component}})
+#+end_src
+
+*** HBox
+
+#+begin_src clojure
+{:fx/type :h-box
+ :alignment :center
+ :spacing 5
+ :padding {:top 0 :bottom 0 :left 20 :right 20}
+ :alignment :center
+ :children [...my-child-components]}
+#+end_src
+
+*** VBox
+
+#+begin_src clojure
+{:fx/type :v-box
+ :alignment :center
+ :spacing 5
+ :children [...my-child-components]}
+#+end_src
+*** StackPane
+
+#+begin_src clojure
+{:fx/type :stack-pane
+ :children [{:fx/type :rectangle
+             :width 200
+             :height 200
+             :fill :lightgray}
+            {:fx/type :label
+             :stack-pane/alignment :bottom-left
+             :stack-pane/margin 5
+             :text "bottom-left"}
+            {:fx/type :label
+             :stack-pane/alignment :top-right
+             :stack-pane/margin 5
+             :text "top-right"}]}
+#+end_src
+*** TilePane
+
+Like a grid.
+
+#+begin_src clojure
+{:fx/type :tile-pane
+ :hgap 5.0
+ :vgap 5.0
+ :pref-columns 2
+ :pref-rows 2
+ :tile-alignment :center-left ; Alignment of tile within grid cell (Pos enum)
+ :children [...my-components]}
+#+end_src
+
+*** ScrollPane
+
+Content area with scrollbars.
+
+#+begin_src clojure
+{:fx/type :scroll-pane
+ :v-box/vgrow :always ; fill vertical space in VBox
+ :fit-to-width true ; fit to 100% of width
+ :content my-component}
+#+end_src
+
+** Control Components
+*** Label
+
+#+begin_src clojure
+{:fx/type :label
+ :text "My label"}
+#+end_src
+*** Button
+
+#+begin_src clojure
+{:fx/type :button
+ :text "Button label"
+ :on-action (fn [_] (swap! *state assoc :my-prop "new value"))}
+#+end_src
+*** CheckBox
+
+#+begin_src clojure
+{:fx/type :check-box
+ :selected false
+ :on-selected-changed my-event-handler}
+#+end_src
+
+*** ChoiceBox
+
+#+begin_src clojure
+{:fx/type :choice-box
+ :items [...my-items-vector]
+ :on-value-changed my-event-handler}
+#+end_src
+
+*** TextField
+
+#+begin_src clojure
+{:fx/type :text-field
+ :text "Init text"
+ :on-text-changed my-event-handler}
+#+end_src
+
+*** Slider
+
+#+begin_src clojure
+{:fx/type :slider
+ :min 20
+ :max 20000
+ :value 200}
+#+end_src
+
+*** Spinner
+
+#+begin_src clojure
+{:fx/type :spinner
+ :editable true
+ :value-factory {:fx/type :double-spinner-value-factory ; value-factory-class
+                 :min 20 ; min-value
+                 :max 20000 ; max-value
+                 :value 100 ; init-value
+                 }}
+#+end_src
+
+*** MenuBar
+
+#+begin_src clojure
+{:fx/type :menu-bar
+ :use-system-menu-bar true ; for top menu bar instead of integrated in window
+ :menus [{:fx/type :menu
+          :text "File"
+          :items [{:fx/type :menu-item
+                   :text "Open"}
+                  {:fx/type :menu-item
+                   :text "Quit"}]}
+         {:fx/type :menu
+          :text "Edit"
+          :items
+#+end_src
+
+
+* Main javafx/cljfx component concepts
+
+Main javafx/cljfx component concepts:
+- :stage — main window component, describes native OS window. Other types of windows:
+  - dialogs — pre-configured stages for some use-cases (see examples at
+    https://github.com/cljfx/cljfx/blob/master/examples/e17_dialogs.clj):
+    - :dialog
+    - :choice-dialog
+    - :alert
+    - :text-input-dialog
+  - popups, such as :popup, :popup-control, :tooltip and :context-menu
+- :scene — describes common window content that is shared in the scene graph, such as
+  stylesheets, camera (:parallel-camera or :perspective-camera), root node. :sub-scene is
+  a node that acts as a scene.
+- Nodes — scene graph items, can be:
+  - 2D shapes, such as :arc, :circle, :cubic-curve, :ellipse, :line, :path, :polygon,
+    :polyline, :quad-curve, :rectangle, :svg-path and :text
+  - 3D shapes, such as :box, :cylinder, :mesh-view, :triangle-mesh, :sphere,
+    :ambient-light, :point-light and :phong-material
+  - Views, such as :image-view, :progress-indicator, :progress-bar and :separator
+  - :canvas that allows drawing different shapes and text
+  - Layout containers, such as :h-box, :v-box, :grid-pane, :flow-pane, :stack-pane, :pane,
+    :anchor-pane, :border-pane, :text-flow, :tile-pane, :group and :region (see examples
+    at https://github.com/cljfx/cljfx/blob/master/examples/e07_extra_props.clj)
+  - Menus — :menu-bar, :menu-button and :split-menu-button — that might contain various
+    menu items, such as :menu, :menu-item, :check-menu-item, :custom-menu-item and
+    :radio-menu-item
+  - Text, such as :label, :text-field, :password-field and :text-area
+  - Navigation, such as :titled-pane, :accordion, :split-pane, :tab-pane and :scroll-pane
+  - Data input, such as :button, :toggle-button, :radio-button, :button-bar, :check-box,
+    :date-picker, :choice-box, :color-picker, :combo-box, :slider, :spinner, :tool-bar and
+    :hyperlink
+  - Virtualized lists, such as :list-view, :pagination, :table-view, :tree-table-view
+    and :tree-view
+  - Charts, such as :pie-chart, :area-chart, :bar-chart, :bubble-chart, :line-chart,
+    :scatter-chart, :stacked-area-chart and :stacked-bar-chart (see examples at
+    https://github.com/cljfx/cljfx/blob/master/examples/e14_charts.clj)
+  - Multimedia, such as :media-view, :web-view and :html-editor
+- Effects that can be placed on nodes, such as :blend, :bloom, :box-blur, :color-adjust,
+  :color-input, :displacement-map, :drop-shadow, :gaussian-blur, :glow, :image-input,
+  :inner-shadow, :lighting, :light-distant, :light-point, :light-spot, :motion-blur,
+  :perspective-transform, :reflection, :sepia-tone and :shadow
+- Transforms that can be applied to nodes, such as :affine, :rotate, :scale, :shear and
+  :translate

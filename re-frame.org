@@ -1,0 +1,312 @@
+#+title: Docs/Re-frame
+
+* Resources
+
+- Repo: https://github.com/day8/re-frame/
+- Infos: https://day8.github.io/re-frame/
+- Clojars: https://clojars.org/re-frame/
+- Docs/Tutorial: https://day8.github.io/re-frame/re-frame/
+
+
+* Concepts
+
+** The Data Loop
+:PROPERTIES:
+:CUSTOM_ID: data_loop
+:END:
+
+See http://day8.github.io/re-frame/a-loop/
+
+Stages of the Data Loop:
+1. [[#event_dispatch][Event dispatch]]
+2. [[#event_handling][Event handling]]
+3. [[#effect_handling][Effect handling]]
+4. [[#querying][Query]]
+5. [[#subscriptions][View]]
+6. [[#dom][DOM]]
+
+** Reacts View Formula
+
+$v = f(s)$
+
+A /view/ is a /function/ of the app /state/.
+
+Concerns stages 4, 5 and 6 of [[#data_loop][the data loop]].
+
+** The Signal Graph
+
+See http://day8.github.io/re-frame/subscriptions/#how-exactly
+
+The *Signal Graph* is a /Directed Acyclic Graph/ (DAG) used to model how data
+flows from ~app-db~ to the *View Functions* (leaf nodes).
+- graph nodes are /created/ in the opposite dir. from the leafs toward the root
+- graph nodes aren’t created until a view does a /subscribe/
+- reactive -> input changes cause a re-run of a node’s subscription handler
+  - if a handlers return value remains the same after a re-run, data is not
+    propagated to the sub-graph
+  - equality check via Clojurs ~=~
+
+Concerns stages 4, 5 and 6 of [[#data_loop][the data loop]].
+
+Layers of the Signal Graph:
+1. *Ground truth*
+   is the root node, ~app-db~
+2. *Extractors*
+   subscriptions which extract data directly from ~app-db~,
+   but do no further computation.
+3. *Materialised View*
+   subscriptions which obtain data from other subscriptions
+   (never ~app-db~ directly), and compute derived data from their inputs
+4. *View Functions*
+   the leaf nodes which compute hiccup (DOM).
+   They subscribe to values calculated by Layer 2 or Layer 3 nodes.
+
+** The Interceptor Chain
+:PROPERTIES:
+:CUSTOM_ID: interceptor_chain
+:END:
+
+See http://day8.github.io/re-frame/Interceptors/
+
+/Event handlers/ are wrapped in an *interceptor* and placed on the end of an
+*interceptor chain*.
+
+Interceptors consist of an ~:id~ and a ~:before~ and/or an ~:after~ function.
+
+Multiple interceptors can be wrapped around each other, forming an *interceptor
+chain*. In this chain, ~:before~ calls are stacked together from first to last,
+then ~:after~ calls from last to first.
+- ~:before~ functions usually build up *co-effects*
+- ~:after~ functions usually build up and process *effects*, but could involve
+  side-effects like logging, etc.
+
+For custom interceptors, see [[#interceptors][interceptors]].
+
+
+* Events
+
+See https://day8.github.io/re-frame/event-handling-infographic/
+
+Events consist of the event type and optional parameters and are dispatched
+(usually by components) to event handlers.
+
+** Event dispatch
+:PROPERTIES:
+:CUSTOM_ID: event_dispatch
+:END:
+
+~rf/dispatch~ puts an event onto the queue for processing.
+
+#+begin_src clojurescript
+(defn my-component
+  [...]
+  [:button {:on-click #(rf/dispatch [:event1 my-params])}
+   "Click me!"])
+#+end_src
+
+- an event is processed *asynchronously*.
+- the queue is consumed by the re-frame ~router~, which will call the event
+  handler that corresponds to the kind of event specified in the event vector
+- each event is fully processed before the next one is started
+
+** Event handlers
+:PROPERTIES:
+:CUSTOM_ID: event_handling
+:END:
+
+~rf/reg-event-fx~ and ~rf/reg-event-db~ register event handlers.
+
+#+begin_src clojurescript
+(rf/reg-event-fx
+ :event1
+ ; [...] <- possible interceptor-ids
+ (fn [{:keys [db]} [:event1 my-params]] ; <- [cofx event]
+   { :effect1 "my rocket" })) ; <- effects map
+
+(rf/reg-event-db
+ :event2
+ ; [...] <- possible interceptor-ids
+ (fn [db [:effect2 my-params]]
+   (assoc db :my-data new-val)))
+#+end_src
+
+Event handlers receive *co-effects* (like ~app-db~ or a fetched url) and the
+actual event (dispatched by the component) as inputs.
+
+They return an *effects map* as a description of the desired (side)effects.
+re-frame then calls the associated *effect handlers* for each effect.
+
+- ~rf/reg-event-db~ takes only one co-effect ~db~ and returns only the new value
+  of ~db~ as an effect
+
+
+* Interceptors
+:PROPERTIES:
+:CUSTOM_ID: interceptors
+:END:
+
+For concept, see [[#interceptor_chain][interceptor chain]].
+
+#+begin_src clojurescript
+(def my-interceptor
+  (rf/->interceptor
+   :id     :my-interceptor-id
+   :before (fn [context] ;optional
+             (update context :coeffects #(foo %)))
+   :after  (fn [context] ;optional
+             (update context :effects #(bar %)))))
+#+end_src
+
+- interceptors don’t need both ~:before~ and ~:after~
+- they are referred to by their ~:id~
+
+
+* (Co-)Effects
+
+Effects in re-frame are /functions of co-effects and events/.
+They are provided as descriptions by *event handlers*.
+
+*Effect handlers* act on those descriptions to produce the desired (side)effect.
+
+*** Effect handlers
+:PROPERTIES:
+:CUSTOM_ID: effect_handling
+:END:
+
+~rf/reg-fx~ register effect handlers.
+- effects for ~:db~ are provided by re-frame itself
+
+#+begin_src clojurescript
+(rf/reg-fx
+ :effect1
+ (fn [rocket]
+   (launch rocket)))
+
+(rf/reg-fx ; <- provided by re-frame!
+ :db
+ (fn [new-db]
+   (reset! app-db new-db)))
+#+end_src
+
+
+* State Management
+
+~app-db~ is a Reagent ~r/atom~ managed by re-frame that holds all of the apps
+internal state.
+- like an in-memory db
+
+** Query
+:PROPERTIES:
+:CUSTOM_ID: querying
+:END:
+
+A *query function* “extracts” data from application state and then computes a
+/materialized view/ of that state to be processed by a *view function*.
+
+#+begin_src clojurescript
+(rf/reg-sub ; Simple extractor
+ :my-data
+ (fn [db v] ; v is the query vector
+   (:my-data db)))
+#+end_src
+
+If a *query function* returns a new value, any *view function* that /subscribed/
+to its query id will be called automatically (reactively).
+
+- always register each subscription /individually/
+- *query vectors* can be used to specify/filter the required data
+
+** Subscriptions
+:PROPERTIES:
+:CUSTOM_ID: subscriptions
+:END:
+
+View functions (components) can subscribe to parts of the ~app-db~ with
+~rf/subscribe~ using a *query-id* for a registered *query function*.
+
+#+begin_src clojurescript
+(defn my-component
+  []
+  (let [my-data @(rf/subscribe [:my-data foo])] ; <- atom must be deref’d!
+    [:div my-data]))
+#+end_src
+
+* DOM/Hiccup
+:PROPERTIES:
+:CUSTOM_ID: dom
+:END:
+
+The hiccup returned by the view function is made into real browser DOM by
+Reagent/React.
+
+See [[file:reagent.org][docs/Reagent]].
+
+* Best practices
+
+** Where to store State
+
+See Eric Normand: [[https://ericnormand.me/guide/state-in-re-frame][Where to Store State in Re-frame?]]
+
+- prefer component-local state over global state
+- prefer transience over persistence
+
+Use the Re-frame db for:
+- state used by multiple components for a single browser tab
+- state that is cached from the server or other third-party APIs
+
+Browser [[https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage][LocalStorage]] API:
+- state can be shared between tabs of the same browser
+- great for caching but not much else
+  - e.g. to remember state from the server after page reload
+  - e.g. to store user input while network connection is dropped
+    -> [[https://developer.mozilla.org/en-US/Apps/Fundamentals/Offline][Mozilla Offline Guide]]
+
+There are 3 criteria to decide where state should go:
+
+*** Locality of state changes
+
+#+begin_quote
+“Bottom line: keep state as local as possible. If only one component is reading
+and writing it, make it component-local. If only one tab needs to see it, keep
+it in the Database (or a Reagent Atom if it’s updated frequently). If multiple
+tabs need to see it, it’s got to go to the server or third-party API.”
+#+end_quote
+
+*** Frequency of updates
+
+#+begin_quote
+“Bottom line: if your state changes very frequently, consider keeping it out of
+the Re-frame Database.”
+#+end_quote
+
+*** Transience (how long to keep state)
+
+#+begin_quote
+“Bottom line: store state as transiently as possible. If you need it forever,
+definitely on the server. Just for the time between keystrokes? Definitely in
+the component. Somewhere in-between? Somewhere in the global scope of your
+application, either in the Database or in a global Reagent Atom.”
+#+end_quote
+
+** Caching
+
+See Eric Normand: [[https://ericnormand.me/guide/state-in-re-frame][Where to Store State in Re-frame?]]
+
+#+begin_quote
+“However, how do we react to data stored on the server? The answer is usually to
+cache the state store on the server either in a Database or a Reagent Atom. When
+the state on the server changes, you update the cache, and everything
+re-renders.”
+#+end_quote
+
+Updates to the cache can be handled…
+- optimistically -> update cache immediately without waiting for server response
+  - immediate feedback in UI (improves UX)
+  - risky (server update could fail)
+- pessimistically -> update cache after server response
+  - (possibly) delayed feedback in UI
+  - secure (users see what they get)
+
+** How to structure the Re-frame db
+
+See Eric Normand: [[https://ericnormand.me/guide/database-structure-in-re-frame][Re-frame Database Best Practices]]

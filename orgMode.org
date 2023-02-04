@@ -1,0 +1,284 @@
+#+TITLE: OrgMode Reference
+
+- Manuals: https://orgmode.org/manuals.html
+- [[https://www.youtube.com/watch?v=SzA2YODtgK4][Getting Started With Org Mode]] (YouTube presentation)
+- https://gist.github.com/drj42/1755992 (Keybinding Cheatsheet)
+
+* Properties / Metadata
+
+  | Shortcut            | Action                  |
+  |---------------------+-------------------------|
+  | C-c C-x p / SPC M o | Set property            |
+  | C-c C-x P           | Set property-value pair |
+
+;; #+FIELDNAME: My value
+;; #+OPTIONS: toc:nil
+
+- to automatically add custom ids: https://writequit.org/articles/emacs-org-mode-generate-ids.html
+
+* Headings / Tree
+
+  | Shortcut        | Action                                             |
+  |-----------------+----------------------------------------------------|
+  | C ENTER         | create node below (same lvl) + insert              |
+  | C-SHIFT ENTER   | create node above (same lvl) + insert              |
+  | C-M ENTER       | create child-node                                  |
+  | M-(←/→)         | outdent / indent node                              |
+  | M-SHIFT-(←/→)   | outdent / indent node + subtrees                   |
+  | M-(↑/↓)         | reorder nodes                                      |
+  | C-c (C-n / C-p) | previous / next node                               |
+  | C-c (C-f / C-b) | forward / back same level                          |
+  | C-c C-u         | up parent node                                     |
+  | C-c C-j         | jump to node                                       |
+  | TAB             | cycle CURRENT: top-level -> first-sublevel         |
+  | SHIFT TAB       | cycle ALL: top-level -> first-sublevel -> all -> … |
+
+* Markup
+
+** Text formats
+
+*Bold*, /italic/, =verbatim=, +strikethrough+, ~code~
+
+: C-c C-x C-f */~...  formats a selected region of text
+
+** Lists
+
+| Shortcut      | Action                                |
+|---------------+---------------------------------------|
+| C ENTER       | create item above (same lvl) + insert |
+| C-SHIFT ENTER | create item below (same lvl) + insert |
+| SHIFT-(←/→)   | cycle list type (whole list)          |
+| SHIFT-(↑/↓)   | navigate list items (same lvl)        |
+| SPC-M i       | text to list (org-toggle-item)        |
+| M-(←/→)       | outdent / indent list item            |
+
+- bulleted
+- list
+- items
+
+*** Nested lists
+
+- Can be tabbed
+- Can only have single numbering (no 1.3.2)
+  -> actually a good thing, because nesting contains all information!
+- No create-indented shortcut necessary, because pressing return indents
+  automatically and you just have to write the list char
+
+- a
+- b
+  1. b.a
+  2. b.b
+     1. b.b.a
+     2. b.b.b
+  3. b.c
+- c
+  1. c.a
+
+** Tables
+
+| Some | Data  |
+|------+-------|
+| My   | Stuff |
+| is   | Here  |
+
+| Shortcut        | Action                         |
+|-----------------+--------------------------------|
+| Tab / Shift-Tab | Move cursor to next/prev field |
+| Enter           | Edit/replace field text        |
+| C-Enter         | Create row below               |
+| C-c C-c         | Re-align table                 |
+| M-a/e           | Move to beginning/end of field |
+| M-left/right    | Move current column left/right |
+| M-up/down       | Move current row up/down       |
+| M-Shift-left    | Remove current column          |
+| M-Shift-right   | Insert new column to the left  |
+| M-Shift-up      | Remove current row/line        |
+| M-Shift-down    | Insert new row above           |
+| C-c -           | Insert horizontal line below   |
+
+
+* Links
+
+  | Shortcut            | Action                                 |
+  |---------------------+----------------------------------------|
+  | C-c C-l / SPC m l l | Create/edit link / insert to selection |
+  | C-c C-o / Enter     | Open link                              |
+  | , l t               | toggle link display                    |
+
+** Internal Links
+
+See https://orgmode.org/manual/Internal-Links.html
+
+*** Using section names
+
+: [[*Some section]]
+- Warning: Link will break when Heading changes!
+
+[[*Headline 1]]
+
+**** Headline 1
+
+xxx
+
+*** Using IDs
+
+: [[id:my-id]]
+: [[id:my-id][Some alias]]
+
+[[id:xyz]]
+
+[[id:xyz][Some alias]]
+
+**** Headline 2
+:PROPERTIES:
+:ID:       xyz
+:END:
+
+*** Using CUSTOM_IDs
+
+: [[#my-custom-id]]
+: [[#my-custom-id][Some alias]]
+
+[[#my-headline]]
+
+[[#my-headline][Some alias]]
+
+**** Headline 3
+:PROPERTIES:
+:CUSTOM_ID: my-headline
+:END:
+
+xxx
+
+
+** Hyperlinks
+
+[[https://formform.dev][My project]]
+
+** Link to file
+
+
+* Images
+
+  | Shortcut    | Action                   |
+  |-------------+--------------------------|
+  | C-c C-x C-v | org-toggle-inline-images |
+
+Insert images as links: =[[./my-image.jpg]]= and add metadata.
+Then click/ENTER to toggle image display or use the shortcut.
+
+#+CAPTION: This is a test image
+#+NAME: fig1
+#+ATTR_HTML: :width 100%
+[[./_res/orgMode/example.jpg]]
+
+* Export to other formats
+
+  | Shortcut | Action      |
+  |----------+-------------|
+  | C-c C-e  | export menu |
+
+C-s can also export just the subtree (current heading)
+
+Look for "ox-<pkgname>" to find packages for export formats.
+
+
+* LaTeX integration
+
+https://orgmode.org/manual/LaTeX-fragments.html
+
+  | Shortcut    | Action               |
+  |-------------+----------------------|
+  | C-c C-x C-l | Toggle LaTeX preview |
+
+Includes MathJax to render Latex in HTML.
+
+- Characters: \alpha \rightarrow \beta
+- $O(n \log n)$
+
+  \begin{align*}
+    3 * 2 + &= 6 + 1 \\
+            &= 7
+  \end{align*}
+
+
+* Examples
+
+** Literal
+
+Examples are typeset in monospace and not subjected to markup.
+
+#+begin_example
+Some example from a *text* file.
+,* I am no real headline (needs to be preceeded by comma)
+#+end_example
+
+For small examples:
+: Some example from a text file.
+
+** Quotation
+
+  | Shortcut | Action                     |
+  |----------+----------------------------|
+  | <q + TAB | quickly insert quote block |
+
+Shortcut: write ~<q~ & hit ENTER.
+
+#+begin_quote
+Some quoted line.
+#+end_quote
+
+
+** Source code
+
+  | Shortcut | Action                              |
+  |----------+-------------------------------------|
+  | <s + TAB | quickly insert source code block    |
+  | C-c '    | edit source block in specified mode |
+  | C-c      | exit edit mode and return to org    |
+  | C-c C-c  | evaluate source block               |
+
+#+begin_src java
+for (int i=0; i<5; i++) {
+    System.out.println("Counting "+i);
+}
+#+end_src
+
+#+RESULTS:
+: Counting 0
+: Counting 1
+: Counting 2
+: Counting 3
+: Counting 4
+
+Inline src_clojure{ (defn square [x] (* x x)) } source code.
+
+
+** Literate programming
+
+You can evaluate code blocks and pipe the results into another code block.
+
+You can write an Org-mode file for all your emacs config and have it evaluate
+using emacs lisp.
+
+* Todo
+
+  | Shortcut          | Action                       |
+  |-------------------+------------------------------|
+  | SHIFT-M ENTER     | create new todo item below   |
+  | C-c C-t / SPC-M t | change todo state            |
+  | ENTER             | cycle through states         |
+  | SPC-M x           | mark checkbox                |
+  | C-c C-d           | insert deadline              |
+  | SPC o a a         | open agenda (normally C-c a) |
+
+- [-] List TODO
+
+** DONE Heading TODO
+
+** TODO cycle through states
+DEADLINE: <2021-08-21 Sat>
+
+* Agenda
+
+* Calendars

@@ -1,0 +1,397 @@
+#+title: Docs/Meander
+
+Tools for transparent data transformation using term rewriting.
+
+Source: [[https://github.com/noprompt/meander]]
+
+Docs:
+- [[https://cljdoc.org/d/meander/epsilon/][Concepts and API documentation]]
+- https://github.com/noprompt/meander/tree/epsilon/doc
+  - [[https://github.com/noprompt/meander/blob/epsilon/doc/cookbook.md][Common Patterns (cookbook)]]
+  - [[https://github.com/noprompt/meander/blob/epsilon/doc/defsyntax.md][Syntax Extensions]]
+  - [[https://github.com/noprompt/meander/blob/epsilon/doc/operator-overview.md][Pattern Matching (Macros, Pattern Syntax)]]
+  - [[https://github.com/noprompt/meander/blob/epsilon/doc/references.md][Meta (references)]]
+  - [[https://github.com/noprompt/meander/blob/epsilon/doc/strategies.md][Strategies]]
+  - [[https://github.com/noprompt/meander/blob/epsilon/doc/substitution.md][Substitution]]
+  - [[https://github.com/noprompt/meander/blob/epsilon/doc/understanding.md][Understanding Meander's Pattern Matching Macros]]
+
+Examples:
+- [[https://github.com/noprompt/meander/blob/epsilon/examples][Examples]]
+
+Misc:
+- [[https://github.com/noprompt/meander/blob/epsilon/test/meander][Tests]]
+- [[https://www.youtube.com/watch?v=9fhnJpCgtUw][Talk Strangeloop 2019]]
+
+Learning:
+- [[https://jimmyhmiller.github.io/meander-rewriting][Introduction to Term Rewriting with Meander]]
+- [[https://jimmyhmiller.github.io/building-meander-in-meander][Building Meander in Meander]]
+- [[https://jimmyhmiller.github.io/meander-practical][Meander for Practical Data Transformation]]
+
+
+#+begin_src clojure
+(:require
+    [meander.strategy.epsilon :as r]
+    [meander.epsilon :as m])
+#+end_src
+
+* Concepts
+
+** Pattern matching
+
+The primary macros for pattern matching and searching are available in
+=meander.epsilon=.
+
+** Term rewriting
+
+** Substitution
+
+See https://github.com/noprompt/meander/blob/epsilon/doc/substitution.md
+
+Can be thought of as the inverse of pattern matching. While pattern matching
+binds values by deconstructing an object, substitution uses existing bindings to
+construct an object.
+
+Meander uses ~m/subst~ and the ~rewrite~ macros for substitution.
+
+** Logic variables (lvars)
+
+Variables in a pattern.
+- in Meander prefixed with ~?~, e.g. ~?x~
+- local to a clause, cannot be shared across clauses
+
+lvars have semantically equivalent behavior to the unquote operator:
+#+begin_src clojure
+(let [?x 0]
+    (m/subst [?x ~?x])) ;=> [0 0]
+#+end_src
+
+** Memory variables (mvars)
+
+Accumulate values into a vector on every match.
+- in Meander prefixed with ~!~, e.g. ~!x~
+- work with ~m/match~, ~m/search~, ~m/find~, ~r/rewrites~, and ~r/rewrite~
+
+~!xs ...~ matches a series of values and accumulate them into vector ~!xs~.
+
+mvars disperse their values throughout a substitution. Each occurrence disperses
+one value from the collection.
+#+begin_src clojure
+(let [!xs [1 2 3]]
+    (m/subst (!xs !xs !xs))) ;=> (1 2 3)
+#+end_src
+
+For subsequence patterns, values are dispersed until one of the mvars is
+exhausted.
+#+begin_src clojure
+(let [!bs ['x 'y]
+      !vs [1 2 3]]
+    (m/subst [!bs !vs ...])) ;=> [x 1 y 2]
+#+end_src
+
+When an expression has mvar occurrences which exceed the number of available
+elements in its collection ~nil~ is dispersed after it is exhausted.
+- ~nil~ is also dispersed in n or more patterns up to n.
+#+begin_src clojure
+(let [!xs [1]]
+    (m/subst (!xs !xs !xs))) ;=> (1 nil nil)
+
+(let [!xs ['A]
+      !ys [:B]]
+    (m/subst (!xs !ys ..2))) ;=> (A :B nil nil)
+#+end_src
+
+How to use the same value from a memory variable twice:
+Create two names: ~(m/and !n !n2)~
+#+begin_src clojure
+(m/rewrite [[:a 1] [:b 2] [:c 3]]
+    [[!k (m/and !n !n2)] ...]
+    [[!k !n (m/app str !n2)] ...])
+;; => [[:a 1 "1"] [:b 2 "2"] [:c 3 "3"]]
+#+end_src
+
+
+** Unification
+
+A logic variable (lvar) will be associated/unified with the value in an
+expression that is matched against the first (sub)pattern in which it appears.
+
+If it appears in another (sub)pattern, the expression value will be compared to
+the value already associated with the lvar.
+
+* Core macros
+
+** : (m/match x & clauses)
+: clause -> pattern expr
+
+Basic pattern matching on input ~x~, returns ~expr~ on match with ~pattern~.
+Does not allow ambiguous patterns.
+- can have multiple expr->pattern clauses.
+- only returns value from first matching clause
+- if no match found, throws an exception
+- similar to =clojure.core.match/match=, but more powerful
+
+** : (m/search x & clauses)
+: clause -> pattern expr
+
+Like ~m/match~, but allows for ambiguous patterns.
+- returns lazy seq (or list?) of all match values in depth-first order
+- returns ~nil~ if no clause matches (different to ~m/match~)
+  ! might change to ~()~ in future versions!
+    -> use ~empty?~ to check for failing matches!
+
+** : (m/find x & clauses)
+: clause -> pattern expr
+
+Like ~m/search~ but returns only the first successful match.
+- semantically similar to ~(first (m/search ...))~, but terminates search
+  immediately after finding the first element -> better performance.
+
+
+** : (r/rewrites) / (r/rewrite)
+
+Like ~m/search~ / ~m/find~ but with Meander substitution on the RHS.
+
+** : (m/defsyntax name [params*] body)
+
+See [[https://github.com/noprompt/meander/blob/08350407b2da2a7b2a3c021d3f486936f4107c3e/doc/defsyntax.md][Syntax Extensions]]
+
+Defines custom syntax to be parsed at macroexpansion of a pattern.
+- similar to ~defmacro~; also binds special variables ~&form~ and ~&env~
+  - ~&form~ is semantically equivalent to the ~&form~ bound by ~defmacro~
+    it is the form of invocation, e.g. ~(operator-name ?x ?y)~
+  - ~&env~ is only similar to ~&env~ of ~defmacro~ in that it is a ~map?~ and
+    contains contextual data
+- ~&env~ contains data to distinguish a matching from a substitution pattern:
+  - ~(m/match-syntax? &env)~ detects a matching pattern
+  - ~(m/subst-syntax? &env)~ detects a substitution pattern
+- ~&form~ can be used to return the original form (e.g. in substitution)
+
+* Patterns
+
+- all Clojure collections can be matched in patterns
+- sets and maps are matched with /at least/ the specified keys
+
+** Literals
+
+1. scalar data types (like numbers, strings, booleans, keywords)
+2. quoted or unquoted symbols not considered special by Meander
+3. lists and vectors composed of literals
+   (that do not contain maps, sets or subsequence operators)
+
+** ClojureScript Literals
+
+e.g.: src_clojure[]{ #js [?x ?y ?x] }
+
+** Variables
+
+- logic variables
+- memory variables
+- any variables
+- mutable variables
+
+** Operators
+
+*** : (m/not pat)
+
+Matches anything that does not match ~pat~.
+
+*** : (m/and pat-0 ,,, pat-n)
+
+Matches when all of ~pat-0~ through ~pat-n~ match.
+
+*** : (m/or pat-0 ,,, pat-n)
+
+Matches when any one of ~pat-0~ through ~pat-n~ match.
+
+*** : (m/scan & pats)
+
+Matches all ~patterns~ that appear in a ~seq~ or ~seqable?~.
+- cannot be used with ~m/match~ (only one variable-length subsequence pattern)
+
+Equivalent to:
+~(_ ... p1 ,,, pn . _ ...)~
+~[_ ... p1 ,,, pn . _ ...]~
+where ~p1~ through ~pn~ is equal to ~patterns~.
+
+*** : (m/pred p pat & pats)
+
+Matches if ~p~ applied to the target of ~pattern~ returns a truthy value.
+
+*** : (m/guard pred-expr)
+
+Succeeds whenever ~pred-expr~ returns a truthy result.
+*** : (m/app f pat & pats)
+
+Applies ~f~ to the current value being matched in ~pattern~.
+*** : (m/let [pat expr ,,,] target-pat)
+*** : (m/with [%ref1 pat1 ,,, %refn patn] pat)
+
+** Subsequence & Wildcard operators
+
+| Operator | Description                                     |
+|----------+-------------------------------------------------|
+| ~_~      | wildcard: matches anything                      |
+|          |                                                 |
+| ~&~      | rest: matches the rest of a coll                |
+| ~&n~     | there can be multiple rest patterns             |
+| ~^&~     | rest in sets                                    |
+|          |                                                 |
+| ~.~      | partitions the coll into 2 parts                |
+|          | also delimits start of a variable length subseq |
+|          |                                                 |
+| ~x ...~  | repeat the match for x zero or more times       |
+| ~x ..n~  | repeat the match for n or more times            |
+| ~x ..?n~ | capture/control the number of repetitions       |
+| ~x ..!n~ | with a logic or memory variable                 |
+|          |                                                 |
+| =~x=     | unquote to reference an external value          |
+
+Subsequence operators ~...~ and ~..n~ also act as partition operators as well.
+
+Common combinations:
+- ~x _ ...~ is similar to the regex ~#".*"~ for strings
+- ~a . x ...~ starts ~...~ matching from ~x~, the ~.~ separates it from a
+- patterns like ~[_ ... x . _ ...]~ can be simplified using ~(m/scan x)~
+
+lvars can be used in a subsequence operators to match the number of items:
+#+begin_src clojure
+(m/match [:a :b :c]
+    [!xs ..?n]
+    [!xs ?n]) ;; => [[:a :b :c] 3]
+#+end_src
+
+mvars can be used to collect the number of items from multiple collections:
+#+begin_src clojure
+(m/match [[1 2 3] [4 5]]
+    [[!xs ..!n] [!ys ..!n]]
+    [!xs !ys !n]) ;=> [[1 2 3] [4 5] [3 2]]
+
+;; We can use this to help us with nested groups.
+;; By default meander might have some unexpected behavior when capturing
+;; nested things in memory variables.
+(m/rewrite [:a [1 2 3] :b [4 5]]
+    [!k [!x ...] ...]
+    [!k [!x ...] ...]) ;; => [:a [1 2 3 4 5]]
+
+;; We can fix this by capturing the number of times to repeat things.
+(m/rewrite [:a [1 2 3] :b [4 5]]
+    [!k [!x ..!n] ..!m]
+    [!k [!x ..!n] ..!m]) ;; => [:a [1 2 3] :b [4 5]]
+
+#+end_src
+
+** Escaping
+
+* Strategies
+
+** Basic Combinators
+
+*** : (r/pass t)
+
+Strategy which always succeeds, returning ~t~.
+
+*** : (r/fail t)
+
+Strategy which always fails.
+
+*** : (r/build t)
+
+Builds a strategy which always returns ~t~.
+
+*** : (r/pipe p q & more)
+
+Builds a strategy which applies ~p~ to ~t~,
+then ~q~ iff ~p~ succeeds and so on.
+Returns result only when all can be successfully applied, fails otherwise.
+- like /and/ for strategies
+
+*** : (r/choice p q & more)
+
+Builds a strategy which applies ~p~ or ~q~ to ~t~.
+If ~p~ rewrites, returns the result, otherwise applies ~q~.
+- like /or/ for strategies
+
+*** : (r/pred p)
+
+Builds a strategy which returns ~t~ iff ~p~ is true for ~t~
+and fails otherwise.
+
+*** : (r/trace s)
+
+Builds a strategy which monitors the entry and exit values of ~s~.
+
+*** : (r/attempt s)
+
+Builds a strategy which attempts to apply ~s~ to a term.
+- returns the result if ~s~ succeeds
+- returns the original term if ~s~ fails
+
+*** : (r/repeat s)
+
+Builds a strategy which applies ~s~ to ~t~ repeatedly until failure.
+- will cause stack overflow if strategy never fails
+  - use ~while~ or ~until~ instead to avoid this
+
+*** : (r/n-times n s)
+
+Builds a strategy that repeats the passed in strategy ~n~ times.
+- useful for non-terminating rewrites or to prevent infinite loops
+
+*** : (r/while s)
+
+Builds a strategy which repeatedly applies ~s~ to ~t~
+so long as ~pred~ is true for ~t~ and ~t*~.
+
+*** : (r/until pred s)
+
+Builds a strategy which repeatedly applies ~s~ to ~t~
+until ~pred~ is false for ~t~ and ~t*~.
+
+*** : (r/fix s)
+
+Builds a strategy which applies ~s~ to ~t~ until the result is equal to
+the provided argument.
+
+Example:
+#+begin_src clojure
+(def to-pair
+  (fix (rewrite
+         [?x ?y] [?x ?y]
+         ?x      [?x ?x])))
+
+(to-pair [1 2]) ;; => [1 2]
+(to-pair 1) ;; => [1 1]
+#+end_src
+
+*** : (r/extract s)
+
+Returns a sequence of all successful rewrites of ~s~ applied
+to all subterms of ~t~.
+
+*** : (r/at key p q & more)
+
+Builds a strategy which modifies ~t~ at ~key~ with ~p~, then ~q~, etc.
+- works with ~map?~, ~vector?~ and ~set?~
+- for ~vector?~ and ~set?~, ~key~ must be present
+
+** Traversal Combinators
+
+*** : (r/one s)
+*** : (r/some s)
+*** : (r/all s)
+
+*** : (r/bottom-up s)
+
+Builds a strategy which applies ~s~ to each subterm of ~t~
+from bottom (innermost) to top (outermost).
+
+*** : (r/top-down s)
+
+Builds a strategy which applies ~s~ to each subterm of ~t~
+from top (outermost) to bottom (innermost).
+
+** Matching Combinators
+
+*** : (r/match s)
+*** : (r/find s)
+*** : (r/rewrite s)

@@ -1,0 +1,967 @@
+#+title: Docs/JS DOM
+
+* API
+
+** Elements
+
+*Warning*: If a node to be inserted/appended is already present somewhere else
+in the DOM tree it gets removed from its old position.
+
+*** Identify & compare
+**** : Node.nodeName
+Name of the ~Node~ as a string.
+- for text nodes, name is "#text"
+**** : Node.nodeType
+An integer which specifies the type of the node:
+- (1) ~Node.ELEMENT_NODE~: An Element node like ~<p>~ or ~<div>~
+- (2) ~Node.ATTRIBUTE_NODE~: An Attribute of an Element
+- (3) ~Node.TEXT_NODE~: The actual Text inside an Element or Attr
+- (4) ~Node.CDATA_SECTION_NODE~: A CDATASection, such as ~<!CDATA[[ … ]]>~
+- (7) ~Node.PROCESSING_INSTRUCTION_NODE~: A ProcessingInstruction of an XML document, such as ~<?xml-stylesheet … ?>~
+- (8) ~Node.COMMENT_NODE~: A Comment node, such as ~<!-- … -->~
+- (9) ~Node.DOCUMENT_NODE~: A Document node
+- (10) ~Node.DOCUMENT_TYPE_NODE~: A DocumentType node, such as ~<!DOCTYPE html>~
+- (11) ~Node.DOCUMENT_FRAGMENT_NODE~: A DocumentFragment node
+
+**** : Element.tagName
+Name of the ~Element~ as a string.
+- for ~Element~ objects, the value equals the ~nodeName~ property
+- in HTML DOM, returned string is always in canonical upper-case form
+- in XML DOM, the name is exactly as written in the tree
+**** : Element.localName
+Qualified name of the ~Element~.
+**** : Element.prefix
+Namespace prefix of the ~Element~, or null if no prefix is specified.
+**** : Node.isEqualNode( otherNode )
+True if ~otherNode~ is of the same type as ~Node~ and all their defining data
+points (characteristics, attributes, etc.) match.
+- tests if the two nodes are equal
+- characteristics include ID, number of children, etc.
+- the specific set of data points that must match varies depending on the types of the nodes
+**** : Node.isSameNode( otherNode )
+True if ~otherNode~ is a reference to the same object as ~Node~.
+- legacy alias for the ~===~ strict equality operator
+*** Query & match
+**** : Document.getElementById( idStr )
+
+**** : Document.querySelector( selector )
+
+**** : Document.querySelectorAll( selectors )
+**** : Element.getElementsByClassName( names )
+Returns a live ~HTMLCollection~ which contains every descendant element which has the specified class name or names.
+**** : Element.getElementsByTagName( tagName )
+Returns a live ~HTMLCollection~ of elements with the given ~tagName~.
+**** : Element.matches( selectors )
+True if the ~Element~ would be selected by the specified CSS ~selector~.
+
+**** : Element.closest( selectors )
+Traverses the ~Element~ and its parents (toward the document root) until it
+finds a node that matches the specified CSS ~selector~.
+- returns null if no element matches
+*** Get & count related
+**** : Document.activeElement
+Returns the Element within the DOM that currently has focus.
+**** : Document.body
+Returns the ~<body>~ node of the current document.
+**** : Document.documentElement
+Returns the root element of the ~document~ (~<html>~ for HTML docs)
+**** : Node.ownerDocument
+Returns the top-level document object of the ~Node~.
+**** : Node.getRootNode( ?options )
+Returns the context object's root, which optionally includes the shadow root if it is available.
+
+**** : Node.parentNode
+Returns the parent *node* of the specified ~Node~.
+- ~Document~ and ~DocumentFragment~ nodes can never have a parent
+**** : Node.parentElement
+Returns the parent *element* of the specified ~Node~.
+**** : Node.previousSibling | ….nextSibling
+Returns the node immediately preceding|following the ~Node~ in its parent’s childNodes list.
+**** : Node.compareDocumentPosition( otherNode )
+Reports the position of its argument node relative to the node on which it is called.
+- return value is a bitmask representing ~otherNode~ ’s position by combining certain constant properties of ~Node~
+  - see [[https://developer.mozilla.org/en-US/docs/Web/API/Node/compareDocumentPosition][docs]] for information about these properties
+**** : Node.contains( otherNode )
+True if ~otherNode~ is a descendant of ~Node~ or ~Node~ itself.
+
+**** : Element.previousElementSibling | ….nextElementSibling
+**** Children
+***** : Node.childNodes
+Read-only property that returns a live ~NodeList~ which contains all child nodes
+of ~Node~.
+- includes all nodes, including text nodes
+***** : Node.firstChild
+- includes all nodes, including text nodes
+***** : Node.lastChild
+- includes all nodes, including text nodes
+***** : Node.hasChildNodes()
+Returns true if given node has child nodes.
+***** : Element.children
+Read-only property that returns a live ~HTMLCollection~ which contains all child
+elements of ~Element~.
+- includes *only element nodes*
+- ~document~ has only one child: ~html~
+***** : Element.firstElementChild
+- includes *only element nodes*
+***** : Element.lastElementChild
+- includes *only element nodes*
+***** : Element.childElementCount
+Read-only property that returns the number of child elements of the ~Element~.
+**** Special elements
+***** : Document.head
+Returns the ~<head>~ element of the current ~document~.
+
+***** : Document.fullscreenElement
+Returns the element that's currently in full screen mode for this ~document~.
+
+***** : Document.scrollingElement
+Returns a reference to the Element that scrolls the ~document~.
+***** : Document.defaultView
+Returns the ~window~ object.
+
+**** Special collections
+***** : Document.forms
+Returns an ~HTMLCollection~ of the ~<form>~ elements in the document.
+***** : Document.images
+Returns an ~HTMLCollection~ of the images in the document.
+***** : Document.links
+Returns an ~HTMLCollection~ of the hyperlinks in the ~document~.
+
+***** : Document.scripts
+Returns an ~HTMLCollection~ of the ~<script>~ elements in the document.
+
+***** : Document.styleSheets
+Returns a ~StyleSheetList~ of ~CSSStyleSheet~ objects, for stylesheets explicitly linked into or embedded in a document.
+
+***** : Document.plugins
+Returns an ~HTMLCollection~ of the available plugins.
+- ~HTMLEmbedElement~'s representing the ~<embed>~ elements in the doc
+
+*** Create & insert
+**** : Document.createElement( tagName, ?options )
+**** : Node.cloneNode( deep_clone? )
+(deeply) clones a node.
+
+**** : Element.before( obj1, obj2, … ) | .after( … )
+Inserts a set of ~Node~ or string objects in the children list of the
+~Element~'s parent, just before|after this ~Element~.
+- String objects are inserted as equivalent text nodes
+- returns ~undefined~
+
+**** : Element.replaceWith( obj1, obj2, … )
+Replaces this ~Element~ in the children list of its parent with a set of Node or string objects.
+- multiple objects appear as multiple elements in the list
+- String objects are inserted as equivalent text nodes
+
+**** : Element.insertAdjacentElement( position, element )
+Inserts a given ~element~ node at a given ~position~ relative to the target
+~Element~ it is invoked upon.
+
+Position values:
+- ~'beforebegin'~: Before the targetElement itself
+- ~'afterbegin'~: Just inside the targetElement, before its first child
+- ~'beforeend'~: Just inside the targetElement, after its last child
+- ~'afterend'~: After the targetElement itself
+
+**** : Element.insertAdjacentHTML( position, markupText )
+Parses the specified ~markupText~ (HTML/XML) and inserts the resulting nodes
+into the DOM tree at a specified ~position~.
+- see ~Element.insertAdjacentElement~ for position values
+
+**** : Element.insertAdjacentText( position, text )
+Inserts a new text node with given ~text~ at a specified ~position~ relative to
+the ~Element~ it is called from.
+- see ~Element.insertAdjacentElement~ for position values
+**** : Element.remove()
+Removes the ~Element~ from the DOM.
+
+**** Children
+***** : Node.insertBefore( newNode, refNode )
+Inserts a ~newNode~ before ~refNode~ as a child of the given parent ~Node~.
+
+***** : Node.appendChild( node )
+Appends a ~node~ as a child of the given parent node.
+
+***** : Node.replaceChild( newChild, oldChild )
+Replaces a child node within the given parent ~Node~.
+
+***** : Node.removeChild( childNode )
+Removes a ~childNode~ from the DOM and returns the removed node.
+
+***** : Element.prepend( obj1, obj2, … ) | ….append( … ) | Document.…
+Inserts a set of ~Node~ or string objects before|after the first|last child of the ~Element~.
+- String objects are inserted as equivalent text nodes
+- returns ~undefined~ (contrary to ~Node.appendChild()~)
+***** : Element.replaceChildren( obj1, obj2, … )
+Replaces the existing children of an ~Element~ with a specified new set of children. These can be string or Node objects.
+- String objects are inserted as equivalent text nodes
+**** Special elements
+***** : Document.createComment( str )
+Creates a new comment node, and returns it.
+
+***** : Document.createDocumentFragment()
+Creates a new empty ~DocumentFragment~ into which DOM nodes can be added to build an offscreen DOM tree.
+
+*** Modify
+**** : Node.normalize()
+Puts the specified ~Node~ and all of its sub-tree into a /normalized form/.
+
+In a normalized sub-tree, no text nodes in the sub-tree are empty and there are no adjacent text nodes.
+
+**** : Text.splitText( offset )
+Breaks the ~textNode~ into two nodes at specified ~offset~, keeping both nodes in the tree as siblings.
+
+** Attributes
+
+*** : Element.getAttribute( strName )
+Returns the value of an attribute of the element given its name (string).
+- if the attribute does not exist, returns either ~null~ or ~""~
+*** : Element.getAttributeNames()
+Returns the attribute names of the ~Element~ as an Array of strings.
+- returns empty array if no attributes found
+
+*** : Element.setAttribute( strName, val )
+Sets the value of an attribute of the element given its name (string).
+- creates the attribute if it does not exist
+- always returns ~undefined~
+*** : Element.toggleAttribute( name, ?force )
+Toggles a Boolean attribute (removing it if it is present and adding it if it is not present) on the given ~Element~.
+- if optional ~force~ is true, adds an attribute named ~name~, else removes the attribute
+
+*** : Element.removeAttribute( strName )
+Removes an attribute with given name from the element.
+- does not indicate whether the attribute existed
+- always returns ~undefined~
+
+*** : Element.hasAttribute( strName )
+Returns true if element has the attribute name requested.
+*** : Element.hasAttributes()
+Returns true if the ~Element~ has any attributes at all.
+*** : Element.id
+*** : Element.classList
+Returns a ~DOMTokenList~ containing the list of class attributes.
+*** : Element.className
+Gets and sets the value of the class attribute.
+*** : HTMLElement.contentEditable
+*** : HTMLElement.isContentEditable
+*** Attribute nodes
+/Note/: an ~Attr~ node can only be assigned to a single element. Clone using
+~Attr.cloneNode()~.
+
+**** : Document.createAttribute( strName )
+Creates a new ~Attr~ node and returns it.
+
+**** : Element.attributes
+Returns ~NamedNodeMap~ of all ~Attr~ nodes registered to the element.
+
+**** : Element.getAttributeNode( strName )
+Returns the ~Attr~ node if it exists, otherwise returns ~null~.
+
+**** : Element.setAttributeNode( attrNode )
+Adds a new ~Attr~ node to the given element.
+**** : Element.removeAttributeNode( attrNode )
+*** Special attributes
+**** : HTMLElement.dataset
+Returns a ~DOMStringMap~ to read and write the element's custom data attributes
+(~data-*~).
+
+**** : HTMLElement.lang
+Gets/sets the base language of an element’s attribute values and text content: ~<my-elem lang="…">~.
+- [[https://datatracker.ietf.org/doc/html/rfc5646][language codes]]
+
+**** : HTMLElement.dir | Document.…
+Gets/sets the text writing directionality of the content of the element.
+- element property: ~<my-elem dir="…">~
+- possible values are ~"ltr"~, ~"rtl"~, and ~"auto"~
+
+**** : HTMLElement.enterKeyHint
+Gets/sets the action label to present on virtual keyboards.
+- see [[https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/enterKeyHint][docs]]
+
+**** : HTMLElement.hidden
+Gets/sets the ~hidden~ attribute on the element: ~<my-elem hidden>~.
+- see [[https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/hidden][property docs]] and [[https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/hidden][attribute docs]]
+  - boolean attribute indicating that the element is not yet, or is no longer, relevant
+  - applies to all presentation modes and should not be used to hide content that is meant to be directly accessible to the user
+**** : HTMLElement.inert
+Gets/sets the ~inert~ attribute on the element: ~<my-elem inert>~.
+- *NOTE*: does not have full browser compatibility
+  -> see [[https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/inert][docs]]
+- boolean value that, when present, makes the browser "ignore" user input events for the element, including focus events and events from assistive technologies
+- browser may also ignore page search and text selection in the element
+
+
+** Properties
+*** : Document.characterSet
+Returns the character set being used by the document (e.g. UTF-8).
+
+*** : Document.contentType
+Returns the Content-Type from the MIME Header of the current document. Usually ~text/html~.
+
+*** : Document.currentScript
+Returns the ~<script>~ element whose script is currently being processed and isn't a JavaScript module. (For modules use import.meta instead.)
+- only references elements initially processed, not callbacks or event handler
+*** : Document.doctype
+Returns the Document Type Definition (DTD) of the current document.
+*** : Document.title
+Sets or gets the title of the current ~document~.
+*** : Document.timeline
+Returns the ~DocumentTimeline~ instance (automatically created on page load) that represents the default timeline of the current ~document~.
+- the timeline persists for the lifetime of the ~document~ and is unique to each ~document~
+*** : Document.visibilityState
+*** : Document.cookie
+Returns a semicolon-separated list of the cookies for that ~document~ or sets a single cookie.
+*** : Document.designMode
+Controls whether the entire document is editable.
+*** : Document.fullscreenEnabled
+Indicates whether fullscreen mode is available.
+*** : Document.lastModified
+Returns the date on which the document~ was last modified.
+*** : Document.readyState
+Returns loading status of the ~document~.
+*** : Document.URL
+Returns the document location as a string.
+
+*** : Document.documentURI
+Returns the document location/URL as a string.
+
+*** : Document.location
+Returns the URI of the current ~document~.
+
+*** : Document.referrer
+Returns the URI of the page that linked to this page.
+
+*** : Node.isConnected
+True if the ~Node~ is connected (directly or indirectly) to the context object
+(the ~Document~ object or the ~ShadowRoot~).
+*** : HTMLElement.tabIndex
+Gets/sets the tab order of the current element.
+*** : HTMLElement.title
+Gets/sets a string containing the text that appears in a popup box when mouse is over the element.
+
+*** Content/value
+**** : Node.nodeValue
+Returns or sets the value of the current ~Node~.
+- for text nodes, this is the text string itself
+- for attribute nodes, this is the value of the attribute
+
+**** : Node.textContent
+Gets text content of the node and its descendants.
+- includes ~<script>~ and ~<style>~ elements
+- getter and setter
+
+**** : Element.innerHTML
+Returns the nodes content as HTML.
+- if applicable, use ~Node.textContent~ instead for better performance and
+  security
+
+**** : Element.outerHTML
+Returns a string with the markup of the element including its content.
+- as a setter, replaces the ~Element~ with nodes parsed from the given string
+**** : HTMLElement.innerText
+Gets text content of the node and its descendants as rendered in the browser.
+Approximates the text as it would appear if a user highlighted and copied it.
+- aware of styling, won’t return “hidden” elements
+- when readed, triggers a reflow to ensure up-to-date computed styles
+- ~<br>~ elements appear as ~"\n"~ in the text (without space or line breaks)
+  - conversely, as a setter, line breaks are converted to ~<br>~ elems
+- getter and setter
+
+**** : HTMLElement.outerText
+Returns the same value as ~HTMLElement.innerText~, but as a setter, replaces the
+whole current node (including tag) with the given text
+
+*** Size & Position
+See also
+- [[https://developer.mozilla.org/en-US/docs/Web/API/CSS_Object_Model/Determining_the_dimensions_of_elements][Determining the dimensions of elements]]
+- [[https://docs.microsoft.com/de-de/previous-versions/hh781509(v=vs.85)][Measuring Element Dimension and Location with CSSOM in Windows Internet Explorer 9]]
+**** : Element.getBoundingClientRect()
+Returns a ~DOMRect~ providing information about the size of an element and its
+position relative to the viewport.
+- can be thought of as the union of the rectangles returned by
+  ~Element.getClientRects()~, i.e., the CSS border-boxes associated with the
+  element
+**** : Element.getClientRects()
+Returns a collection of ~DOMRect~ objects that indicate the bounding rectangles for each CSS border box in a client.
+- the collection has multiple elements if ~Element~ is an inline element that spans multiple lines (see [[https://developer.mozilla.org/en-US/docs/Web/API/Element/getClientRects#result][example]])
+- includes caption in tables (contrary to a table’s border box)
+
+**** : Element.clientWidth | ….clientHeight | ….clientLeft | ….clientTop
+Read-only properties that are relative to a CSS positioning context. Dimensions include padding but *not* borders, margins, scrollbars.
+- dimensions are 0 for elements with no CSS and inline elements
+  - CSS must not be explicit but may be computed by the browser
+  - can be calculated as: CSS width|height + CSS padding - width|height of horizontal scrollbar (if present).
+  - on the root element (e.g. ~<html>~), the viewport dimensions are returned
+- will round the value to an integer
+  -> use ~Element.getBoundingClientRect~ for fractional numbers
+- transforms applied to the element are ignored
+  -> use ~Element.getBoundingClientRect~ to get the transformed dimensions
+
+**** : Element.scrollWidth | ….scrollHeight | ….scrollLeft | ….scrollTop
+Read-only properties that return the dimensions of the entire content, even if parts of it are not visible (due to CSS ~overflow~).
+- like ~Element.client…~ excludes borders, margins, scrollbars, rounds to integer and ignores transforms
+- can also include the height of pseudo-elements such as ~::before~
+
+**** : HTMLElement.offsetWidth | ….offsetHeight | ….offsetLeft | ….offsetTop
+Read-only properties that are relative to a CSS positioning context. Dimensions include padding, borders, scrollbars but *not* margins.
+- does not include pseudo-elements such as ~::before~
+- will round the value to an integer
+  -> use ~Element.getBoundingClientRect~ for fractional numbers
+- transforms applied to the element are ignored
+  -> use ~Element.getBoundingClientRect~ to get the transformed dimensions
+
+**** : HTMLElement.offsetParent
+An ~Element~ that is the element from which all offset calculations are currently computed.
+- usually ~body~, but not if ~position: relative~ is set on a parent element
+
+*** CSS Style
+
+**** : Window.getComputedStyle( element, ?pseudoElt )
+Returns a ~CSSStyleDeclaration~ containing the values of all CSS properties of a
+given element, after applying active stylesheets and resolving any basic
+computation those values may contain.
+- the ~CSSStyleDeclaration~ is /read-only/ and recomputes on change
+  of the element's styles
+**** : HTMLElement.style
+Returns the /inline/ style of an element as a ~CSSStyleDeclaration~ object.
+- individual properties can be accessed and set by ~style.propertyName~
+
+*** Animation
+**** : Element.animate( keyframes, options )
+https://developer.mozilla.org/en-US/docs/Web/API/Element/animate
+**** : Element.getAnimations( ?options )
+https://developer.mozilla.org/en-US/docs/Web/API/Element/getAnimations
+
+** Events
+
+*** Window: load event
+https://developer.mozilla.org/en-US/docs/Web/API/Window/load_event
+
+#+begin_src typescript
+window.addEventListener('load', (event) => {});
+
+window.onload = (event) => { };
+#+end_src
+
+*** : Window.scrollTo( x-coord, y-coord )
+: Window.scrollTo( options )
+
+
+*** : EventTarget.addEventListener( typeStr, listenerFn, ?options/?useCapture )
+
+Registers a EventListener with specified parameters for the ~EventTarget~.
+
+*** : EventTarget.removeEventListener( typeStr, listenerFn, ?options/?useCapture )
+Removes a registered EventListener with specified parameters from the
+~EventTarget~.
+
+Note: every argument (including non-default options) from the add call must be
+included in the remove call to identify the listener.
+
+Note: the EventListener function must be referenced by the same variable,
+because explicit definitions, even if identical, can not be matched.
+
+*** Programmatic events
+**** : HTMLElement.click()
+Simulates a mouse click on an element.
+**** : HTMLElement.blur()
+Simulates unfocussing the element.
+**** : HTMLElement.focus( ?opts )
+Sets focus on the element if it can be focused.
+
+Options:
+- ~preventScroll~ (bool) -> scroll into view after focus?
+- ~focusVisible~ (bool) -> force visible indication of focus?
+
+
+*** Event objects
+**** : Event.target
+Reference to the object onto which the event was dispatched.
+- during bubbling/capturing phase, differs from the object where the event
+  handler is called -> see ~Event.currentTarget~
+
+**** : Event.currentTarget
+Identifies the current target of the event, as it traverses the DOM.
+- always refers to the element to which the event handler has been attached
+- different from ~Event.target~ when called during bubbling/capturing phase
+
+**** : new Event( typeStr )
+Creates a new ~Event~.
+
+**** : EventTarget.dispatchEvent( event )
+Dispatches an ~Event~ to the given ~EventTarget~.
+
+** Range
+
+*** : Range.collapsed
+Returns true if the start and end points of the ~Range~ are at the same position
+
+*** : Range.commonAncestorContainer
+Returns the deepest common anchestor node that contains both boundary points of
+the ~Range~.
+- if ~Range.startContainer~ and ~Range.endContainer~ both refer to the same
+  node, this node is the common ancestor container
+
+*** : Range.startContainer | Range.endContainer
+Node within which the ~Range~ starts|ends
+
+*** : Range.startOffset | ange.endOffset
+Number representing where in the ~Range.startContainer~ | ~Range.endContainer~
+the ~Range~ starts|ends.
+
+*** : Range.collapse( ?toStart )
+Collapses the ~Range~ to its start (if ~toStart~ is true) or end point (see
+~Range.collapsed~).
+
+*** : Document.createRange() / new Range()
+Returns a new ~Range~ object.
+
+*** : Range.setStart( startNode, startOffset ) | .setEnd( endNode, endOffset )
+Sets the start|end position of the ~Range~ from given node as
+~Range.startContainer~ | ~.endContainer~ and offset as ~Range.startOffset~ |
+~.endOffset~.
+- partially select text by choosing a textNode and the character offset
+
+*** : Range.setStartBefore( refNode ) | .setEndAfter( refNode )
+Sets the start|end position of the ~Range~ relative to ~refNode~.
+- ~Range.startContainer~ | ~.endContainer~ will be the parent of ~refNode~
+- ~Range.startOffset~ | ~.endOffset~ will be the index of ~refNode~ (+ 1 for
+  .setEndAfter) in parents childNodes
+- ~refNode~ must be of type node, so partial text selection is not possible
+
+*** : Range.getBoundingClientRect()
+Returns a ~DOMRect~ object that bounds the contents of the ~Range~, enclosing
+the union of the bounding rectangles for all elements in the ~Range~.
+*** : Range.getClientRects()
+https://developer.mozilla.org/en-US/docs/Web/API/Range/getClientRects
+
+*** Compare
+
+**** : Range.compareBoundaryPoints( how, sourceRange )
+Compares the boundary points of the Range with another Range.
+https://developer.mozilla.org/en-US/docs/Web/API/Range/compareBoundaryPoints
+
+**** : Range.comparePoint( refNode, offset )
+Returns -1, 0, or 1 depending on whether the ~refNode~ is before, the same
+as, or after the ~Range~.
+https://developer.mozilla.org/en-US/docs/Web/API/Range/comparePoint
+**** : Range.isPointInRange( refNode, offset )
+https://developer.mozilla.org/en-US/docs/Web/API/Range/isPointInRange
+**** : Range.intersectsNode( refNode )
+Returns true if the given ~refNode~ intersects the ~Range~.
+
+*** Clone
+
+**** : Range.cloneContents()
+Returns a DocumentFragment copying the nodes of a Range.
+
+**** : Range.cloneRange()
+Returns a Range object with boundary points identical to the cloned ~Range~.
+
+*** Manipulate contents
+
+**** : Range.deleteContents()
+Removes the contents of the ~Range~ from the document.
+
+**** : Range.surroundContents( newParentNode )
+Moves the content of the ~Range~ into the ~newParentNode~, while placing
+~newParentNode~ at the start of the ~Range~.
+**** : Range.insertNode( newNode )
+Inserts a node at the start of the ~Range~.
+
+**** : Range.selectNode( refNode )
+Sets the ~Range~ to contain the ~refNode~ and its contents.
+- the parent node of the start and end of ~Range~ will be the same as the
+  parent of ~refNode~
+
+**** : Range.selectNodeContents( refNode )
+Sets the ~Range~ to contain the contents of ~refNode~.
+- the parent Node of the start and end of ~Range~ will be the ~refNode~.
+- ~startOffset~ is 0, ~endOffset~ is the number of child nodes or number of
+  chars contained in the ~refNode~.
+
+*** Extract contents
+
+**** : Range.createContextualFragment( tagStr )
+https://developer.mozilla.org/en-US/docs/Web/API/Range/createContextualFragment
+
+**** : Range.extractContents()
+Moves contents of the ~Range~ from the document tree into a ~DocumentFragment~.
+
+
+** Selection
+
+*** : Window.getSelection() / Document.getSelection()
+Returns a ~Selection~ object representing the range of text selected by the user, or the current position of the caret.
+- *Note*: currently ~getSelection()~ doesn't work on the content of ~<input>~ elements in Firefox
+  -> use ~HTMLInputElement.setSelectionRange()~ as a workaround
+
+*** : Selection.type
+Returns the type of selection as a string.
+- "None"  -> no selection has been made
+- "Caret" -> the ~Selection~ is collapsed
+- "Range" -> a range has been selected
+
+*** : Selection.anchorNode | .focusNode
+Node in which the ~Selection~ begins|ends.
+- returns ~null~ if selection never existed in the doc
+
+*** : Selection.anchorOffset | .focusOffset
+Number representing the offset of the ~Selection~'s anchor within the
+~anchorNode~ | ~focusNode~.
+- in text nodes, returns the number of characters preceding the anchor|focus
+- otherwise, returns the number of child nodes
+
+*** : Selection.isCollapsed
+True if the ~Selection~'s start and end points are at the same position.
+
+*** : Selection.containsNode( node, ?partialContainment )
+Indicates whether a specified ~node~ is part of the ~Selection~.
+- if ~partialContainment~ is true (dafault: false), a partially contained ~node~
+  return true, otherwise it must be fully contained
+
+*** : Selection.deleteFromDocument()
+Deletes the ~Selection~'s content from the document.
+*** : Selection.toString()
+Returns the text contained within the ~Selection~ (including ~\n~).
+
+*** Get/modify Range(s)
+**** : Selection.rangeCount
+Returns the number of ranges in ~Selection~.
+- starts at 0 on page load
+- if a user clicks anywhere on the page, rangeCount will be 1, even with no
+  visible selection
+
+**** : Selection.getRangeAt( index )
+Returns the range at ~index~ in ~Selection~.
+
+**** : Selection.addRange( range )
+Adds the range ~range~ to the ~Selection~.
+- addition of multiple ranges does not seem to work(?)
+
+**** : Selection.removeRange( range )
+Removes a ~range~ from ~Selection~.
+
+*NOTE*: not supported in Safari.
+
+**** : Selection.removeAllRanges()
+Remove all ranges from ~Selection~.
+- ~anchorNode~ and ~focusNode~ properties become null
+
+*** Generate Selection
+**** : Selection.selectAllChildren( parentNode )
+Adds all the children of ~parentNode~ to the ~Selection~.
+- previous selection is lost
+
+**** : Selection.setBaseAndExtent( anchorNode, anchorOffset, focusNode, focusOffset )
+Sets the ~Selection~ to be a ~Range~ with the specified parameters.
+
+*** Modify Selection
+**** : Selection.collapse( node, ?offset )
+Collapses the current ~Selection~ to a single point.
+- caret location will be within ~node~
+- an optional ~offset~ within ~node~ can be given (default: 0)
+- if ~node~ is null, behaves like ~Selection.removeAllRanges()~
+
+**** : Selection.collapseToEnd()
+Collapses the ~Selection~ to the end of the last ~Range~ in the selection.
+**** : Selection.collapseToStart()
+Collapses the ~Selection~ to the start of the first ~Range~ in the selection.
+**** : Selection.extend( node, ?offset )
+Moves the focus of the ~Selection~ to a specified ~node~ at given ~offset~ or
+(default) position 0.
+**** : Selection.modify( alter, direction, granularity )
+Applies a change to the current ~Selection~, using simple textual commands.
+
+~alter~: type of change to apply
+- "move" -> move cursor position
+- "extend" -> extend selection
+
+~direction~: direction to adjust the current Selection
+- "forward" / "backward" -> adjust direction based on language
+- "left" / "right" -> adjust specific direction
+
+~granularity~: distance to adjust the current Selection
+- "character", "word", "sentence", "line", "paragraph"
+- "lineboundary", "sentenceboundary", "paragraphboundary", "documentboundary"
+
+*NOTE*: Firefox does not implement "sentence", "paragraph", "sentenceboundary",
+"paragraphboundary", or "documentboundary"
+
+*** Recipes
+**** To create a selection / set the caret
+
+Range offsets are defined on the start and end index of their contents.
+- for a text node, this is the character offset
+- for a parent node, this is the index on its child nodes
+
+#+begin_src typescript
+let rng = document.createRange()
+rng.setStart(elem, offset) // from pos
+rng.setEnd(elem, offset)   // to pos
+
+let sel = window.getSelection()
+sel.removeAllRanges()
+sel.addRange(rng)
+#+end_src
+
+To set caret to the beginning/end of node content:
+
+#+begin_src typescript
+let rng = document.createRange()
+rng.selectNodeContents(el)
+rng.collapse( to_start? )
+
+let sel = window.getSelection()
+sel.removeAllRanges()
+sel.addRange(rng)
+#+end_src
+** Scrolling
+*** : Element.scroll( x-coord, y-coord ) / .…( options )
+*** : Element.scrollBy( x-coord, y-coord ) / .…( options )
+*** : Element.scrollIntoView() / .…( alignToTop ) / .…( options )
+*** : Element.scrollTo( x-coord, y-coord ) / .…( options )
+
+* Document Object Model (DOM)
+
+- [[https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model/Introduction][DOM Introduction]]
+
+Data representation (tree) of the objects that comprise the structure and
+content of a document on the web. Each branch of the DOM tree ends in a Node,
+which contains objects.
+
+The DOM is a also a programming interface for web documents to change their
+structure, style and content.
+
+The DOM API is not dependent on JavaScript and JS does not include it by
+default. However, it is always available from within ~<script>~ tags in HTML
+documents.
+
+To execute JS when the document is loaded: ~window.onload = () => { ... }~
+
+** APIs
+*** (core) DOM API
+Defines the entities describing any document and the objects within it.
+*** HTML DOM API
+Represents HTML documents to the core DOM.
+*** SVG API
+Represents SVG documents to the core DOM.
+
+* Interfaces
+
+** I: AbstractRange
+
+*** I: Range
+
+Represents a fragment of a ~document~ that can contain ~nodes~ and parts of
+~text nodes~.
+
+** I: Selection
+
+Represents the ~range~ of text selected by the user or the current position of
+the caret.
+
+A user can make a selection in either order:
+- a->b (document order)
+  - ~anchor~: a, - ~focus~: b
+- a<-b (reverse of document order)
+  - ~anchor~: b, - ~focus~: a
+
+Usually, properties are identical to the associated range:
+- ~anchorNode~ = ~Range.startNode~
+- ~focusNode~ = ~Range.endNode~
+- ~anchorOffset~ = ~Range.startOffset~
+- ~focusOffset~ = ~Range.endOffset~
+
+Normally there will only be one range at a time in a selection, but scripting
+can be used for multiple ranges.
+
+** I: DOMRectReadOnly
+Immutable ~DOMRect~.
+
+*** I: DOMRect
+
+Describes the size and position of a rectangle.
+- mutable
+
+Can be constructed with either:
+- ~new DOMRect(x, y, width, height)~
+- ~DOMRect.fromRect({x: int, y: int, width: int, height: int})~
+  (all properties default to ~0~, object can be incomplete)
+
+** I: Event
+https://developer.mozilla.org/en-US/docs/Web/API/Event
+- [[https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Building_blocks/Events][Introduction to events]]
+- [[https://domevents.dev][Explore DOM Events]]
+
+Represents an event which takes place in the DOM.
+- contains the properties and methods common to all events
+- one element can have several handlers, even for the exact same event
+
+Event types: https://developer.mozilla.org/en-US/docs/Web/Events
+
+*** Event phases
+
+When an event is fired on an element that has parents, the browser runs 3
+different phases:
+
+1. *Capturing phase*
+
+   For each parent of the ~target~ element, starting from the outermost parent
+   (~<html>~), the browser checks if a handler for the capturing phase for the
+   resp. event type is registered on that element and runs it.
+
+2. *Target phase*
+
+   If the element referenced by the ~Event.target~ property has a handler for
+   the resp. event type registered, the browser runs it.
+
+3. *Bubbling phase*
+
+   If the property ~Event.bubbles~ is set to ~true~:
+
+   For each parent of ~Event.target~, starting from the direct parent until the
+   outermost parent (~<html>~) is reached, the browser checks if a handler for
+   the bubbling phase for the resp. event type is registered on that element and
+   runs it.
+
+*** Event listener
+
+Options:
+- ~capture~ (bool): whether the event listener is called in the capturing or in
+  the bubble phase
+  - by default, all event handlers are registered for the *bubbling phase*
+- ~passive~ (bool): marks the event listener as passive
+- ~once~ (bool): the listener is automatically removed after the first call
+
+Effects:
+- ~Event.preventDefault()~
+- ~Event.stopPropagation()~
+- ~Event.stopImmediatePropagation()~
+
+** I: EventTarget
+
+Implementing objects can receive events and may have listeners for them.
+
+An EventTarget object must implement 3 methods:
+- ~addEventListener()~
+- ~removeEventListener()~
+- ~dispatchEvent()~
+
+*** I: Window
+https://developer.mozilla.org/en-US/docs/Web/API/Window
+
+Represents a window containing a DOM document.
+
+*** I: Node
+
+https://developer.mozilla.org/en-US/docs/Web/API/Node
+
+Every object located within a ~document~ is a ~node~ of some kind. In an HTML
+document, an object can be an ~element node~ but also a ~text node~ or
+~attribute node~.
+
+Nodes are referenced as mutable objects, so they should be cloned in order to
+work with them independent of the DOM tree.
+
+Nodes can also have event handlers attached to them. Once an event is triggered,
+the event handlers get executed.
+
+**** I: Document
+https://developer.mozilla.org/en-US/docs/Web/API/Document
+
+Represents any *web page* loaded in the browser.
+
+Entry point into the web page’s content (the *DOM tree*).
+
+**** I: DocumentFragment
+
+Represents a minimal document object that has no parent.
+- not part of the active ~Document~ tree structure
+- changes made to the fragment don’t affect the ~Document~
+
+**** I: NodeList
+https://developer.mozilla.org/en-US/docs/Web/API/NodeList
+
+Represents a collection/array of nodes.
+
+Items can be accessed by index in 2 (equivalent) ways:
+- list.item(1)
+- list[1]
+
+***** / Live Nodelist
+Changes in the DOM automatically update the collection.
+- returned by e.g.: ~Node.childNodes~
+
+***** / Static Nodelist
+Changes in the DOM do not affect the content of the collection.
+- returned by e.g.: ~document.querySelectorAll()~
+- node elements are stored by reference, so they are not clones, but they
+  can be restored from the list after removal from the DOM
+
+**** I: Attr
+https://developer.mozilla.org/en-US/docs/Web/API/Attr
+
+Represents one of an element’s attributes as an object.
+
+Association between name and value.
+
+***** (I:) NamedNodeMap
+https://developer.mozilla.org/en-US/docs/Web/API/NamedNodeMap
+
+Interface that represents a collection of ~Attr~ objects (similar to
+~NodeList~).
+- objects are not in a particular order
+- always *live* and thus auto-updated on changes to its contents
+
+Items can be accessed by name or index (not sorted):
+- list.name
+- list["name"]
+- list.item[1]
+- list[1]
+
+**** I: Element
+https://developer.mozilla.org/en-US/docs/Web/API/Element
+
+Most general base class for all element objects in a ~Document~.
+
+***** I: HTMLElement
+https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement
+
+Represents any HTML element.
+
+****** I: HTMLTableElement
+https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableElement
+
+***** I: SVGElement
+Represents any SVG element.
+**** I: CharacterData
+Represents a Node object that contains characters.
+- abstract interface; no objects of type ~CharacterData~ are available
+
+***** I: Text
+Represents a text node in a DOM tree.
+
+- ~Text.assignedSlot~ ?
+- ~Text.wholeText~ returns a string containing the text of all ~Text~ nodes logically adjacent to this Node, concatenated in document order.
+
+***** I: Comment
+
+** I: CSSStyleDeclaration
+https://developer.mozilla.org/en-US/docs/Web/API/CSSStyleDeclaration
+
+Represents an object that is a CSS declaration block and exposes style
+information and various style-related methods and properties.
+- updates automatically on change of the element's styles
+** I: HTMLCollection
+https://developer.mozilla.org/en-US/docs/Web/API/HTMLCollection
+
+Represents a generic (live) collection of elements (in document order).
+- use ~Array.from(…)~ to copy to a normal array
+- ~.length~ returns the number of items
+- ~.item(i)~ returns the item at index ~i~ (null if out of range)
+** I: DocumentTimeline
+https://developer.mozilla.org/en-US/docs/Web/API/DocumentTimeline
+
+Represents animation timelines, including the default document timeline (via ~Document.timeline~).
+- ~.currentTime~ to get the time value in ms (or null if inactive)

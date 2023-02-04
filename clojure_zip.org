@@ -1,0 +1,187 @@
+#+title: Docs/Clojure/zip
+
+Docs:
+- Api: https://clojure.github.io/clojure/clojure.zip-api.html
+- Intro: https://clojure.org/reference/other_libraries#_zippers_functional_tree_editing_clojure_zip
+
+Guides:
+- https://lambdaisland.com/blog/2018-11-26-art-tree-shaping-clojure-zip
+- https://tbaldridge.pivotshare.com/media/zippers-episode-1/11348/feature?t=0
+
+src_clojure{ (require '[clojure.zip :as z]) }
+
+
+* Creating zippers
+
+** : (z/zipper branch? children make-node root)
+
+Returns a zipper for any hierarchical structure from ... and given ~root~ vector.
+- every other creation function calls this one
+
+** : (z/vector-zip root)
+
+Returns a zipper for nested vectors from given ~root~ vector.
+
+** : (z/seq-zip root)
+
+Returns a zipper for nested sequences from given ~root~ sequence.
+
+** : (z/xml-zip root)
+
+Returns a zipper for XML documents from given ~root~ doc.
+
+* Movement
+
+** : (z/up loc) (z/down loc) (z/left loc) (z/right loc)
+
+Move up/down the tree (leftmost first) or to left/right sibling in subtree.
+
+** : (z/leftmost loc) (z/rightmost loc)
+
+Move to leftmost/rightmost sibling of node in subtree.
+
+** Walking (leftmost, depth-first)
+
+*** : (z/prev loc) (z/next loc)
+
+Walks to previous/next node from ~loc~.
+
+If it reached the end, returns the root node with ~:end~ keyword.
+
+**** Example walk through a vector form:
+
+#+begin_src clojure
+(def data '[[a * b] + [c * d]])
+(def dz (z/vector-zip data))
+
+(nth (iterate z/next dz) 10)
+
+;; -> OUTPUT:
+;; 0
+[[[a * b] + [c * d]] nil]
+
+;; 1
+[[a * b]
+ {:l [], :pnodes [[[a * b] + [c * d]]], :ppath nil, :r (+ [c * d])}]
+
+;; 2
+[a
+ {:l [],
+  :pnodes [[[a * b] + [c * d]] [a * b]],
+  :ppath
+  {:l [], :pnodes [[[a * b] + [c * d]]], :ppath nil, :r (+ [c * d])},
+  :r (* b)}]
+
+;; 3
+[*
+ {:l [a],
+  :pnodes [[[a * b] + [c * d]] [a * b]],
+  :ppath
+  {:l [], :pnodes [[[a * b] + [c * d]]], :ppath nil, :r (+ [c * d])},
+  :r (b)}]
+
+;; 4
+[b
+ {:l [a *],
+  :pnodes [[[a * b] + [c * d]] [a * b]],
+  :ppath
+  {:l [], :pnodes [[[a * b] + [c * d]]], :ppath nil, :r (+ [c * d])},
+  :r nil}]
+
+;; 5
+[+
+ {:l [[a * b]],
+  :pnodes [[[a * b] + [c * d]]],
+  :ppath nil,
+  :r ([c * d])}]
+[[c * d]
+ {:l [[a * b] +], :pnodes [[[a * b] + [c * d]]], :ppath nil, :r nil}]
+
+;; 6
+[c
+ {:l [],
+  :pnodes [[[a * b] + [c * d]] [c * d]],
+  :ppath
+  {:l [[a * b] +], :pnodes [[[a * b] + [c * d]]], :ppath nil, :r nil},
+  :r (* d)}]
+
+;; 7
+[*
+ {:l [c],
+  :pnodes [[[a * b] + [c * d]] [c * d]],
+  :ppath
+  {:l [[a * b] +], :pnodes [[[a * b] + [c * d]]], :ppath nil, :r nil},
+  :r (d)}]
+
+;; 8
+[d
+ {:l [c *],
+  :pnodes [[[a * b] + [c * d]] [c * d]],
+  :ppath
+  {:l [[a * b] +], :pnodes [[[a * b] + [c * d]]], :ppath nil, :r nil},
+  :r nil}]
+
+;; 9
+[[[a * b] + [c * d]] :end]
+#+end_src
+
+
+*** : (z/end? loc)
+
+True if ~loc~ represents the end of a depth-first walk.
+
+* Inspection
+
+** : (z/lefts loc) (z/rights loc)
+
+Returns all left/right siblings from ~loc~.
+
+** : (z/children loc)
+
+Returns seq of the children of node at ~loc~ (which must be a branch).
+
+** : (z/branch? loc)
+
+True if node at ~loc~ is a branch.
+
+** : (z/path loc)
+
+Returns a seq of nodes leading to this ~loc~.
+
+* Conversion
+
+** : (z/node loc)
+
+Returns the node at ~loc~.
+
+** : (z/root loc)
+
+Zips all the way up and returns the root node, reflecting any changes.
+
+* Updating
+
+** : (z/remove loc)
+
+Remove a node at ~loc~.
+
+** : (z/replace loc item)
+
+Replace node at ~loc~ with ~item~.
+
+** : (z/edit loc f & args)
+
+Update (replaces) node at ~loc~ with ~f~ and provided ~args~.
+
+** : (z/insert-left loc item) (z/insert-right loc item)
+
+Inserts ~item~ as left/right sibling from ~loc~.
+
+** : (z/insert-child loc item) (z/append-child loc item)
+
+Inserts (leftmost) / Appends (rightmost) ~item~ in subtree at ~loc~.
+
+** : (z/make-node loc node children)
+
+Given an existing node and a new set of child nodes,
+returns a new node with those children.
+

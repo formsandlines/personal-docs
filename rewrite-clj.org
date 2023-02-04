@@ -1,0 +1,302 @@
+#+title: Docs/rewrite-clj
+
+Reads/writes Clojure, ClojureScript and EDN from Clojure and ClojureScript in a whitespace and comment preserving way.
+- base for tooling
+
+Docs:
+- [[https://cljdoc.org/d/rewrite-clj/rewrite-clj/1.1.45/doc/readme][https://cljdoc.org/d/rewrite-clj/rewrite-clj/1.1.45/doc/readme]]
+- https://github.com/clj-commons/rewrite-clj
+
+See also:
+- https://github.com/borkdude/rewrite-edn
+
+* .node API
+
+Inspect, analyze, create and render rewrite-clj nodes.
+
+src_clojure{ (require '[rewrite-clj.node :as n]) }
+
+** Creating nodes
+
+- Indirectly via the parser API
+  #+begin_src clojure
+(-> (p/parse-string "[1 2 3]")
+    n/string) ;; => "[1 2 3]"
+  #+end_src
+
+- Indirectly via the zip API (which uses the parser API)
+  #+begin_src clojure
+(-> (z/of-string "[1 2 3]")
+    z/node
+    n/string) ;; => "[1 2 3]"
+  #+end_src
+
+- Via coercion from Clojure forms
+  - no control over whitespace
+  - sometimes unexpected results
+    #+begin_src clojure
+  (-> (n/coerce '[1 2 3])
+       n/string) ;; => "[1 2 3]"
+    #+end_src
+
+- By explicitly calling node creation functions
+  - can also be used with non rewrite-clj elements (no auto coercion)
+  #+begin_src clojure
+(-> (n/vector-node [(n/token-node 1)
+                    (n/whitespace-node " ")
+                    (n/token-node 2)
+                    (n/whitespace-node " ")
+                    (n/token-node 3)])
+    n/string) ;; => "[1 2 3]"
+  #+end_src
+
+** Node types
+
+*** Basic forms
+**** : (n/var-node children)
+**** : (n/deref-node children)
+**** : (n/fn-node children)
+**** : (n/forms-node children)
+
+*** Collections
+**** : (n/vector-node children)
+**** : (n/map-node children)
+Creates an unqualified map: ~{:a 1 :b 2}~
+- use ~n/keyword-node~ for keywords
+
+***** : (n/namespaced-map-node children)
+Creates a namespaced map: ~#:prefix {:x 1 :y 2}~
+- prepend ~n/map-qualifier-node~ for ~:prefix~
+
+***** : (n/map-qualifier-node auto-resolved? prefix)
+
+**** : (n/list-node children)
+**** : (n/set-node children)
+
+*** Elements
+**** : (n/token-node value ?string-value)
+**** : (n/keyword-node k ?auto-resolved?)
+
+- ~auto-resolved?~ defaults to ~false~
+
+**** : (n/string-node lines)
+Create node representing a string value where ~lines~ can be a sequence of
+strings or a single string.
+
+**** : (n/integer-node value ?base)
+**** : (n/regex-node pattern-string)
+*** Quotes
+**** : (n/quote-node children)
+**** : (n/unquote-node children)
+**** : (n/syntax-quote-node children)
+**** : (n/unquote-splicing-node children)
+
+*** Whitespace / Comments
+**** : (n/comment-node ?prefix s)
+**** : (n/comma-node s)
+**** : (n/newline-node s) (n/newlines n)
+**** : (n/whitespace-node s) (n/whitespace-nodes s) (n/spaces n)
+
+*** Special
+**** : (n/eval-node children)
+**** : (n/uneval-node children)
+
+**** : (n/meta-node children) (n/meta-node metadata data)
+**** : (n/raw-meta-node children) (n/raw-meta-node metadata data)
+
+**** : (n/reader-macro-node children) (n/reader-macro-node macro-node form-node)
+
+** Inspection
+
+*** : (n/node? x)
+True if ~x~ is a node.
+
+*** : (n/children node)
+Returns child nodes for ~node~.
+
+*** : (n/replace-children node children)
+Returns ~node~ replacing current children with ~children~.
+
+*** : (n/inner? node)
+True if ~node~ can have children.
+
+*** : (n/tag node)
+Returns keyword representing type of ~node~.
+
+** Conversion
+
+*** : (n/coerce form)
+Coerce ~form~ to node.
+
+*** : (n/sexpr node ?opts) (n/sexprs nodes ?opts)
+Returns ~node(s)~ converted to form(s).
+- ~n/sexprs~ skips nodes that don’t represent s-exprs
+
+*** : (n/sexpr-able? node)
+True if ~sexpr~ is supported for ~node~ ’s element type.
+
+*** : (n/printable-only? node)
+True if ~node~ cannot be converted to an s-expression element.
+
+*** : (n/child-sexprs node ?opts)
+Returns children for ~node~ converted to forms.
+
+*** : (n/string node)
+Returns the string version of ~node~.
+
+** Special nodes
+
+| Tag             | Clojure form           | Node sexpr               |
+|-----------------+------------------------+--------------------------|
+| ~:quote~        | ~'form~                | ~(quote form)~           |
+| ~:syntax-quote~ | ~`symbol~              | ~(quote symbol)~         |
+| ~:unquote~      | ~~symbol~              | ~(unquote symbol)~       |
+|-----------------+------------------------+--------------------------|
+| ~:token~        | ~\newline~             | same                     |
+|                 | ~\space~               | same                     |
+|                 | ~\tab~                 | same                     |
+|-----------------+------------------------+--------------------------|
+| ~:comment~      | ~; comment~            | <unsupported>            |
+|-----------------+------------------------+--------------------------|
+| ~:deref~        | ~@form~                | ~(deref form)~           |
+|-----------------+------------------------+--------------------------|
+| ~:meta~         | ~^{:a 1 :b 2} [1 2 3]~ | ~^{:b 2, :a 1} [1 2 3]~  |
+|                 | ~^String x~            | ~^{String true} x~       |
+|                 | ~^:dynamic x~          | ~^{:dynamic true} x~     |
+|-----------------+------------------------+--------------------------|
+| ~:set~          | ~#{1 2 3}~             | ~#{1 3 2}~               |
+|-----------------+------------------------+--------------------------|
+| ~:regex~        | ~#"reg.*ex"~           | ~(re-pattern "reg.*ex")~ |
+|-----------------+------------------------+--------------------------|
+| ~:var~          | ~#'x~                  | ~(var x)~                |
+|-----------------+------------------------+--------------------------|
+| ~:fn~           | ~#(println %)~         | ~(fn* [p12976#]     `~   |
+|                 |                        | ~` (println p12976#))~   |
+|-----------------+------------------------+--------------------------|
+| ~:uneval~       | ~#_ :ignore-me~        | <unsupported>            |
+|-----------------+------------------------+--------------------------|
+| ~:reader-macro~ | Tagged literals:       |                          |
+|                 | ~#foo/bar [1 2 3]~     | ~(read-string "...")~    |
+|                 | Reader conditionals:   |                          |
+|                 | ~#?(:clj x :cljs y)~   | ~(read-string "...")~    |
+
+
+* .paredit API
+
+* .parser API
+
+Parse Clojure/ClojureScript/EDN source code to nodes.
+- can parse invalid Clojure in some specific cases
+  e.g. unbalanced maps, maps/sets with duplicate keys, etc.
+
+Some source code element types are not /sexpr-able/ (check with ~sexpr-able?~):
+- Reader ignore/discard ~#_~ (also known as "uneval" in rewrite-clj)
+- Comments
+- Clojure whitespace (which includes commas)
+
+
+src_clojure{ (require '[rewrite-clj.parser :as p]) }
+
+** : (p/parse-file f) (p/parse-file-all f)
+
+** : (p/parse-string s) (p/parse-string-all s)
+
+
+* .zip API
+
+A rich API for navigating and updating Clojure/ClojureScripti/EDN source code
+via a zipper tree.
+- uses a custom clojure.zip implementation
+- zipper over source code
+- retains whitespace
+
+See [[file:clojure_zip.org][clojure.zip API]]
+
+src_clojure{ (require '[rewrite-clj.zip :as z]) }
+
+- API mostly the same as clojure.zip
+- left/right movement skips over whitespace nodes
+  - use ~left*~ etc. functions (with appended ~*~) to navigate over all nodes
+
+The zipper (commonly called =zloc=) contains:
+- a tree of rewrite-clj nodes representing the parsed Clojure source
+- the current location within zipper
+
+Zipper options:
+- ~:track-position?~
+- ~:auto-resolve~
+- pass like:
+  src_clojure{ (z/of-string "(+ 1 2)" {:track-position? true
+                                       :auto-resolve (fn [_alias] 'custom)}) }
+- must be respecified on creation of new zippers from old ones
+
+** Creation
+
+*** : (z/of-string "(x y z)")
+
+*** : (z/of-node ...)
+
+(previously ~z/edn~)
+
+*** : (z/of-file "my-file.clj")
+
+Loads and parses a source file into a zipper.
+- only for Clojure
+
+** Inspection
+
+*** : (z/find-value zloc ?f v)
+
+Returns ~zloc~ located to the first node that sexpresses to ~v~ (else ~nil~).
+- search starts from current node and continues via movement function ~f~
+- ~v~ can be single value or set (to match on multiple values)
+- ~f~ defaults to ~\[\[right\]\]~ in short form call (?)
+
+*** : (s/position zloc)
+
+Returns positional attributes, if ~:track-position?~ is set ~true~ for zipper.
+- position of start of current node in ~zloc~
+- format: ~[row col]~, count from 1
+
+*** : (z/root-string zloc)
+
+Returns string representing the zipped-up zloc zipper.
+
+** Updating
+
+*** : (z/subedit-> zloc & body) (z/subedit->> zloc & body)
+
+Like ~->~ / ~->>~, threads ~zloc~ as an isolated sub-tree through forms,
+then zips up to, and locates at, the root of the modified sub-tree.
+
+*** : (z/prewalk zloc ?p? f) (z/postwalk zloc ?p? f)
+
+Return zipper modified by an _isolated_ depth-first pre/post-order traversal.
+- Pre-order traversal visits root before children.
+- Post-order traversal visits children before root.
+- the walk is performed on the isolated sub-tree at ~zloc~ until its end
+  - *caution*: new zipper automatically navigates to first non-whitespace node!
+    -> navigate up prior to walk to reach all forms
+~f~ is called on the zipper locations satisfying ~p?~ and must return:
+- ~nil~ to indicate no changes
+- valid zipper
+When ~p?~ is not specified ~f~ is called on all locations.
+
+*** : (z/insert-newline-left zloc ?n) (z/insert-newline-right zloc ?n)
+
+*** : (z/insert-space-left ?n) (z/insert-space-right ?n)
+
+*** Similar to familiar Clojure functions
+
+**** : (z/vector? zloc)
+
+True if zloc node is a vector.
+
+**** : (z/get zloc key)
+
+**** : (z/assoc zloc key val)
+
+**** : (z/map f zloc)
+
+**** : (z/map-vals f zloc) (z/map-keys f zloc)
+for maps
