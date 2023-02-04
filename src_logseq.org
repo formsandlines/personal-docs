@@ -1,0 +1,8 @@
+#+title: Src/Logseq
+
+Trying to understand the Logseq codebase.
+
+- Codebase overview: https://github.com/logseq/logseq/blob/master/CODEBASE_OVERVIEW.md
+- Refactoring notes: https://docs.logseq.com/#/page/The%20Refactoring%20Of%20Logseq
+
+Rum: https://github.com/tonsky/rum

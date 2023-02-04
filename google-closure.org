@@ -1,0 +1,133 @@
+#+title: docs/Google Closure Library
+
+- [[https://web.archive.org/web/20171207052758/http://www.closurecheatsheet.com:80/][closure cheatsheet]] ( [[https://github.com/kuzmisin/closurecheatsheet][repo in markdown]] ) ( [[https://github.com/xvilo/closurecheatsheet][more up-to-date repo]] )
+
+* Useful functions
+
+** : (goog.object/get o k)
+
+JS object access by key.
+- like =clojure.core/get=
+- won’t throw, even if ~k~ is not in ~o~ or if ~k~ or ~o~ are nil
+- you can supply an optional 3. argument to specify a default value, if the key is missing
+
+#+begin_src clojurescript
+(goog.object/get #js{"a" 123} "a") ;=> 123
+#+end_src
+
+** : (goog.object/getValueByKeys o k1 k2 … kn)
+
+JS object access by successive keys in nested maps.
+- like =clojure.core/get-in=
+- expects each key as separate argument
+
+#+begin_src clojurescript
+(goog.object/getValueByKeys #js{"a" #js{"b" 123}} "a" "b") ;=> 123
+#+end_src
+
+** : (goog.string/format format-str ...var-args)
+
+#+begin_src clojurescript
+(goog.string/format "%05d" 123) ;=> "00123"
+#+end_src
+
+* goog.Uri
+https://google.github.io/closure-library/api/goog.Uri.html
+
+* goog.dom
+https://google.github.io/closure-library/api/goog.dom.html
+
+** Core
+*** : (dom/getElement id<string>|elem)
+*** : (dom/getElementsByTagName tag<string>)
+*** : (dom.getElementsByTagNameAndClass opt-tag opt-class opt-elem)
+
+Can narrow down search space on provided tag, classname and/or (parent) element.
+*** : (dom.getNextElementSibling node)
+*** : (dom.getParentElement elem)
+*** : (dom.getTextContent node)
+
+*** : (dom/getDocument)
+
+Gets the document object being used by the dom library.
+*** : (dom/getViewportSize)
+
+Gets the dimension of the viewport (window).
+
+*** : (dom/createDom tag<string> opt-attr<Object|string|null> ...var-args<Object|string|null|undefined>)
+
+Returns a dom node with a set of attributes. This function accepts varargs for subsequent nodes to be added. Subsequent nodes will be added to the first node as childNodes.
+
+#+begin_src clojurescript
+(dom/createDom "a" (js-obj "href" "https://wikipedia.com")
+    "Wikipedia")
+
+(dom/createDom "div" "grocery-list"
+    (dom/createDom "ul" nil
+        (dom/createDom "li" nil "apples")
+        (dom/createDom "li" nil "bananas")
+        (dom/createDom "li" nil "lemons")))
+#+end_src
+
+*** : (dom/createElement tag<string>)
+*** : (dom/createTextNode text)
+*** : (dom/append parent ...var-args<Object|string|null>)
+*** : (dom/appendChild parent child)
+*** : (dom/insertSiblingBefore new-node ref-node)
+*** : (dom/insertSiblingAfter new-node ref-node)
+*** : (dom/removeNode node)
+*** : (dom/setProperties elem props<Object>)
+
+Sets multiple properties on a node.
+
+#+begin_src clojurescript
+(dom/setProperties el (js-obj "style" "background-color: yellow"))
+#+end_src
+
+*** : (dom/isElement x)
+*** : (dom/isNodeList x)
+
+** goog.dom.classlist
+https://google.github.io/closure-library/api/goog.dom.classlist.html
+
+#+begin_src clojurescript
+(dom.classlist/get el)
+
+(dom.classlist/add el "cool")
+(dom.classlist/addAll el (array "hey" "nice"))
+
+(dom.classlist/remove el "cool")
+(dom.classlist/removeAll el (array "hey" "nice"))
+#+end_src
+
+** goog.dom.Range
+https://google.github.io/closure-library/api/goog.dom.Range.html
+
+*** : (dom.Range/createFromNodes anchorNode anchorOffset focusNode focusOffset)
+
+* goog.style
+https://google.github.io/closure-library/api/goog.style.html
+
+** Core
+
+*** : (style/setStyle elem style<string|Object|null> opt-value<string|num|bool>)
+: (style/setStyle elem (js-obj "attr" "val" ...))
+: (style/setStyle elem "attr" value)
+
+Sets a style value on an element.
+
+This function is not indended to patch issues in the browser's style handling, but to allow easy programmatic access to setting dash-separated style properties. An example is setting a batch of properties from a data object without overwriting old styles.
+
+*When possible, use native APIs:*
+- ~elem.style.propertyKey = 'value'~ or (if obliterating old styles is fine)
+- ~elem.style.cssText = 'property1: value1; property2: value2'~
+
+#+begin_src clojurescript
+(style/setStyle el "background-color" "blue")
+
+(style/setStyle el (js-obj "background-color" "yellow"
+                           "font-size" "1.5em"))
+#+end_src
+
+* goog.positioning
+https://google.github.io/closure-library/api/goog.positioning.html

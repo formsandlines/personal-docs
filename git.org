@@ -1,0 +1,631 @@
+#+title: Docs/Git
+
+Learning:
+- https://www.git-scm.com/book/en/v2
+
+Get help:
+: $ git help <verb>
+: $ git <verb> --help
+: $ man git-<verb>
+
+Help for specific command:
+: $ git <command> -h
+
+* Concepts
+
+** Repository
+*** Cloning
+*** Forking
+** Commit
+** Head
+https://stackoverflow.com/questions/2304087/what-is-head-in-git
+- a head is a reference to a commit object
+- every head has a name (branch name, tag name, etc.)
+- ~HEAD~ is the current (checkout) branch
+- if ~HEAD~ does not point to a head (but instead e.g. to a commit id), it is
+  a "detached HEAD"
+
+Show HEAD:
+: $ cat .git/HEAD
+
+: `~`, `^` and `@`:
+see https://www.golinuxcloud.com/git-head-caret-vs-tilde-at-sign-examples/
+
+: `<rev>^<n>`            > points to the nth parent of a commit object
+: `<rev>^` == `<rev>^1`  > points to the first parent of a commit
+: `<rev>^0`              > is the commit itself
+: `<commit ref>~`        > points to the first parent in the commit history
+: `HEAD~` == `HEAD^`
+: `@`                    > by itself is an alias for HEAD
+: `<rev>@{n}`
+: `<rev>^@`              > lists all parents of a commit object
+
+** Branch
+*** switching / checkout
+Git prevents switching branches if the working directory or staging area
+has uncommited changes that conflict with the branch that is being checked
+out.
+
+It is safe to checkout another branch, if for example:
+- a) the working tree and staging area are clean
+- b) a new file appears in the working directory or has been staged
+- c) a modified file was in the same state in the last commit of both branches
+
+In case (b) or (c), the additions/changes are just carried over to the other
+branch.
+
+*** merging
+**** fast-forward merge
+If the branch that merges is part of the history of the branch that is
+being merged in, a *fast-forward* merge strategy just moves the pointer of
+the merging branch forward to the last commit of the merged-in branch.
+
+#+CAPTION: Hotfix branch based on master
+#+NAME: fig_hotfix-branch
+#+ATTR_HTML: :width 80%
+[[./_res/git/basic-branching-4.png]]
+
+#+CAPTION: master is fast-forwarded to hotfix
+#+NAME: fig_fast-forward
+#+ATTR_HTML: :width 80%
+[[./_res/git/basic-branching-5.png]]
+
+**** three-way merge
+If the last commits of both branches are ahead of their common ancestor
+(i.e. the branches are diverging), Git will try to fit the changes of
+both branches together in a conflict-free way, which is not always
+possible.
+- Git merges changes even in the same file, if they are not contradictory
+- in case of a conflict, automatic merge will fail
+
+If the merge is successful, it will result in a merge commit, which has
+the latest commits of both branches as its two parents.
+
+#+CAPTION: Three snapshots used in a typical merge
+#+NAME: fig_merge-snapshots
+#+ATTR_HTML: :width 80%
+[[./_res/git/basic-merging-1.png]]
+
+#+CAPTION: A three-way merge commit
+#+NAME: fig_three-way-merge
+#+ATTR_HTML: :width 80%
+[[./_res/git/basic-merging-2.png]]
+
+**** merge conflicts
+In case of a merge conflict, [[git status]] shows which unmerged paths exist
+and the conflicting files contain annotations with the diverging content
+from each branch.
+
+Example of a conflict in a merged file:
+: <<<<<<< HEAD:index.html
+: <div id="footer">contact : email.support@github.com</div>
+: =======
+: <div id="footer">
+:  please contact us at support@github.com
+: </div>
+: >>>>>>> iss53:index.html
+
+The issue can be resolved by replacing the entire block with the desired
+alternative or a different resolution (perhaps a compromise).
+- with [[git mergetool]] a merge tool can be used instead of manual edits
+
+After resolving each conflicting section, the file can be staged and is
+thereby marked as resolved in Git.
+
+Committing the changes concludes the merge.
+
+** Stash
+** Tracking / Staging
+*Tracked files* are files that Git knows about:
+- files that were in the last [[Snapshot]]
+- newly /staged/ files
+
+There are 3 main sections in a Git project:
+- [[Working Tree]]
+- Staging Area
+- .git directory
+
+#+CAPTION: Working tree, staging area, and Git directory
+#+NAME: fig_areas
+#+ATTR_HTML: :width 80%
+[[./_res/git/areas.png]]
+
+The state of a tracked file is either:
+- /unmodified/
+- /modified/
+- /staged/
+
+#+CAPTION: The lifecycle of the status of files in a repository
+#+NAME: fig_lifecycle
+#+ATTR_HTML: :width 90%
+[[./_res/git/lifecycle.png]]
+
+Use [[git status]] to determine which files are in which state.
+- any newly created file is automatically untracked
+- after [[Cloning]] a repo, all files are automatically tracked and unmodified.
+
+Use [[git add]] to track any new or modified files.
+- the files are commited exactly as they are at the moment ~git add~ was called
+
+Use [[git restore]] to undo changes to the working tree or staging area
+- any file with unstaged local changes can be reverted to the state of its last
+  stage/commit
+- after a file has been added to the staging area (index) and removed in the
+  working tree with ~$ rm …~, it can still be restored with this command
+- to unstage an added file, use the ~--staged~ option
+
+Use [[git rm]] to remove a file from the staging area (index) *and* working tree.
+- if the file has been modified or already added to the staging area, removal
+  must be forced with the ~-f~ option (prevents accidental deletion if the file
+  hasn’t yet been recorded in a snapshot)
+- if the file has been committed before or if it has been removed from the
+  working tree by ~$ rm …~, it can be removed from the staging area as well with
+  ~git rm~
+- a file that is removed from staging will not be restorable with ~git restore~
+
+Use [[git diff]] to see which changes exactly have been made since staging.
+
+Git doesn’t track file movement, but figures out renames and movement after the
+fact. Otherwise, use [[git mv]] to move/rename a staged/tracked file.
+
+** Snapshot
+Recorded state of the project after files have been added to the staging area
+and committed.
+
+** Checkout
+** Working Tree
+** Git Index
+The *index* is a binary file (generally kept in =.git/index=) containing a sorted
+list of path names, each with /permissions/ and the /SHA1/ of a blob object.
+- Git stores everything in its database not by file name but by the hash value
+  of its contents
+
+~git ls-files~ can show you the contents of the index:
+#+begin_src shell
+$ git ls-files --stage
+100644 63c918c667fa005ff12ad89437f2fdc80926e21c 0   .gitignore
+100644 5529b198e8d14decbe4ad99db3f7fb632de0439d 0   .mailmap
+#+end_src
+
+#+CAPTION: Role of the index within the Git system
+#+NAME: fig_git-index
+#+ATTR_HTML: :width 90%
+[[./_res/git/NueSy.png]]
+
+The Git index is a critical data structure in Git. It serves as the /“staging
+area”/ between the files you have on your filesystem and your /commit history/.
+- When you run ~git add~, the files from your working directory are /hashed/ and
+  stored as objects in the /index/, leading them to be “staged changes”.
+- When you run ~git commit~, the staged changes as stored in the /index/ are used to
+  create that new commit.
+- When you run ~git checkout~, Git takes the data from a commit and writes it to
+  the /working directory/ and the /index/.
+
+It represents a /virtual working tree/ state by recording list of paths and their
+object names and serves as a /staging area/ to write out the next tree object to
+be committed. The state is "virtual" in the sense that it does not necessarily
+have to, and often does not, match the files in the working tree.
+
+In addition to storing your staged changes, the index also stores filesystem
+information about your working directory. This helps Git report changed files
+more quickly.
+
+Infos:
+- [[https://shafiul.github.io//gitbook/7_the_git_index.html][Git Community Book / The Git Index]]
+- [[https://github.blog/2021-11-10-make-your-monorepo-feel-small-with-gits-sparse-index/][Make your monorepo feel small with Git’s sparse index]]
+- [[https://stackoverflow.com/questions/4084921/what-does-the-git-index-contain-exactly][stackoverflow: What does the git index contain EXACTLY?]]
+
+* Data recovery
+Anything /that is committed/ in Git can almost always be recovered.
+
+Even commits that were on branches that were deleted or commits that were
+overwritten with an ~--amend~ commit can be recovered.
+- see https://www.git-scm.com/book/en/v2/ch00/_data_recovery
+
+However, anything you lose that was never committed is likely never to be seen
+again.
+
+
+* API
+
+** Create
+*** git init
+Initializes a repository.
+
+*** git clone
+: $ git clone https://github.com/...  > clone repository
+: $ git clone <url> <dirname>         > can choose a different dir name
+
+** Check
+*** git config
+: $ git config
+: --global / --system / --local     > specify config file
+: --list / -l                       > list settings
+: --show-origin                     > show origin of settings
+
+Example settings:
+: $ git config --global user.name "John Doe"
+: $ git config --global user.email johndoe@example.com
+: $ git config --global core.editor nvim         > change default Editor
+: $ git config --global init.defaultBranch main  > change default branch name
+
+: $ git config <config-key>             > look up specific config value
+: $ git config --get remote.origin.url  > check remote url
+
+There are 3 places for git configuration:
+1. *system*: =[path]/etc/gitconfig=
+   - [path]: installation path, e.g. =/opt/homebrew=
+2. *global*: =~/.gitconfig= or =~/.config/git/config=
+3.  *local*: =.git/config= (in project repo)
+
+Each level overrides values in the previous level, so values in =.git/config= trump those in =[path]/etc/gitconfig=.
+
+*** git status
+Shows changes from last commit.
+: -s, --short  < shortened status report
+
+The short report has the form: ~LR <filename>~
+- symbol in ~L~ shows status of the staging area
+- symbol in ~R~ shows status of the working tree
+
+Short symbols:
+| ~A~  | newly added files          |
+| ~M~  | modified files             |
+| ~D~  | removed (via ~git rm~) files |
+| ~R~  | renamed files              |
+| ~??~ | untracked files            |
+
+*** git log
+Shows commit log from current branch (where ~HEAD~ points to), optionally of a
+different branch or all branches.
+
+: $ git log <?branch>
+: --all            > show all branches
+: -p, -u, --patch  > show patch/diff for each commit
+: --stat           > show file change statistics
+: --shortstat      > like `--stat`, but only changed/inserts/deletes line
+: --graph          > adds ASCII graph showing branch and merge history
+: --oneline        > alias to `--pretty=oneline`
+: --decorate       > not needed in newer Git versions because default
+
+**** Filtering options
+: -<n>                       > limit to `n` log entries
+: --since=<x>, --after=<x>   > limit to commits made after date <x>
+: --until=<x>, --before=<x>  > limit to commits made before date <x>
+: --author=<x>               > only show commits from author <x>
+: --committer=<x>            > only show commits from committer <x>
+: --grep="str"               > only show if commit message contains str
+: -S "str"                   > only show if added/removed code contains str
+: -- path/to/file            > limit to commits that added or changed the
+:                              specified file or directory
+: --no-merges                > don’t show merge commits
+
+*Note:* ~-- path~ must be the last option! (dashes can be omitted)
+
+*Note:* You can specify more than one instance of both the ~--author~ and ~--grep~
+search criteria, which will limit the commit output to commits that match any of
+the ~--author~ patterns and any of the ~--grep~ patterns; however, adding the
+~--all-match~ option further limits the output to just those commits that match
+all ~--grep~ patterns. [[[https://www.git-scm.com/book/en/v2/Git-Basics-Viewing-the-Commit-History][Source]]]
+
+***** Example:
+To see which commits modifying test files in the Git source code history were
+committed by Junio Hamano in the month of October 2008 and are not merge
+commits:
+: $ git log --pretty="%h - %s" --author='Junio C Hamano'
+:   --since="2008-10-01" --before="2008-11-01" --no-merges -- t/
+
+**** Formatting options
+: --pretty=<opt>   > shows commits in an alternate format
+: --oneline        > shorthand for `--pretty=oneline --abbrev-commit`
+: --name-only      > show list of files modified after commit information
+: --name-status    > show list of files affected with
+:                    added/modified/deleted information as well
+: --abbrev-commit  > show only the first few characters of SHA-1 checksum
+: --relative-date  > display date in a relative format (e.g. “2 weeks ago”)
+
+***** ~--pretty~ options:
+
+| Option     | Description of Output                              |
+|------------+----------------------------------------------------|
+| ~oneline~    | prints each commit on one line with commit message |
+| ~short~      | less information on commit meta                    |
+| ~full~       | more information on commit meta                    |
+| ~fuller~     | most information on commit meta                    |
+| ~format:"…"~ | use own formatting                                 |
+
+***** Useful specifiers for ~git log --pretty=format~:
+
+| Specifier | Description of Output                           |
+|-----------+-------------------------------------------------|
+| ~%H~        | Commit hash                                     |
+| ~%h~        | Abbreviated commit hash                         |
+| ~%T~        | Tree hash                                       |
+| ~%t~        | Abbreviated tree hash                           |
+| ~%P~        | Parent hashes                                   |
+| ~%p~        | Abbreviated parent hashes                       |
+| ~%an~       | Author name                                     |
+| ~%ae~       | Author email                                    |
+| ~%ad~       | Author date (format respects the --date=option) |
+| ~%ar~       | Author date, relative                           |
+| ~%cn~       | Committer name                                  |
+| ~%ce~       | Committer email                                 |
+| ~%cd~       | Committer date                                  |
+| ~%cr~       | Committer date, relative                        |
+| ~%s~        | Subject                                         |
+
+***** Formatting examples:
+
+: $ git log --pretty=format:"%h - %an, %ar : %s"
+: ca82a6d - Scott Chacon, 6 years ago : Change version number
+: 085bb3b - Scott Chacon, 6 years ago : Remove unnecessary test
+: a11bef0 - Scott Chacon, 6 years ago : Initial commit
+
+: $ git log --pretty=format:"%h %s" --graph
+: * 2d3acf9 Ignore errors from SIGCHLD on trap
+: *  5e3ee11 Merge branch 'master' of git://github.com/dustin/grit
+: |\
+: | * 420eac9 Add method for getting the current branch
+: * | 30e367c Timeout code and tests
+: * | 5a09431 Add timeout protection to grit
+: * | e1193f8 Support for heads with slashes in them
+: |/
+: * d6016bc Require time for xmlschema
+: *  11d191e Merge branch 'defunkt' into local
+
+*** git diff
+: $ git diff
+Compares any unstaged changes in the working dir to the staging area.
+
+: $ git diff --staged  (or --cached which is a synonym)
+Compares any staged changes to the last commit.
+
+*** git difftool
+Like [[git diff]] but with an external diff tool.
+
+Use a specific diff tool:
+: $ git difftool -t nvimdiff
+
+See which tools are available on the system:
+: $ git difftool --tool-help
+
+** Prepare
+*** git add
+Add new or modified files to the staging area to be commited.
+: $ git add <file/dir>  > adds file or all files in directory to stage
+: $ git add -A          > adds all new/modified files to stage
+*** git rm
+Removes files from the working tree and from the index.
+: $ git rm <filename>
+: -f, --force  < forces removal
+
+To just remove a file from the staging area:
+: $ git rm --cached <filename>
+- useful if a file has been accidentally added that should not be tracked
+
+Can be passed files, directories, and file-glob patterns:
+: $ git rm log/\*.log  < removes all files with `.log` extension in `log/`
+: $ git rm \*~         < removes all files whose names end with `~`
+- ~\~ is necessary because Git does its own filename expansion
+
+*** git mv
+Moves and/or renames a tracked file in working dir and stage area.
+Git figures out renames implicitly, so this command is redundant.
+
+: git mv <old-file> <new-file>
+
+This is equivalent to something like this:
+: $ mv <old-file> <new-file>
+: $ git rm <old-file>
+: $ git add <new-file>
+
+*** git restore
+Discards changes in working directory (for specified files).
+: $ git restore <file/dir>
+:   --staged  < to unstage staged files
+
+- *WARNING*: unstaged changes may be lost forever!
+- ~git restore <file>~ may be equivalent to ~git checkout -- <file>~ ?
+- ~git restore --staged <file>~ may be equivalent to ~git reset HEAD <file>~ ?
+
+*** git stash
+https://git-scm.com/book/de/v1/Git-Tools-Stashen
+
+: $ git stash save             > save changes in stash (no commit)
+: $ git stash list             > list all stashes
+: $ git stash apply            > apply last stash
+: $ git stash apply stash@{x}  > apply stash
+
+** Commit
+*** git commit
+: $ git commit       > commit with message (in editor)
+:   -m "My message"  > set commit message directly
+:   -v, --verbose    > puts diff of changes in commit editor
+:   -a, --all        > auto-stage modified/deleted files, but NOT new ones
+:   --amend          > changes last commit
+:   --no-edit        > no change to commit message with --amend
+
+Commit output on command line: ~[<branch> <SHA-1 checksum>]~
+
+Stages modified or deleted files, but NOT new ones:
+: $ git commit -a
+
+To correct an accidental commit, make changes to the staging area (or not, to
+just change the commit message) and commit again with ~git commit --amend~.
+- the old commit message can then be changed, or left alone with ~--no-edit~
+- the state of each file will be as if the previous commit never happened
+- the old commit will technically not be changed, but replaced (new hash)
+
+Infos on ~amend~:
+- https://git-scm.com/book/de/v2/Git-Tools-Den-Verlauf-umschreiben#_git_amend
+- https://stackoverflow.com/questions/253055/how-do-i-push-amended-commit-to-the-remote-git-repository
+
+*** git tag
+https://git-scm.com/book/en/v2/Git-Basics-Tagging
+
+: $ git tag                             > show available tags
+: $ git show <tag_name>                 > show commit of specific tag
+: $ git tag <tag_name>                  > create lightweight tag
+: $ git tag -d <tag_name>               > delete local tag <tag_name>
+: $ git tag <tag_name> -a -m "Message"  > create annotated tag
+
+** Branch
+*** git branch
+Show branches (active branch with *):
+: $ git branch
+: $ git branch | grep \* | cut -d ' ' -f2   > shows only active branch
+
+Create new branch:
+: $ git branch <branch-name>
+
+Change name of branch:
+: $ git branch -m <new-name>             > change name of current branch
+: $ git branch -m <old-name> <new-name>  > change name of branch from a different branch
+
+Delete branch:
+: $ git branch -d <branch-to-delete>  > deletes only when merged
+: $ git branch -D <branch-to-delete>  > ignores merge
+
+*** git checkout
+Moves ~HEAD~ pointer to specified branch and reverts the files in working
+directory back to the snapshot that this branch is pointing to.
+: $ git checkout <branch>
+: -f, --force  > discards local changes
+
+Create new branch and switch to it:
+: $ git checkout -b <new-branch>
+
+Save stash and change branch:
+: $ git stash save && git checkout <branch>
+
+Update data in <path> only on main branch:
+- see:  http://nicolasgallagher.com/git-checkout-specific-files-from-another-branch/
+: $ git checkout main -- <path>
+
+Set older commit as new HEAD:
+: $ git rm -r .            > remove any files of current commit
+: $ git checkout HEAD~n .  > checkout revision n commits ago
+:                            (doesn't change where HEAD points to)
+: $ git commit             > make revision newest commit
+*** git switch
+Switch to an existing branch:
+: $ git switch <branch>
+
+Create a new branch and switch to it:
+: $ git switch -c <new-branch>  > or with --create
+
+Return to previously checked out branch:
+: $ git switch -
+
+*** git merge
+Merges <new-branch> with current (checkout) branch, but doesn't delete it!
+: $ git merge <new-branch>
+
+https://www.atlassian.com/de/git/tutorials/using-branches/git-merge
+*** git mergetool
+*** git reset
+: $ git reset HEAD   > revert HEAD (e.g. after 'git rm')
+:                      (keeps uncommited changes)
+: --hard   > DELETES uncommited changes
+: --soft   > keeps changes and working tree (?)
+: --merge  > solves merge-problems (?)
+
+Infos:
+- https://git-scm.com/docs/git-reset
+- https://stackoverflow.com/questions/2125710/how-to-revert-a-git-rm-r
+- https://stackoverflow.com/questions/2845731/how-to-uncommit-my-last-commit-in-git
+- https://stackoverflow.com/questions/46897033/how-to-revert-pushed-commits
+- https://stackoverflow.com/questions/2530060/in-plain-english-what-does-git-reset-do
+
+** Remote
+*** git remote
+https://stackoverflow.com/questions/17122245/what-is-a-git-upstream
+
+Add remote repo:
+: $ git remote add origin https://github.com/githubname/reponame.git
+: -v, --verbose  > check if remote repo exists
+- ~origin~ is the name of the remote connection; it is just a convention, can have any other name
+
+Change remote url:
+: $ git remote set-url <remote-name> <remote-url>
+
+*** git push
+: $ git push <remote> <branch>
+: -f, --force         > overwrite existing remote branch
+: -u, --set-upstream  > push and create upstream branch on remote repo
+: -d, --delete        > delete refs
+push to <remote> on <branch>
+
+: $ git push -u origin master
+: $ git push <remote_name> -d <branch_name>
+
+tags:
+: $ git push origin --tags                  > push all tags to remote
+: $ git push origin <tag_name>              > push specific tag to remote
+
+https://stackoverflow.com/questions/2003505/how-do-i-delete-a-git-branch-locally-and-remotely
+: $ git push <remote_name> -d <branch_name> > delete remote branch
+: $ git push <remote_name> :<branch_name>   > delete remote branch
+
+*** git fetch
+: $ git fetch origin
+fetches all commits and branches not on local
+- only downloads new data from remote, never integrates them into working files
+: $ git fetch origin <remote_name> :<branch_name>
+pull only branch <remote_name> :<branch_name>
+
+*** git pull
+fetch data in remote branch and merge
+- <=> git fetch <remote> && git merge origin/<curr_branch>
+: $ git pull <remote>
+: --no-commit  > without merge-commit
+: --rebase     > using git rebase to merge
+: --verbose    > show detailed info about fetched data and merge
+
+* GitHub
+** SSH Authentication
+
+Github SSH login:
+https://docs.github.com/en/authentication/connecting-to-github-with-ssh/about-ssh
+
+Add new remote-branch for local repo:
+- https://gist.github.com/zhujunsan/a0becf82ade50ed06115
+
+: $ cd .ssh
+
+: $ ssh-keygen -t rsa -b 4096 -C "github-formsandlines"
+
+filename: ~id_rsa.<my-repo-name>~
+
+no passphrase
+
+
+Add new key in GitHub repo settings -> ~Deploy keys~
+
+Name: ~id_rsa.<my-repo-name>~
+
+Print and copy key in terminal:
+: $ cat id_rsa.<my-repo-name>.pub
+
+insert in GitHub, with write/push-permissions.
+
+
+Authentication on GitHub via SSH:
+- see: https://docs.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent#adding-your-ssh-key-to-the-ssh-agent
+- also: https://stackoverflow.com/questions/16245606/could-not-read-from-remote-repository
+
+start/wake ssh-agent in the background:
+
+: $ eval "$(ssh-agent -s)"
+
+: $ nano ~/.ssh/config
+
+content:
+: Host *
+:   AddKeysToAgent yes
+:   IdentityFile ~/.ssh/id_rsa.<my-repo-name>
+
+: $ ssh-add -K ~/.ssh/id_rsa.<my-repo-name>
+
+check, if key is added in agent:
+: $ ssh-add -l

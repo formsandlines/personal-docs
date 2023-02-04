@@ -1,0 +1,284 @@
+#+title: Docs/ClojureScript
+
+Guides:
+- https://funcool.github.io/clojurescript-unraveled/
+- https://lambdaisland.com/guides/clojure-repls/clojurescript-repls
+- https://dawranliou.com/blog/vanilla-cljs/
+
+* Getting started
+
+** Vanilla setup
+
+See https://clojurescript.org/guides/quick-start
+
+Setup normal Clojure file structure.
+
+In =deps.edn=:
+: {:deps {org.clojure/clojurescript {:mvn/version "1.10.758"}}}
+
+Compile with:
+: $ clj -M -m cljs.main <options>
+
+~--help~ To list compiler options:
+
+- ~-c, --compile <ns>~ specify namespace/file to compile
+  - ~--optimizations~ set compiler optimizations
+- ~-t, --target <target>~ set compilation target, browser if none
+- ~-d, --output-dir <path>~
+- ~-re, --repl-env <env>~ set a different env for the REPL
+- ~--repl~ launch a REPL after compilation
+- ~--serve~ run the built-in web server (without REPL)
+
+** Compile and run in Browser
+
+To compile (followed by a REPL) and run in Browser:
+: $ clj -M -m cljs.main --compile my.namespace --repl
+
+- an =out/= directory is created that contains the compiled js code, but it is
+  not optimized for production.
+- now ClojureScript can be evaluated in the REPL and will be immediately
+  rendered in the Browser
+
+To compile with optimizations:
+: $ clj -M -m cljs.main --optimizations advanced -c my.namespace
+
+To just run the built-in simple web server:
+: $ clj -M -m cljs.main --serve
+
+** Run on Node.js
+
+Enable source mapping:
+: $ npm install source-map-support
+
+To compile to Node.js:
+: $ clj -M -m cljs.main --target node --output-to main.js -c my.namespace
+
+- =main.js= file gets created, which can be executed with ~node main.js~
+- no advanced optimizations needed here, since modern JS VM will optimize
+  -> simple or none optimizations suffice
+
+To open a REPL for Node.js:
+: $ clj -M -m cljs.main --repl-env node
+
+- append e.g. ~-m core~ to run -main function from =core.cljs=
+
+** Setup with shadow-cljs
+
+Install Node dependency:
+: $ yarn add --dev shadow-cljs
+: $ yarn
+
+Add a ~shadow-cljs.edn~ file:
+#+begin_src clojure
+{:source-paths ["src"]
+ :dependencies [[binaryage/devtools "1.0.3"]
+                [com.github.jpmonettas/flow-storm-inst "RELEASE"]]
+ :builds       {:app {:target     :browser
+                      :output-dir "public/js"
+                      :asset-path "/js"
+                      :modules    {:app {:entries [foo.core]}}
+                      :devtools   {:after-load foo.core/mount-root}}}
+
+ :dev-http     {3000 {:root "public"}}}
+#+end_src
+
+Builds, starts HTTP server and watches for changes:
+: $ npx shadow-cljs watch <build-id>
+
+Starts a REPL connected to nREPL port (uses JS runtime in Browser):
+: $ npx shadow-cljs cljs-repl <build-id>
+
+Starts flowstorm debugger:
+: $ clj -Sforce -Sdeps '{:deps {com.github.jpmonettas/flow-storm-dbg {:mvn/version "RELEASE"}}}' -X flow-storm.debugger.main/start-debugger :port 9000 :repl-type :shadow :build-id :app
+
+
+** Dependencies
+
+See https://clojurescript.org/reference/dependencies
+
+* Google Closure Library
+
+(see [[file:google-closure.org][google-closure.org]])
+
+* Interop
+
+** Types
+
+Strings are JS strings.
+
+Clojures datastructures can be converted to JS objects with the ~#js~ tag.
+- not recursive, inner values won’t convert!
+- ~clj->js~ converts recursively
+- use ~js->clj~ to convert back
+
+#+begin_src clojurescript
+(def obj-from-map #js {:a 1 :b "two"})
+obj-from-map ;=> #js {:a 1, :b "two"}
+;; equivalent to:
+(def obj (js-obj "a" 1 "b" "two"))
+obj ;=> #js {:a 1, :b "two"}
+
+(js/console.log obj-from-map) ; (browser console)=> {a: 1, b: 'two'}
+
+(js/console.log #js ["a" :b 'c 123]) ; (brc)=> ['a', {<clj>}, {<clj>}, 123]
+
+(js/console.log (clj->js ["a" :b 'c 123])) ; (brc)=> ['a', 'b', 'c', 123]
+
+; keywords and symbols remain strings!
+(js->clj (clj->js ["a" :b 'c 123])) ;=> {"a" 1, "b" "two"}
+; in maps, this option converts back to keywords:
+(js->clj (clj->js {:a 1 :b "two"}) :keywordize-keys true) ;=> {:a 1, :b "two"}
+; but it won’t work with keywords in vectors
+#+end_src
+
+*** Objects
+
+Define JS objects with ~js-obj~
+- keys must be strings (as opposed to Clojure maps)
+- member-access with ~aget~
+- set properties with ~aset~
+
+#+begin_src clojurescript
+(def obj (js-obj "x" 1 "y" 2))
+obj ;=> #js {:x 1, :y 2}
+
+;; Member access:
+(aget obj "y") ;=> 2
+
+;; Set/create property (mutation):
+(aset obj "z" 3) ;=> 3
+obj  ;=> #js {:x 1, :y 2, :z 3}
+#+end_src
+
+*** Arrays
+
+Define JS arrays with ~array~
+- set/get like objects
+
+#+begin_src clojurescript
+(def arr (array 1 2 3))
+arr ;=> #js [1 2 3]
+
+;; Index access:
+(aget arr 1) ;=> 2
+
+;; Set/create element (mutation):
+(aset arr 3 "foo") ;=> "foo"
+arr ;=>  #js [1 2 3 "foo"]
+
+;; To convert js objects to js Arrays:
+(js/Array.from "Hey") ;=> #js ["H" "e" "y"]
+#+end_src
+
+
+src_clojure{ (aget ["a" "b" "c"] 1) }
+
+
+** JS methods
+
+- prefix ~.~ to call
+- ~..~ syntax sugar to call chained methods
+- call as constructor with leading ~.~
+
+#+begin_src clojurescript
+(.toUpperCase "Hello world!")
+
+(.. "Hello world!" (charCodeAt 7) (toString 16) toUpperCase)
+
+;; Create object from a constructor (like “new” in JS):
+(js/Date. "2016-05-19") ;=> #inst "2016-05-19T00:00:00.000-00:00"
+
+;; To use apply in calling a method, use the .apply method of function objects:
+;; See http://clojurescriptmadeeasy.com/blog/how-to-apply-with-the-console-api.html
+(.apply (.-methodName my-obj) my-obj args)
+
+#+end_src
+
+** “this” keyword
+
+Use ~this-as~ macro to bind this to a variable.
+
+Example usage:
+
+#+begin_src clojurescript
+(defn click-handler []
+  (this-as b
+     (set! (.-innerHTML b) (inc (long (.-innerHTML b))))))
+
+(let [button (.createElement js/document "button")]
+  (set! (.-innerHTML button) "0")
+  (set! (.-onclick button) click-handler)
+  (.. js/document -body (appendChild button)))
+#+end_src
+
+** JS properties
+
+Prefix ~.-~ to access:
+src_clojure{ (.-length "Hello world!") }
+
+Use ~set!~ function to set:
+src_clojure{ (set! (.. js/document (getElementById "app") -innerHTML) "Hello world!") }
+
+~..~ syntax sugar to access chained properties:
+src_clojure{ (.. js/document -body -lastChild -innerHTML -length) }
+
+** Global variables
+
+~js~ is ClojureScripts namespace for global JavaScript variables.
+
+~js/document~, ~js/window~, etc.
+
+#+begin_src clojurescript
+(js/console.log "Hey ho") ; appears in browser console
+#+end_src
+
+To create a new variable in the global ns (can be accessed in browser console):
+#+begin_src clojurescript
+(set! js/newVar 3)
+js/newVar ;=> 3
+#+end_src
+
+Global variables can be looked up from ns like in JS:
+#+begin_src clojurescript
+(js/document.body.lastChild.innerHTML.charAt 7)
+#+end_src
+
+* .cljc (Reader Conditionals)
+
+Reader Conditionals allow different Clojure dialects to share common code (e.g. to target both Clojure and ClojureScript).
+- mostly platform independent
+- previous format was .cljx which is now deprecated.
+- can be used for Spec definition files across dialects
+
+They can be manipulated like ordinary Clojure expressions.
+
+Guides:
+- https://github.com/clojure/clojurescript/wiki/Using-cljc
+- https://clojure.org/guides/reader_conditionals
+
+** Standard reader conditional
+
+Similar to ~cond~.
+
+#+begin_src clojurescript
+#?(:clj  (Clojure expression)
+   :cljs (ClojureScript expression)
+   :cljr (Clojure CLR expression)
+   :default (fallthrough expression))
+#+end_src
+
+- if no tags match and no ~:default~, Reader will read nothing (not even ~nil~)
+
+** Splicing reader conditional
+
+Splices lists into the containing form.
+
+#+begin_src clojurescript
+(defn build-list []
+  (list #?@(:clj  [5 6 7 8]
+            :cljs [1 2 3 4])))
+
+;; Clojure reader would read this as:
+(defn build-list []
+  (list 5 6 7 8))
+#+end_src

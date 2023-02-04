@@ -1,0 +1,412 @@
+#+title: Docs/Reagent
+
+* Resources
+
+- Repo: https://github.com/reagent-project/reagent
+- Clojars: https://clojars.org/thheller/shadow-cljs
+- Docs: https://cljdoc.org/d/reagent/reagent/1.1.1/doc/documentation-index
+  - Tutorials included
+- Intro/Tutorial: https://reagent-project.github.io
+
+
+* Getting started
+
+** Setup
+
+*** using Lein template
+
+: $ lein new reagent <name>
+
+Or without Clojure backend:
+: $ lein new reagent-frontend <name>
+
+*** using NPM template
+
+: $ npx create-reagent-app <name>
+
+*** in existing project
+
+Add Reagent to Clojure dependencies
+: reagent/reagent {:mvn/version "1.1.1"}
+
+Install React with NPM/Yarn (Shadow-cljs) or Cljsjs (Clojure):
+: $ <npm/yarn install> react react-dom
+
+** Build
+
+*** for development
+
+: $ npx shadow-cljs watch app
+
+App: http://localhost:3000
+Dashboard: http://localhost:9630
+
+*** for production
+
+: $ npx shadow-cljs release app
+
+*** use with Clojure backend
+
+Add shadow-cljs to Clojure dependencies:
+
+: thheller/shadow-cljs {:mvn/version "2.18.0"}
+
+** Develop
+
+*** Include
+
+#+begin_src clojurescript
+(ns example
+  (:require [reagent.core :as r]
+            [reagent.dom :as rdom]))
+#+end_src
+
+*** Mount components
+
+#+begin_src clojurescript
+(defn mount-root []
+  (rdom/render [my-component] (.getElementById js/document "app")))
+
+(defn ^:export init! []
+  (mount-root))
+#+end_src
+
+
+* Using HTML entities
+
+React will escape HTML entities (like ~&nbsp;~, ~&times;~) in the text elements.
+
+This can be prevented by usind =goog.string/unescapeEntities= :
+
+#+begin_src clojurescript
+(ns example
+  (:require [goog.string :as gstr]))
+
+(defn comp []
+  [:h1 "Foo" (gstr/unescapeEntities "&times;")])
+#+end_src
+
+Or just use literal character: × or unicode code, which is converted to the
+character by Cljs compiler: ~\u00D7~
+
+* State
+
+** Tapping into the rendering loop
+
+Called just before components are rendered:
+: (r/next-tick f)
+
+Called just after any queued renders in the next animation frame
+(and even if no renders actually occur):
+: (r/after-render f)
+- can be used to replace the callback in this.setState
+  -> no chaining though!
+- multiple ratom updates get batched to the next re-render
+  -> call only after last state change to get the actual re-render!
+
+* React Interop
+
+- [[https://cljdoc.org/d/reagent/reagent/1.1.1/doc/tutorials/interop-with-react][cljdoc Introduction to React interop]]
+- [[https://cljdoc.org/d/reagent/reagent/1.1.1/doc/tutorials/react-features][cljdoc React Features]]
+
+=reagent.core/as-element= is used internalle by =reagent.dom/render= to convert
+Hiccup forms into React elements.
+
+If the first argument to a Reagent function is a map, it is assigned to
+=this.props= of the underlying Reagent component.
+
+All other arguments are assigned as children to =this.props.children=.
+
+
+** Creating React Elements
+
+*** directly
+
+React’s =createElement= function can be called directly with
+=reagent.core/create-element= to interop with pure React components:
+
+#+begin_src clojurescript
+(defn my-react-component []
+  (reagent/create-element "div"
+                          #js{:className "foo"}
+                          "Hello "
+                          (reagent/create-element "strong"
+                                                  #js{}
+                                                  "world")))
+#+end_src
+
+- the call to =create-element= can also appear in a Hiccup form
+- this always creates a function component, no wrapping by Reagent!
+
+
+*** from Hiccup forms
+
+=reagent.core/as-element= creates a React component from Hiccup forms.
+It can also be used to pass Hiccup forms to React components:
+
+#+begin_src clojurescript
+(defn my-react-component []
+  (reagent/create-element "div"
+                          #js{:className "foo"}
+                          "Hello "
+                          (reagent/as-element [:strong "world"])))
+#+end_src
+
+
+** React Components -> Reagent “Components”
+
+React components can be places into the first position of Hiccup
+forms with =reagent.core/adapt-react-class= :
+
+#+begin_src clojurescript
+(defn top-articles [articles]
+  [(reagent/adapt-react-class FlipMove) ; FlipMove is a React comp.
+   {:duration 750
+    :easing "ease-out"}
+   articles])
+
+;; Syntax sugar:
+(defn top-articles [articles]
+  [:> FlipMove
+   {:duration 750
+    :easing "ease-out"}
+   articles])
+#+end_src
+
+which is equivalent to JS:
+
+#+begin_src javascript
+const TopArticles = ({ articles }) => (
+  <FlipMove duration={750} easing="ease-out">
+    {articles}
+  </FlipMove>
+);
+#+end_src
+
+
+** Reagent “Components” -> React Components
+
+With =reagent/reactify-component=, Reagent forms can be converted
+into React components:
+
+#+begin_src clojurescript
+(defn exported [props]
+  [:div "Hi, " (:name props)])
+
+(def react-comp (reagent/reactify-component exported))
+
+(defn could-be-jsx []
+  (reagent/create-element react-comp #js{:name "world"}))
+#+end_src
+
+
+** Access Props and Children from Reagent “Components”
+
+Using =reagent.core/current-component=, a Reagent component can be referred to
+(e.g. from native React functions).
+
+The returned value can then be used with:
+- =reagent/props= to access props
+- =reagent/children= to access children
+
+#+begin_src clojurescript
+(defn my-div []
+  (let [this (reagent/current-component)]
+    (into [:div.custom (reagent/props this)]
+          (reagent/children this))))
+
+(defn call-my-div []
+  [:div
+    [my-div "Some text."]
+    [my-div {:style {:font-weight 'bold}}
+      [:p "Some other text in bold."]]])
+#+end_src
+
+
+* Components
+
+Write components with Hiccup syntax
+
+#+begin_src clojurescript
+(defn my-component []
+  [:div [:h2 "Hello world"]])
+#+end_src
+
+
+Components are always going to be a render function with some life-cycle
+methods (possibly generated with defaults), regardless of their type.
+
+A render function transforms data into clojurescript data structures which
+specify HTML via Hiccup format.
+
+They are all just React components underneath.
+
+** Types
+
+see [[https://cljdoc.org/d/reagent/reagent/1.1.1/doc/tutorials/creating-reagent-components][cljdoc on creating Reagent components]]
+
+*** Type 1 Component (simple render function)
+
+#+begin_src clojurescript
+
+(defn my-component [props]
+  [:h1 "Type 1"])
+
+#+end_src
+
+- can only return one hiccup element (use fragment =[:<> ...]= for groups)
+
+*** Type 1, but using =with-let= macro
+
+#+begin_src clojurescript
+
+(defn my-component [props]
+  (r/with-let [local-state ...]
+    [:h1 "Type 1 using with-let"]
+    (finally
+      ... ; called when component is no longer rendered
+      )))
+
+#+end_src
+
+- let-bindings are only executed once (like with type 2)
+- useful to add (in let-binding) and remove (in =finally=) event listeners
+- useful to prevent having to use type 2 components (e.g. for local ratoms)
+- can be combined with =track= (and other Reactive contexts)
+  (see [[https://cljdoc.org/d/reagent/reagent/1.1.1/doc/tutorials/creating-reagent-components#appendix-b---with-let-macro][example]] on cljdocs)
+
+*** Type 2 Component (closure for render function)
+
+#+begin_src clojurescript
+
+(defn my-component [props]
+  (let [local-state (r/atom 0)]
+    (fn [props]
+      [:h1 "Type 2"])))
+
+#+end_src
+
+- useful for setup and local state
+- outer function will be called only once
+- inner function may be called repeatedly on re-render
+- params should therefore be repeated in the inner render function
+
+*** Type 3 Component (map of lifecycle methods & render function)
+
+#+begin_src clojurescript
+
+(defn my-component [props]
+  (let [local-state ...]
+    (r/create-class
+     {:display-name "my-component"
+
+      :constructor ; is this okay??
+      (fn [this props] ...)
+
+      :get-initial-state ; is this okay??
+      (fn [this] ...)
+
+      :should-component-update ; should be avoided!
+      (fn [this old-argv new-argv] ...)
+
+      :component-did-mount
+      (fn [this] ...)
+
+      :component-did-update
+      (fn [this old-argv old-state snapshot] ...)
+
+      :component-will-unmount
+      (fn [this] ...)
+
+      ; ... other React lifecycle functions ...
+
+      :reagent-render
+      (fn [props]
+        [:h1 "Type 3"])})))
+
+#+end_src
+
+- only =:reagent-render= is necessary
+- =this= can be used with =r/props=, =r/children=, and =r/argv= to obtain the
+  current props/arguments and =r/dom-node= to obtain the DOM node
+- avoid overriding =:should-component-update= unless you know what you’re doing
+- always provide =:display-name= so Reagent/React can be helpful in debugging
+- see [[http://facebook.github.io/react/docs/component-specs.html#lifecycle-methods][React’s lifecycle methods]] for reference
+  - =prevState= and =nextState= params are not used by Reagent and have no
+    access in lifecycle methods
+  - lifecycle methods will run only on prop change, NOT when a ratom changes!
+    -> see [[https://cljdoc.org/d/reagent/reagent/1.1.1/doc/tutorials/when-do-components-update-?q=life-cycle#lifecycle-functions][reference (re-render on deref may still trigger them?)]]
+
+=argv= arguments in lifecycle methods:
+- include component constructor as first arg, which should generally be ignored
+- same format returned by =(r/argv this)=
+- =(r/props this)= and =(r/children this)= can be used alternatively but they
+  conceptually don’t map as clearly as =argv= (see [[https://cljdoc.org/d/reagent/reagent/1.1.1/doc/tutorials/creating-reagent-components#form-3-a-class-with-life-cycle-methods][cljdoc]] for details)
+
+
+** Functional Components
+
+Reagent functions with Hiccups by default turn into React Class components.
+
+Using ':f>' shortcut, function components can be created from Reagent
+components/functions, where both Ratoms and Hooks work.
+
+#+begin_src clojurescript
+;; This is used with :f> so both Hooks and RAtoms work here
+(defn example []
+  (let [[count set-count] (react/useState 0)]
+    [:div
+     [:p "You clicked " count " times"]
+     [:button
+      {:on-click #(set-count inc)}
+      "Click"]]))
+
+(defn root []
+  [:div
+   [:f> example]])
+#+end_src
+
+
+This can be changed by configuring the Reagent compiler:
+https://cljdoc.org/d/reagent/reagent/1.1.1/doc/tutorials/reagent-compiler
+
+#+begin_src clojurescript
+(def functional-compiler (reagent.core/create-compiler
+                          {:function-components true}))
+
+;; Using the option
+(reagent.dom/render [main] div functional-compiler)
+(reagent.core/as-element [main] functional-compiler)
+;; Setting compiler as the default
+(reagent.core/set-default-compiler! functional-compiler)
+#+end_src
+
+- =reagent.dom/render= doesn't return the Component instance, but just nil
+- =reagent.core/current-component= returns a mocked object that can be passed to
+  =reagent.core/force-update=, but won't support everything that real Component
+  instance would support
+- a bit slower compared to Class component implementation
+
+
+Functional components can also be created using =reagent/create-element=
+directly:
+
+#+begin_src clojurescript
+(defn inner [text]
+  [:p "Test " text])
+
+(defn my-func-component []
+  [:r> "div" #js{:className "foo"}
+   [:p {:style {:color "red"}} "Hello " [:strong "World"] "!"]
+   [inner "from inner."]])
+
+(defn my-func-component []
+  (r/create-element
+   "div" #js{:className "foo"}
+   (r/as-element
+    [:<> ; can only be ONE Hiccup form!
+     [:p {:style {:color "red"}} "Hello " [:strong "World"] "!"]
+     [inner "from inner."]])))
+#+end_src
+
+- can’t be used with ratoms (require component to be wrapped by Reagent)

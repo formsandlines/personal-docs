@@ -1,0 +1,17 @@
+#+title: Docs/Dart
+
+* Getting started
+
+** Install SDK
+
+https://dart.dev/get-dart#install
+
+: $ brew tap dart-lang/dart
+: $ brew install dart
+
+Path to Dart SDK:
+: /usr/local/opt/dart/libexec
+
+* ClojureDart
+
+https://github.com/Tensegritics/ClojureDart

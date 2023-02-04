@@ -1,0 +1,129 @@
+#+title: Src/Athens
+
+Trying to understand the Athens codebase.
+
+- Source: https://github.com/athensresearch/athens/tree/main/src
+- Developer guide: https://athensresearch.github.io/docs/developer_guide/running
+- ClojureFam: https://github.com/athensresearch/ClojureFam
+  - Athens Discord
+  - [[https://whimsical.com/contributing-to-athens-your-first-athens-commit-VdBCZ1d33pzXR7H7h9uAen][Contributing to Athens | Your First Athens Commit (MindMap)]]
+    [[file:_res/mindmap-your-first-athens-commit.png][Screenshot]]
+
+
+* Local dev
+
+- Guide: https://athensresearch.github.io/docs/developer_guide/running
+- Onboarding: https://www.loom.com/share/ee5120d1f69d4ce0aab923de71caedd0
+
+  Switch to Java11 (using my zsh aliases):
+  : temurin11
+  : javapath
+
+  Run dev env:
+  : yarn dev
+  : yarn client:electron  -- in other terminal
+
+  ~yarn dev~ starts nrepl on port 8777 (as specified in shadow-cljs.edn),
+  but it doesn’t seem possible to connect to it via vim-iced.
+
+** Issues
+
+- Hangs on startup with ENOENT #916: https://github.com/athensresearch/athens/issues/916
+  - solve by creating =dev-app-update.yml= with:
+    #+begin_src yaml
+    owner: yourGHName
+    repo: yourGHRepoName
+    provider: github
+    #+end_src
+    Need not have personal data, throws some errors while attempting to update.
+
+- REPL pointers:
+  https://athensresearch.github.io/docs/developer_guide/repl
+  https://github.com/athensresearch/athens/issues/14
+  https://roamresearch.com/#/app/ego/page/aARLhmFxm
+
+
+* File tree:
+
+** D =build/=
+** D =classes/=
+** D =data/=
+** D =dev/=
+** D =doc/=
+** D =resources/public=
+** D =script/=
+
+** D =src/= -> Source code
+*** D =clj/=
+**** D =athens/self_hosted/= -> backend
+- something with fluree and datascript
+
+**** D =config.default.edn=
+
+*** D =cljc/=
+**** D =athens/=
+- functions shared between Clojure and ClojureScript?
+- parser, macros, db stuff, common utils, etc.
+
+**** D =event_sync/=
+- seems to be its own project
+
+*** D =cljs/athens/= -> frontend
+**** D =views/=
+***** D =pages/=
+****** F =block_page.cljs= [[https://github.com/athensresearch/athens/blob/main/src/cljs/athens/views/pages/block_page.cljs][src]]
+- renders childs as ~../blocks/core.cljs -> block-el~
+****** F =node_page.cljs= [[https://github.com/athensresearch/athens/blob/main/src/cljs/athens/views/pages/node_page.cljs][src]]
+-
+***** D =blocks/=
+****** F =core.cljs= [[https://github.com/athensresearch/athens/blob/main/src/cljs/athens/views/blocks/core.cljs][src]]
+- ~(block-el ?linked-ref-data ?_opts)~
+- ~(inline-linked-refs-el state uid)~
+****** F =content.cljs= [[https://github.com/athensresearch/athens/blob/main/src/cljs/athens/views/blocks/content.cljs][src]]
+- ~(block-content-el block state)~
+****** F =textarea_keydown.cljs= [[https://github.com/athensresearch/athens/blob/main/src/cljs/athens/views/blocks/textarea_keydown.cljs][src]]
+- ~(destruct-key-down e)~ returns a map with various information about the key press
+**** F =events.cljs= [[https://github.com/athensresearch/athens/blob/cef64b07f0a3494df9ca64871bfce094913b82d6/src/cljs/athens/events.cljs][src]] -> re-frame events (mostly db)
+
+*** D =js/=
+**** D =comonents/= -> TS React components (styles, layout)
+- uses chakra-UI
+***** F =Page/Page.tsx= [[https://github.com/athensresearch/athens/blob/main/src/js/components/Page/Page.tsx][src]]
+
+**** D =theme/=
+**** F =textarea.js=
+~getCaretCoordinates(element, position, options)~
+
+** D =test/=
+** F =babel.config.js=
+** F =deps.edn=
+** F =docker-compose.yml=
+** F =package.json=
+** F =shadow-cljs.edn=
+** F =tsconfig.json=
+** ...
+
+* Dependencies
+** deps.edn
+- fluree
+- re-frame
+- instaparse
+- reitit
+- komponentit
+- cljs-http
+- datascript
+- datascript-transit
+- reagent
+- ...
+** package.json
+- babel
+- chakra-ui
+- emotion
+- storybook
+- electron-...
+- katex
+- react
+- react-...
+- shadow-cljs
+- typescript
+- ...

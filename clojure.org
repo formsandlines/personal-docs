@@ -1,0 +1,512 @@
+#+title: Docs/Clojure
+
+- [[https://github.com/clojure/clojure/tree/master/src/jvm/clojure/lang][Clojure Source]]
+- [[https://clojure.org/api/cheatsheet][Cheatsheet]]
+
+Resources:
+- https://github.com/razum2um/awesome-clojure
+
+Libraries:
+- https://www.clojure-toolbox.com
+- EDN / JSON / Transit transforms: https://github.com/borkdude/jet
+
+
+* REPL
+
+- Guide: https://lambdaisland.com/guides/clojure-repls/clojure-repls
+
+: $ clj
+- C-d to exit the repl
+
+#+begin_src clojure
+(require '[my.namespace]) ; load some .clj file/namespace
+(require '[my.namespace] :as foo) ; alias for namespace
+(require '[my.namespace] :reload) ; reload after file change
+
+(load-file "<path>/file.clj") ; load a file
+
+(ns my.namespace) ; use namespace
+
+*1, *2, *3 ; references to most recent evaluations in REPL
+
+(set! *print-length* n) ; limit output of sequences to n
+
+, ; (CIDER only) shows a set of commands (like 'refresh' to reset the REPL state)
+#+end_src
+
+** REPL tools
+
+#+begin_src clojure
+(require '[clojure.repl :refer :all]) ; (might be required by default)
+
+; documentation for a function
+(doc func)
+(javadoc class-or-object)
+
+; find functions that match a particular string
+(apropos "func")
+
+; include docstrings in search
+(find-doc "func")
+
+; list functions in a particular namespace
+(dir clojure.x)
+
+; print source of a function
+(source func)
+#+end_src
+
+** nREPL
+-> Clojure networked REPL server
+
+
+* Clojure CLI tools
+
+Guides:
+- https://clojure.org/guides/deps_and_cli
+- https://tomekw.com/clojure-deps-edn-a-basic-guide/
+
+Tutorials:
+- https://www.youtube.com/watch?v=8aCO_wNuScQ
+
+Note: use ~clj~ for REPL and ~clojure~ for everything else.
+
+** deps.edn
+
+example config:
+- https://github.com/dougllcooper/clojure-deps-edn/blob/master/deps.edn
+
+** Executing
+
+run ~-main~ function from a namespace (clojure.main):
+: $ clojure -M -m my.namespace
+- see https://clojure.github.io/clojure/clojure.main-api.html
+
+run arbitrary (entry) function from a namespace:
+- argument can only be 1 map
+: $ clojure -X my.namespace/my-func :key1 "value1" :key2 "value2"
+or
+: $ clojure -X my.namespace/my-func "{:key1 "value1" :key2 "value2"}"
+
+** Classpath
+
+print classpath generated (using specified ~clojure~ options):
+: $ clojure -Spath -M:dev
+
+** Dependencies
+
+list all dependencies in project and system:
+: $ clojure -Sdescribe
+
+find versions of a dependency using find-versions:
+: $ clojure -X:deps find-versions :lib clojure.java-time/clojure.java-time
+
+** Tools
+
+list installed tools:
+: $ clojure -Ttools list
+
+install a tool ([[https://github.com/clojure/tools.deps.graph][example]]):
+: $ clojure -Ttools install org.clojure/tools.deps.graph '{:mvn/version "1.1.68"}' :as deps-graph
+
+call with:
+: $ clojure -Tdeps-graph clojure.tools.deps.graph/graph
+
+** Scripting
+
+create script file and make executable:
+: $ touch <path>/myscript
+: $ chmod -x <path>/myscript
+
+content e.g.:
+#+begin_src bash
+#!/usr/bin/env bash
+
+clojure -X my.namespace/my-func $@
+#+end_src
+
+execute like:
+: $ ./<path>/myscript :arg1 val1 :arg2 var2 …
+
+
+* Build and deploy
+
+Tutorials:
+- Create a library: https://www.youtube.com/watch?v=OG_MYSGzSHo
+
+** To build a JAR:
+
+1. add ~:build~ alias to =deps.edn=:
+#+begin_src clojure
+{:aliases
+ {:build {:deps {io.github.clojure/tools.build
+                 {:git/tag "v0.6.2" :git/sha "226fb52"}}
+          :ns-default build}}}
+#+end_src
+
+2. create =build.clj= file/namespace in root dir
+
+3. compile the JAR:
+: $ clj -T:build jar
+
+** To put a JAR in local Maven repository:
+
+Default path for a local Maven repository:
+=~/.m2/repository/my-repo=
+
+1. add function to build.clj that installs the JAR on local repo:
+#+begin_src clojure
+(defn install-locally [_] (b/install ...))
+#+end_src
+
+2. invoke install function:
+: $ clj -T:build install-locally
+
+** To push a JAR to Clojars:
+
+must have a Clojars account first
+
+1. add deps-deploy library: https://github.com/slipset/deps-deploy
+#+begin_src clojure
+slipset/deps-deploy {:mvn/version "RELEASE"}
+#+end_src
+
+2. require in =build.clj=:
+#+begin_src clojure
+(:require [deps-deploy.deps-deploy :as dd])
+#+end_src
+
+3. add deploy function:
+#+begin_src clojure
+(defn deploy [_] (dd/deploy ...))
+#+end_src
+
+4. setup env variables (see deps-deploy repo):
+: $ env CLOJARS_USERNAME=username CLOJARS_PASSWORD=clojars-token clj -X:deploy
+
+5. invoke install function
+: $ clj -T:build deploy
+
+** To add a library to deps.edn:
+
+#+begin_src clojure
+; To add a local library (can have any name):
+{:deps {some-name {:local/root "../my-local-lib"}}}
+
+; To add a library from GitHub:
+{:deps {com.github.my-user/my-repo {:git/sha "XXXX"}}}
+; - copy SHA directly from the commit in GitHub repo
+; with tag (can have shorter sha code):
+{:deps {com.github.my-user/my-repo {:git/tag "v0.0.1" :git/sha "XXXX"}}}
+
+; To add a local JAR package:
+{:deps {some-name {:local/root "../my-local-lib/target/my-lib-0.0.1.jar"}}}
+
+; To add a JAR, installed on local or remote Maven repo:
+{:deps {repo-name {:mvn/version "0.0.1"}}}
+#+end_src
+
+** To build an uberjar (using Neil)
+:PROPERTIES:
+:ID: uberjar
+:END:
+
+needs tools.build
+: $ neil add build
+- adds tools.build =build.clj= file and :build alias
+
+assumes project is under version control, so:
+(actually might not be necessary anymore)
+: $ git init
+: $ git add deps.edn src test
+: $ git commit -m "initial commit"
+
+add ~(:gen-class)~ to namespace:
+#+begin_src clojure
+(ns myproject.core
+  (:gen-class))
+#+end_src
+
+add ~:main '<entry-ns>~ in the call to b/uber:
+#+begin_src clojure
+(b/uber {:class-dir class-dir
+         :uber-file uber-file
+         :basis basis
+         :main 'myproject.core})
+#+end_src
+
+to compile the uberjar:
+: $ clojure -T:build uber
+
+run like
+: $ java -jar target/lib1-1.2.1-standalone.jar
+
+(?) Mac OSX: to create .app from Uberjar:
+https://github.com/TheInfiniteKind/appbundler/
+
+*** Compile uberjar to native image with GRAALVM and babashka
+
+after creating the uberjar, compile to native image like this:
+: $GRAALVM_17_HOME/bin/native-image -jar target/my-project-standalone.jar --no-fallback --initialize-at-build-time=clojure,my-project my-project
+
+-> compiles Java class files to machine code
+
+
+* Tests
+
+- cognitect test-runner: https://github.com/cognitect-labs/test-runner
+- for ClojureScript (same interface): https://github.com/Olical/cljs-test-runner
+
+
+* Neil
+https://github.com/babashka/neil
+
+Tutorial:
+- https://blog.michielborkent.nl/new-clojure-project-quickstart.html
+
+: $ brew install babashka/brew/neil
+
+** Create new projects
+
+: $ neil new --name <name>
+- same as ~… new scratch …~
+
+: $ neil new app --name <name>
+
+** Adding dependencies
+
+search Clojars for a string in any attribute of an artifact:
+: $ neil dep search <string>
+- example: `"file system"`
+
+: $ neil dep add :lib <lib-ns> :version <lib-version>
+- example: `babashka/fs :version 0.1.6`
+
+** Adding licenses
+-> uses Github's license API
+
+search for licenses:
+: $ neil license list
+: $ neil license list <string>
+- example: `"lesser general"`
+
+add a LICENSE file:
+: $ neil license add <license-name>
+: $ neil license add :license <name> :file <file>
+- examples: `epl-1.0` , `:license mit :file myproj/license.txt`
+
+** Adding cognitect test runner
+
+add to deps.edn:
+: $ neil add test
+
+needs tests like =./test/myproject/core_test.clj=:
+#+begin_src clojure
+(ns myproject.core-test
+  (:require [clojure.test :as t :refer [deftest is testing]]))
+
+(deftest failing-test
+  (testing "TODO: fix test"
+    (is (= 3 4))))
+#+end_src
+
+to run all tests:
+: $ clojure -M:test
+to run a single test:
+: $ clojure -M:test -v my.namespace-test/somefn-test
+
+** Adding nrepl support
+
+add to deps.edn:
+: $ neil add nrepl
+
+to start nrepl server (use jack-in instead if possible):
+: $ clojure -M:nrepl
+
+** Adding tools.build
+
+: $ neil add build
+- adds tools.build =build.clj= file and :build alias
+- e.g. [[id:uberjar][to build an uberjar]]
+
+* Babashka
+
+Docs: https://book.babashka.org
+
+Start nREPL server
+: $ bb nrepl-server
+
+** Executing
+
+to evaluate an expression:
+: $ bb -e '(+ 1 2 3)'
+
+to run a script:
+: $ bb -f script.clj
+
+scripts can have shebangs to invoke them directly:
+: #!/usr/bin/env bb
+: (+ 1 2 3)
+
+to execute ~-main~ function:
+: $ bb -m my.namespace
+
+to invoke a function using babashka CLI (example):
+: $ bb -x clojure.core/identity --hello there
+: {:hello "there"}
+similar to:
+: $ clojure -X clojure.core/identity '{:hello "there"}'
+but converts Unix-style arguments to Clojure maps
+
+** Tasks
+
+to show available tasks:
+: $ bb tasks
+
+to run a task:
+: $ bb <taskname>
+
+*** Adding tasks for tests
+
+https://blog.michielborkent.nl/babashka-test-runner.html
+
+in =bb.edn=:
+#+begin_src clojure
+{:tasks
+ {test:clj {:doc "Run clj tests"
+            :extra-paths ["test"]
+            :task (do (println "Clojure tests:")
+                      (clojure "-M:test"))}
+  test:bb {:doc "Run bb tests"
+           :extra-paths ["test"]
+           :extra-deps {io.github.cognitect-labs/test-runner
+                        {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+           :task (do (println "Babashka tests:")
+                     (exec 'cognitect.test-runner.api/test))
+           :exec-args {:dirs ["test"]}
+           :org.babashka/cli {:coerce {:nses [:symbol]
+                                       :vars [:symbol]}}}}}
+#+end_src
+
+run Clojure tests like this:
+: $ bb test:clj
+
+run Babashka tests like this:
+: $ bb test:bb
+: $ bb test:bb --vars my.namespace-test/some-fn-test
+: $ bb test:bb --nses my.namespace-test
+
+*** Adding tasks for native compilation with GraalVM
+
+#+begin_src clojure
+{…
+ :tasks
+ {:requires ([babashka.fs :as fs])
+  uberjar {:task
+           (when (seq (fs/modified-since "target/myproj-standalone.jar"
+                                         ["src"]))
+             (clojure "-T:build uber"))}
+  native-image {:doc "Creating native image"
+                :depends [uberjar] ;; <- calls this first
+                :task
+                (let [graalvm-home (System/getenv "GRAALVM_17_HOME")
+                      native-image (str (fs/file graalvm-home
+                                                 "bin" "native-image"))]
+                  (shell native-image
+                         "-jar" "target/myproj-standalone.jar"
+                         "--no-fallback"
+                         "--initialize-at-build-time=clojure,myproj"
+                         ;; binary name:
+                         "myproj"))}}}
+#+end_src
+
+optionally use this util to automate build-time options:
+- https://github.com/clj-easy/graal-build-time
+
+then just call:
+: $ bb native-image
+
+*** Using Unix-style task-arguments with babashka-cli
+
+#+begin_src clojure
+{:tasks
+ mytask {;; exec … -> bb -x …
+         :task (exec 'some.namespace/some-fn)
+         ;; default arguments for exec call:
+         :exec-args {:some-arg (my-expr …)}
+         ;; cli arguments:
+         :org.babashka/cli {:coerce {:myarg [:int]
+                                     …}
+                            :alias {:m :myarg
+                                    …}}}}
+#+end_src
+
+calling:
+: $ bb mytask -m 42
+will evaluate ~'some.namespace/some-fn~
+with ~{:some-arg (my-expr …) :m 42 …}~
+
+*** Using external functions in tasks
+
+#+begin_src clojure
+;; create a file, e.g. =bb/tasks.clj=:
+(ns tasks)
+(defn my-fn [_] …)
+
+;; in bb.edn:
+{;; add directory to classpath:
+ :paths ["src" "bb"]
+ :tasks
+ ;; require namespace:
+ {:requires ([tasks])
+  my-task {;; call function:
+           :task (tasks/my-fn {})}}}
+#+end_src
+
+
+* Editor support
+
+Emacs:
+- CIDER
+  (Doom Emacs: uncomment "clojure" in init.el)
+
+Neovim extension:
+- clonjure (https://github.com/Olical/conjure)
+
+VS Code extension:
+- Calva
+  (note: has some problems with Vim extension, see https://calva.io/vim/)
+
+** Leiningen
+
+: $ brew install leiningen
+
+: $ lein
+- installs Leiningen on the first run
+
+to start the repl:
+: $ lein repl
+- ~(exit)~ to exit the repl
+
+: $ lein new <name>
+: $ lein new app <name>
+
+to run Leiningen app (needs :main namespace in project.clj!):
+: $ lein run
+
+to create standalone executable:
+: $ lein uberjar
+- clean & uberjar: ~lein do clean, uberjar~
+run like:
+: $ java -jar <path>/...-standalone.jar
+
+bundle executable package with JRT:
+: $ jpackage --input ./target/uberjar/ --main-jar <name>-0.1.0-SNAPSHOT-standalone.jar
+
+print dependency tree for the project:
+: $ lein deps :tree
+
+*** project.clj (Leiningen)
+
+large annotated example to look for settings:
+- https://github.com/technomancy/leiningen/blob/master/sample.project.clj
