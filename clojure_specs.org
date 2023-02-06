@@ -430,7 +430,6 @@ src_clojure{ (stest/summarize-results (stest/check `my-specd-fn)) }
 * Generate data
 
 ** : (s/gen <spec>)
-
 Produces a generator from given spec/predicate.
 
 *** Examples
@@ -443,8 +442,8 @@ src_clojure{ (s/gen (s/and int? even?)) }
 Generators can be created from a fixed set of values:
 src_clojure{ (s/gen #{:my.domain/name :my.domain/occupation :my.domain/id}) }
 
-** : (s/with-gen <spec> <gen-fn>)
 
+** : (s/with-gen <spec> <gen-fn>)
 Defines a spec with an associated custom generator.
 
 *** Examples
@@ -480,9 +479,7 @@ src_clojure{ (require '[clojure.spec.gen.alpha :as gen]) }
 Use with ~s/gen~ to obtain a generator from a spec/predicate.
 
 *** : (gen/generate <generator>)
-
 Generates a single value using a generator.
-
 
 *** : (gen/sample <generator>)
 
@@ -557,7 +554,6 @@ Can be used to further process values from generators:
 #+end_src
 
 **** : (gen/such-that <pred> <generator>)
-
 Specifies a filtering condition for a generator.
 
 ***** Examples
@@ -627,7 +623,6 @@ JSON-like structure:
 
 **** : (gen/string-alphanumeric)
 **** : (gen/boolean)
-**** : (gen/nat)
 **** : (gen/keyword)
 
 **** : (gen/uuid)
@@ -635,13 +630,11 @@ JSON-like structure:
 *** From data
 
 **** : (gen/return <value>)
-
 Creates a generator that always returns the ~value~ and never shrinks.
 
 **** : (gen/elements <coll>)
-
 Creates a generator that randomly chooses an element from ~coll~.
-**** : (gen/shuffle <coll>)
 
-Creates a generator that generates vectors with the elements of ~coll~ in random
-orders.
+**** : (gen/shuffle <coll>)
+Creates a generator that generates vectors with the elements of ~coll~ in
+random orders.

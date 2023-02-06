@@ -14,6 +14,33 @@ Help for specific command:
 * Concepts
 
 ** Repository
+*** .git folder
+The file structure of =.git= looks like this:
+: .git/
+: |-- hooks/
+: |-- info/
+: |-- logs/
+: |-- objects/
+: |-- refs/
+: |-- COMMIT_EDITMSG
+: |-- config
+: |-- description
+: |-- HEAD
+: |-- index
+
+*** bare repository
+A *bare* repository is essentially a =.git= folder with a specific folder
+where all the project files reside.
+- the directory where ~git init --bare~ was called /is/ the =.git= folder
+- the directory name should have the ending ~.git~
+- it has the exact same file structure as =/.git= in a non-bare repo
+
+It doesn’t have a working tree, so nothing can be tracked and no commits
+can be made.
+
+It is only possible to [[git push]] to and [[git clone]] from a bare repository.
+
+
 *** Cloning
 *** Forking
 ** Commit
@@ -231,6 +258,7 @@ again.
 ** Create
 *** git init
 Initializes a repository.
+:  --bare  < creates a bare repository
 
 *** git clone
 : $ git clone https://github.com/...  > clone repository
@@ -473,7 +501,14 @@ https://git-scm.com/book/en/v2/Git-Basics-Tagging
 *** git branch
 Show branches (active branch with *):
 : $ git branch
+:  -a, --all    > list both remote-tracking and local branches
+:  -v           > show information on last commit for each branch
+:  --merged     > filter branches merged into the current branch
+:  --no-merged  > filter branches not yet merged into the current branch
 : $ git branch | grep \* | cut -d ' ' -f2   > shows only active branch
+- ~--merged~ and ~--no-merged~ can be given a branch-name as an argument to
+  see what is merged into that branch instead of the branch currently
+  active
 
 Create new branch:
 : $ git branch <branch-name>
@@ -523,6 +558,7 @@ Merges <new-branch> with current (checkout) branch, but doesn't delete it!
 
 https://www.atlassian.com/de/git/tutorials/using-branches/git-merge
 *** git mergetool
+*** git rebase
 *** git reset
 : $ git reset HEAD   > revert HEAD (e.g. after 'git rm')
 :                      (keeps uncommited changes)
@@ -541,13 +577,29 @@ Infos:
 *** git remote
 https://stackoverflow.com/questions/17122245/what-is-a-git-upstream
 
+Show associated remote repos:
+: $ git remote
+: -v, --verbose  > shows additional information
+
+Show detailled infos about a specific remote repo:
+: $ git remote show <remote>
+
 Add remote repo:
-: $ git remote add origin https://github.com/githubname/reponame.git
-: -v, --verbose  > check if remote repo exists
-- ~origin~ is the name of the remote connection; it is just a convention, can have any other name
+: $ git remote add <remote-name> <url/dir>
+- ~origin~ is a common convention of a name for a remote connection
+- local repositories can also be added by specifying the repo path
+
+Change remote name:
+: $ git remote rename <old-name> <new-name>
+- changes all remote-tracking branch names as well
 
 Change remote url:
 : $ git remote set-url <remote-name> <remote-url>
+
+Remove remote repo:
+: $ git remote remove <remote>
+- removes all remote-tracking branches and configuration settings
+  associated with that remote
 
 *** git push
 : $ git push <remote> <branch>
@@ -556,31 +608,41 @@ Change remote url:
 : -d, --delete        > delete refs
 push to <remote> on <branch>
 
-: $ git push -u origin master
-: $ git push <remote_name> -d <branch_name>
+*Note:* Git doesn’t allow to push to a non-bare repository.
+- set ~git config receive.denyCurrentBranch ignore~ on the remote repo to
+  still allow pushing
+- then, to remove inconsistencies of index and working tree, use ~git reset
+  –hard~ after every push
+
+: $ git push -u <remote> <branch>
+: $ git push <remote> -d <branch>
 
 tags:
-: $ git push origin --tags                  > push all tags to remote
-: $ git push origin <tag_name>              > push specific tag to remote
+: $ git push <remote> --tags                  > push all tags to remote
+: $ git push <remote> <tag-name>              > push specific tag to remote
 
 https://stackoverflow.com/questions/2003505/how-do-i-delete-a-git-branch-locally-and-remotely
-: $ git push <remote_name> -d <branch_name> > delete remote branch
-: $ git push <remote_name> :<branch_name>   > delete remote branch
+: $ git push <remote> -d <remote-branch> > delete remote branch
+: $ git push <remote> :<remote-branch>   > delete remote branch
 
 *** git fetch
-: $ git fetch origin
-fetches all commits and branches not on local
+: $ git fetch <remote>
+Fetches all commits and branches not on local.
 - only downloads new data from remote, never integrates them into working files
-: $ git fetch origin <remote_name> :<branch_name>
-pull only branch <remote_name> :<branch_name>
+
+: $ git fetch origin <remote> :<remote-branch>
+pull only branch <remote> :<remote-branch>
 
 *** git pull
-fetch data in remote branch and merge
+Fetch data in remote branch and merge.
 - <=> git fetch <remote> && git merge origin/<curr_branch>
 : $ git pull <remote>
 : --no-commit  > without merge-commit
 : --rebase     > using git rebase to merge
 : --verbose    > show detailed info about fetched data and merge
+
+Pull and merge ~<remote-branch>~ into the current branch:
+: $ git pull <remote> <remote-branch>
 
 * GitHub
 ** SSH Authentication
