@@ -40,7 +40,6 @@ can be made.
 
 It is only possible to [[git push]] to and [[git clone]] from a bare repository.
 
-
 *** Cloning
 *** Forking
 ** Commit
@@ -140,6 +139,122 @@ After resolving each conflicting section, the file can be staged and is
 thereby marked as resolved in Git.
 
 Committing the changes concludes the merge.
+
+
+*** rebasing
+Reapplies all changes/commits on one branch onto the last commit of
+another branch, as if it has been part of its history all along.
+- cleaner history than with a merge, but less truthful
+  - dates of newer commits might be older than previous ones
+  - rebased commits will have a new commit-SHA
+- will create the same snapshot as with merge, only the history is different
+
+*Do not rebase commits that exist outside your repository and that people
+may have based work on.*
+
+*Rebase local changes before pushing to clean up your work, but never
+rebase anything that you’ve pushed somewhere.*
+
+To rebase a branch onto another one:
+: $ git switch <to-rebase-branch>
+: $ git rebase <rebase-onto-branch>
+
+Conflicts are handled the same way as with a three-way merge
+- see [[merge conflicts]]
+
+Then, finish the rebase with ~git rebase --continue~. The HEAD will now
+point to the rebased branch and a [[fast-forward merge]] can be done to move
+the pointer of the rebased-onto branch forward.
+: $ git switch <rebase-onto-branch>
+: $ git merge <to-rebase-branch>
+
+#+CAPTION: Simple divergent history
+#+NAME: fig_rebase-before
+#+ATTR_HTML: :width 80%
+[[./_res/git/basic-rebase-1.png]]
+
+#+CAPTION: Rebasing the change introduced in C4 onto C3
+#+NAME: fig_rebase-after
+#+ATTR_HTML: :width 90%
+[[./_res/git/basic-rebase-3.png]]
+
+If someone force-pushed rebased commits (and thus changed those commits),
+it is best to try either:
+- ~git pull --rebase~ or
+- ~git fetch~ followed by ~git rebase <remote-branch>~
+which can often cleanly apply the rebase to local work based on its
+history (see https://www.git-scm.com/book/en/v2/Git-Branching-Rebasing).
+
+*** tracking branch
+A /tracking branch/ is a local branch that tracks a [[remote tracking branch]].
+
+[[git clone]] automatically creates tracking branches that correspond to the
+remote branches (e.g. ~master~ for ~origin/master~).
+
+New tracking branches can be created with [[git checkout]]:
+- ~$ git checkout -b <tracking-branch> <remote>/<branch>~
+- ~$ git checkout --track <remote>/<branch>~ (shorthand)
+- ~$ git checkout <branch>~ only if
+  - ~<branch>~ doesn’t already exist and
+  - its name matches the name of the remote tracking branch
+
+To set up a branch to track another remote branch, use
+: $ git branch -u <remote>/<branch>
+
+~@{upstream}~ or ~@{u}~ can be used as a shorthand to refer to the upstream
+branch of a tracking branch without naming it directly.
+- e.g. use ~$ git merge @{u}~ instead of ~$ git merge origin/master~
+
+Tracking branches can be looked up with ~$ git branch -vv~ .
+- the information is only as up-to-date as the last ~$ git fetch~ command
+
+*** remote tracking branch
+A /remote tracking branch/ is a branch that is a reference to the state of a
+corresponding branch on a remote repository.
+
+It is a pointer that Git automatically generates (e.g. when calling ~git
+clone~) and that moves along with the corresponding [[remote branch]] when
+remote operations are called.
+- [[git fetch]] fetches any new data on the remote branch and moves the remote
+  tracking branch pointer to its new, up-to-date position
+
+Remote-tracking branch names take the form ~<remote>/<branch>~ .
+
+With ~$ git branch --all~, all tracking branches can be seen.
+
+With ~$ git checkout <remote>/<branch>~ it is possible to checkout a remote
+tracking branch and examine its current state.
+- Git will be in [[Detached HEAD State]]
+- this only works for ~git switch~ with ~--detach~ option
+
+*** remote branch
+A /remote branch/ is a branch in a remote repository.
+
+To delete remote branches use:
+: $ git push <remote> --delete <remote-branch>
+
+*** creating a branch from a previous commit
+To create a branch from a previous commit,
+1. checkout the commit in /detached HEAD state/: ~$ git checkout <commit-SHA>~
+2. make changes and commit them
+3. create a new branch from new commit-SHA: ~$ git branch <name> <new-SHA>~
+
+Or just create the branch immediately with [[git switch]]:
+: $ git switch -c <branch-name> <commit-SHA>
+
+** Detached HEAD State
+https://www.git-tower.com/learn/git/faq/detached-head-when-checkout-commit/
+
+State Git enters when checking out a commit instead of a branch.
+
+In this state, Git does not automatically move the HEAD pointer along when a
+new commit is created.
+- new commits will not belong to any branch and therefore will be hard to
+  recover after switching to a branch
+- to create a branch for those changes, see [[creating a branch from a
+  previous commit]]
+
+[[git rebase]] creates a temporary detached HEAD state while it runs.
 
 ** Stash
 ** Tracking / Staging
@@ -241,6 +356,45 @@ Infos:
 - [[https://shafiul.github.io//gitbook/7_the_git_index.html][Git Community Book / The Git Index]]
 - [[https://github.blog/2021-11-10-make-your-monorepo-feel-small-with-gits-sparse-index/][Make your monorepo feel small with Git’s sparse index]]
 - [[https://stackoverflow.com/questions/4084921/what-does-the-git-index-contain-exactly][stackoverflow: What does the git index contain EXACTLY?]]
+* Recipes
+** Truncate commit history
+
+1. Copy SHA and commit date from the log of the commit that should be the
+   new root.
+2. Create a new orphan branch from that root’s SHA:
+   : $ git checkout --orphan temp <new-root-SHA>
+3. Commit to that branch reusing commit
+   msg and date with the ~-C~ flag:
+   : $ git commit -C <new-root-SHA>
+   - to retain original commit date:
+     : $ export GIT_COMMITTER_DATE='<old-commit-date>'
+     : ... commit ...
+     : $ unset GIT_COMMITTER_DATE
+4. Rebase commits from new root to HEAD of its branch on top of ~temp~:
+   : $ git rebase --onto temp <new-root-SHA> <new-root-branch>
+   - add flag ~--committer-date-is-author-date~ to retain original commit dates
+5. Delete ~temp~ branch and maybe the old branches:
+   : $ git branch -d temp
+   : $ git branch -D <old-branch>
+6. Completely remove the old loose objects (CANNOT BE UNDONE):
+   : $ git reflog expire --expire=now --all
+   : $ git gc --prune=now
+
+More information:
+- https://passingcuriosity.com/2017/truncating-git-history/
+- https://stackoverflow.com/a/41953383/1204047
+- https://stackoverflow.com/a/11688066/1204047
+
+** To change the commit date of a commit
+
+: export GIT_COMMITTER_DATE='Wed Dec 21 11:51:39 IST 2022'
+: git commit --amend --no-edit --date='Wed Dec 21 11:51:39 IST 2022'
+: unset GIT_COMMITTER_DATE
+- https://stackoverflow.com/a/28537098/1204047
+- https://stackoverflow.com/a/74884865/1204047
+- https://stackoverflow.com/a/65389906/1204047
+
+
 
 * Data recovery
 Anything /that is committed/ in Git can almost always be recovered.
@@ -263,6 +417,7 @@ Initializes a repository.
 *** git clone
 : $ git clone https://github.com/...  > clone repository
 : $ git clone <url> <dirname>         > can choose a different dir name
+:  -o <name>  > choose a different remote name (default: “origin”)
 
 ** Check
 *** git config
@@ -299,6 +454,7 @@ The short report has the form: ~LR <filename>~
 Short symbols:
 | ~A~  | newly added files          |
 | ~M~  | modified files             |
+| ~U~  | unmerged files             |
 | ~D~  | removed (via ~git rm~) files |
 | ~R~  | renamed files              |
 | ~??~ | untracked files            |
@@ -315,6 +471,9 @@ different branch or all branches.
 : --graph          > adds ASCII graph showing branch and merge history
 : --oneline        > alias to `--pretty=oneline`
 : --decorate       > not needed in newer Git versions because default
+
+Use ~--format=fuller~ to also show commit date.
+- GitHub will only show commit date!
 
 **** Filtering options
 : -<n>                       > limit to `n` log entries
@@ -400,6 +559,15 @@ commits:
 : |/
 : * d6016bc Require time for xmlschema
 : *  11d191e Merge branch 'defunkt' into local
+
+**** Recipes
+
+Show direct parent of a commit:
+: $ git log --pretty=%P -n 1 <commit-id>
+- see https://stackoverflow.com/questions/44112593/how-to-get-the-parent-of-a-specific-commit-in-git for other options
+*** git rev-list
+Show first commit from ~HEAD~:
+: $ git rev-list --max-parents=0 --abbrev-commit HEAD
 
 *** git diff
 : $ git diff
@@ -503,6 +671,7 @@ Show branches (active branch with *):
 : $ git branch
 :  -a, --all    > list both remote-tracking and local branches
 :  -v           > show information on last commit for each branch
+:  -vv          > also show tracking information on each branch
 :  --merged     > filter branches merged into the current branch
 :  --no-merged  > filter branches not yet merged into the current branch
 : $ git branch | grep \* | cut -d ' ' -f2   > shows only active branch
@@ -524,8 +693,11 @@ Delete branch:
 *** git checkout
 Moves ~HEAD~ pointer to specified branch and reverts the files in working
 directory back to the snapshot that this branch is pointing to.
-: $ git checkout <branch>
+: $ git checkout <branch/commit-hash>
 : -f, --force  > discards local changes
+- can also be given a /SHA1 hash/ of a specific commit instead of branch name
+  -> needs only first 7 chars of the SHA
+  -> this puts Git in /“detached HEAD” mode/.
 
 Create new branch and switch to it:
 : $ git checkout -b <new-branch>
@@ -542,12 +714,16 @@ Set older commit as new HEAD:
 : $ git checkout HEAD~n .  > checkout revision n commits ago
 :                            (doesn't change where HEAD points to)
 : $ git commit             > make revision newest commit
+
 *** git switch
 Switch to an existing branch:
-: $ git switch <branch>
+: $ git switch <branch/commit-hash>
+: --detach  > switch with detached HEAD (to checkout a specific commit)
 
 Create a new branch and switch to it:
 : $ git switch -c <new-branch>  > or with --create
+Also works from a specific commit:
+: $ git switch -c <new-branch> <commit-hash>
 
 Return to previously checked out branch:
 : $ git switch -
@@ -559,12 +735,92 @@ Merges <new-branch> with current (checkout) branch, but doesn't delete it!
 https://www.atlassian.com/de/git/tutorials/using-branches/git-merge
 *** git mergetool
 *** git rebase
+: --root  < rebase all reachable commits up to the root(s)
+
+Explanation: https://stackoverflow.com/a/29916361/1204047
+
+3 rebase granularities:
+- Branch rebase /“quick”/
+- Parent rebase /“precise”/
+- General rebase /“surgical”/
+
+**** Branch rebase:
+: $ git rebase <onto-branch>
+- most common and simplest case of rebasing
+
+Rebases the current ~HEAD~ branch on top of the /latest commit/ that is
+reachable from ~<onto-branch>~, but not from ~HEAD~:
+:         Before                           After
+:   A---B---C---F---G (branch)        A---B---C---F---G (branch)
+:            \                                         \
+:             D---E (HEAD)                              D---E (HEAD)
+
+**** Parent rebase:
+: $ git rebase --onto <new-parent> <old-parent>
+- “onto” means “on top of”
+- rebases the commit reachable from ~HEAD~ whose parent is ~<old-parent>~ /on
+  top of/ ~<new-parent>~
+
+Changes the parent of a particular commit from ~<old-parent>~ to ~<new-parent>~:
+
+:         Before                           After
+:   A---B---C---F---G (branch)        A---B---C---F---G (branch)
+:            \                                     \
+:             D---E---H---I (HEAD)                  E---H---I (HEAD)
+with ~$ git rebase --onto F D~
+
+Can also be used to remove some commits in between two commits:
+:         Before                       After
+:   A---B---C---E---F (HEAD)        A---B---F (HEAD)
+with ~$ git rebase --onto B E~
+
+**** General rebase:
+: $ git rebase --onto <new-parent> <old-parent> <until>
+- how does this work exactly?
+
+Rebase the range of commits whose parent is D up to H on top of F:
+:         Before                                     After
+:   A---B---C---F---G (branch)                A---B---C---F---G (branch)
+:            \                                             \
+:             D---E---H---I (HEAD)                          E---H (HEAD)
+with ~$ git rebase --onto F D H~
+
+*** git clean
+: $ git clean
+: -n, --dry-run  > don’t actually remove anything, just show what would be
+: -f, --force    > force deletion
+: -d             > also recurse into untracked directories
+: -x             > also delete files caught by .gitignore
+: -X             > remove only files ignored by Git
+
+Deletes untracked files/folders in working directory.
+
+Test before delete:
+1. make a test-run to see what would be deleted:
+   : $ git clean -nfd
+2. remove ~-n~ flag to actually delete
+
+*Avoid the -x option since it can remove local configs!*
+
+: $ git clean -fxd :/
+Cleans untracked and ignored files through the entire repo (without ~:/~,
+the operation affects only the current directory)
+
 *** git reset
 : $ git reset HEAD   > revert HEAD (e.g. after 'git rm')
 :                      (keeps uncommited changes)
 : --hard   > DELETES uncommited changes
 : --soft   > keeps changes and working tree (?)
 : --merge  > solves merge-problems (?)
+
+~git reset --hard~ removes staged changes as well as working directory changes.
+
+git-reset does up to three things:
+1. it *points* the ~HEAD~ ref at a new /'target'/ commit, if specified
+2. then it *copies* the tree of the ~HEAD~ commit to the /index/, unless ~--soft~
+3. finally, it *copies* the contents of the /index/ to the /working tree/, if
+   ~--hard~
+> source: https://blog.plover.com/prog/git-reset.html
 
 Infos:
 - https://git-scm.com/docs/git-reset
@@ -583,6 +839,9 @@ Show associated remote repos:
 
 Show detailled infos about a specific remote repo:
 : $ git remote show <remote>
+
+Show SHA of last commit on remote branches:
+: $ git ls-remote <remote>
 
 Add remote repo:
 : $ git remote add <remote-name> <url/dir>
@@ -603,6 +862,7 @@ Remove remote repo:
 
 *** git push
 : $ git push <remote> <branch>
+: $ git push <remote> <local-branch>:<remote-branch>
 : -f, --force         > overwrite existing remote branch
 : -u, --set-upstream  > push and create upstream branch on remote repo
 : -d, --delete        > delete refs
@@ -627,8 +887,10 @@ https://stackoverflow.com/questions/2003505/how-do-i-delete-a-git-branch-locally
 
 *** git fetch
 : $ git fetch <remote>
+: --all  < fetches from all remotes
 Fetches all commits and branches not on local.
 - only downloads new data from remote, never integrates them into working files
+- updates [[remote tracking branch]] to match the remote branch it tracks
 
 : $ git fetch origin <remote> :<remote-branch>
 pull only branch <remote> :<remote-branch>
