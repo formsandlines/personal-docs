@@ -68,7 +68,7 @@ Install Node dependency:
 : $ yarn add --dev shadow-cljs
 : $ yarn
 
-Add a ~shadow-cljs.edn~ file:
+Add a =shadow-cljs.edn= file:
 #+begin_src clojure
 {:source-paths ["src"]
  :dependencies [[binaryage/devtools "1.0.3"]
@@ -90,6 +90,19 @@ Starts a REPL connected to nREPL port (uses JS runtime in Browser):
 
 Starts flowstorm debugger:
 : $ clj -Sforce -Sdeps '{:deps {com.github.jpmonettas/flow-storm-dbg {:mvn/version "RELEASE"}}}' -X flow-storm.debugger.main/start-debugger :port 9000 :repl-type :shadow :build-id :app
+
+*** shadow-cljs & deps.edn
+
+https://shadow-cljs.github.io/docs/UsersGuide.html#deps-edn
+
+Do not use ~:source-paths~ and ~:dependencies~ in =shadow-cljs.edn= when working
+with =deps.edn=.
+
+Dependency conflics need to be resolved manually.
+
+Set ~:npm-deps {:install false}~ to prevent shadow-cljs from automatically
+installing npm deps.
+- https://github.com/thheller/shadow-cljs/issues/800#issuecomment-725716087
 
 
 ** Dependencies
