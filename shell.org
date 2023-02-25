@@ -1,0 +1,1045 @@
+#+title: Docs/Shell
+
+* How to
+Tutorials/Overviews:
+- https://missing.csail.mit.edu/2020/course-shell/
+- https://developer.mozilla.org/en-US/docs/Learn/Tools_and_testing/Understanding_client-side_tools/Command_line
+- https://gist.github.com/bradtraversy/cc180de0edee05075a6139e42d5f28ce
+- https://www.computerhope.com/unix.htm
+
+** Restart shell session
+: $ exec "$SHELL"
+- can also replace ~$SHELL~ with ~bash~ or ~zsh~
+
+** Navigate scrollable output (less pager)
+
+| Shortcut     | Action         |
+|--------------+----------------|
+| ~page-up/down~ | Scroll up/down |
+| ~fn~ + ~up/down~ | (same?)        |
+| ~q~            | Exit           |
+| ~h~            | Help           |
+
+Can also use Vim shortcuts.
+
+** Text Navigation (?)
+
+| Shortcut | Action                     |
+|----------+----------------------------|
+| ~ctrl-A~   | get to the beginning       |
+| ~alt-F~    | move forward, word by word |
+| ~ctrl-E~   | go the end                 |
+| ~alt-B~    | go backward                |
+
+** Fixes
+*** How to fix homebrew error: “invalid active developer path” after upgrade to
+OS X El Capitan?:
+- https://apple.stackexchange.com/questions/209624/how-to-fix-homebrew-error-invalid-active-developer-path-after-upgrade-to-os-x#209625
+
+Check if user exists:
+: $ sudo nano /etc/passwd
+
+Change owner for all your Kirby files and folders: ~root &gt; www-data~ (I
+suppose ~www-data~ is your web user):
+: $ sudo chown -R www-data:www-data *
+
+Change right on all your Kirby files and folders:
+: $ sudo find myfolder -type d -exec chmod 755 {} \;
+: $ sudo find myfolder -type f -exec chmod 644 {} \;
+
+Remove quarantine attribute:
+: $ sudo xattr -r -d com.apple.quarantine <path>
+
+* Concepts
+** Environment Variables
+
+Print all env. variables:
+: $ printenv
+
+Check specific env. variable:
+: $ echo $[variable name]
+- e.g. ~$ echo $PATH~ to check ~PATH~ env variable
+
+Examples:
+#+begin_src bash
+$ foo="hello"
+$ echo $foo
+# > hello world!
+$ echo "$foo world!"  # inserts variable value into the string
+# > hello world!
+$ echo '$foo world!'  # doesn’t work with single quotes in zsh!
+# > $foo world!
+
+$ foo=$(pbpaste)  # stores command output in variable
+$ foo=`pbpaste`   # same
+#+end_src
+
+More infos:
+- https://www.geeksforgeeks.org/environment-variables-in-linux-unix/
+- https://phoenixnap.com/kb/set-environment-variable-mac
+
+** PATH
+
+~PATH~ is an environment variable.
+
+Print ~PATH~:
+: $ echo "$PATH"
+: $ echo "${PATH//:/$'\n'}"  # human readable
+
+Add to ~PATH~:
+: $ export PATH=~/bin:/home/koen/.local/bin:$PATH
+Or:
+: $ path+=('~/bin')
+: $ path+=('/home/koen/.local/bin')
+: $ export PATH
+
+To make a file available on the ~PATH~ system-wide (in ~sh~, ~zsh~, etc.):
+1. symlink file to =/usr/local/bin/= (absolute pathname for hidden dirs!)
+   - =/usr/bin/= is immutable even for root in OSX!
+2. make symlink executable
+3. restart shell
+
+If you have an ~!~ in a quoted string it will end with ~`dquote>`~. Use single
+quotes in this case.
+- use ~ctrl-g~ to escape ~`dquote>`~ (aborts the command)
+
+More infos:
+- https://koenwoortman.com/zsh-add-directory-to-path/
+
+** stdin / stdout
+
+All Unix shell applications have 3 unique streams that connect them to the
+outside world:
+- /Standard Input/, or *stdin*
+- /Standard Output/, or *stdout*
+- /Standard Error/, or *stderr*
+
+Keyboard commands in input streams:
+- ~ctrl-c~ to cancel input
+- ~ctrl-d~ to send(?) input (e.g. in ~sort~)
+
+More infos:
+- https://www.howtogeek.com/435903/what-are-stdin-stdout-and-stderr-on-linux/
+- https://www.baeldung.com/linux/pipes-redirection
+
+** Redirecting from stdin/out
+
+Symbols:
+- ~`>`~ redirects the output stream to a file instead of the terminal.
+- ~`>>`~ appends to the file instead of replacing its contents.
+- ~`<`~ reads the files content and takes it as the input stream.
+
+Patterns:
+: <cmd>[stdout] >  <file(s)>  # write/replace in file(s)
+: <cmd>[stdout] >> <file(s)>  # append to file(s)
+: <cmd>[stdin]  <  <file(s)>  # read from file(s)
+
+Examples:
+#+begin_src bash
+$ ls -la > myFiles.txt  # writes `ls -la` output in `.txt` file
+
+$ wc < /usr/share/dict/words  # counts words from `words` file
+
+$ python3 file.py < input.txt  # directs input from input.txt to file.py
+
+$ python3 file.py > output.txt  # directs output from file.py to output.txt
+
+$ echo 'Hallo' > hallo.txt  # writes output from echo cmd to file
+#+end_src
+
+** here strings / here documents
+
+Symbols:
+- ~`<<<`~ denotes a 'here string'
+- ~`<<[word]`~ denotes a 'here document'
+
+Patterns:
+: <cmd>[stdin] <<< <string>
+: <cmd>[stdin] <<[word]
+
+Examples:
+#+begin_src bash
+$ cat <<< 'hi there'  # reads `hi there` as a string
+
+$ cat <<EOF  # reads from stdin until `EOF`
+hi
+there
+EOF
+# > hi
+# > there
+
+$ read first second <<< "hello world"
+$ echo $second $first
+# > world hello
+#+end_src
+
+More infos:
+- https://unix.stackexchange.com/questions/80362/what-does-mean
+
+** Pipeing
+
+Combines ~`<`~ and ~`>`~.
+
+Takes output of the first (left) command and inserts it as input in the second (right) command.
+
+Pattern:
+: <cmd>[stdout] | <cmd>[stdin]
+
+Examples:
+: $ ls -la | awk '{print $7}'
+- passes ~ls -la~ output to ~awk~ command (filters 7. text row)
+
+* Shells
+** Installing Bash
+
+Install Bash 4 using homebrew:
+: $ brew install bash
+
+Add the new shell to the list of legit shells:
+: $ sudo bash -c "echo /usr/local/bin/bash >> /private/etc/shells"
+
+Change the shell for the user:
+: $ chsh -s /usr/local/bin/bash
+
+** zshrc vs zprofile
+
+- https://apple.stackexchange.com/questions/388622/zsh-zprofile-zshrc-zlogin-what-goes-where
+* Terminal emulators
+** iTerm2
+
+| Shortcut | Action                      |
+|----------+-----------------------------|
+| ~ctrl-l~   | clear window                |
+| ~ctrl-d~   | close window                |
+| ~ctrl-r~   | search command history      |
+| ~ctrl-c~   | cancel/delete input/command |
+
+* Scripting
+/shebang/ -> combination of bash ~#~ and bang ~!~ followed by the bash shell path
+: #! /bin/bash
+
+Most portable way to reference bash in scripts:
+: #!/usr/bin/env bash
+
+Run scripts with
+: $ ./<myscript>.sh
+or
+: $ bash <myscript>.sh
+
+Guides:
+- https://www.freecodecamp.org/news/shell-scripting-crash-course-how-to-write-bash-scripts-in-linux/
+
+* Commands
+** Command information
+*** Manual
+Open man-page for a command:
+: $ man <cmd>
+
+Search man-pages for a ~term~:
+: $ man -k <term>
+- navigation is similar to Vim:
+  - ~q~: exit
+  - ~space/f~: next page
+  - ~w~: previous page
+  - ~enter/e~: move 1 line
+  - ~/[word]~ : search for ~[word]~ (~n~ for next occurrence)
+
+*** Command History
+Print command history:
+: $ history
+
+Repeat command with ~id~ (retrieved from history):
+: $ !<id>
+
+Repeat previous command:
+: $ !!
+
+*** Show executable associated with a command
+: $ which <cmd>
+
+*** Undo/correct commands
+External tools:
+- [[thefuck]] can correct syntax errors of executed commands
+
+** User
+*** Current user
+Who is the current user?
+: $ whoami
+
+Print real user id + various other details related to account:
+: $ id
+
+*** Logins
+Who logged in using which terminal/session at what time?
+: $ who
+
+Only this login/session:
+: $ who am i
+
+*** Switch user
+: $ su <username>
+
+*** Superuser
+Execute as superuser (“Super user do”):
+: sudo <cmd>
+
+** Shell
+*** Show default shell of user
+What is the default shell of the user?
+: $ echo $0
+
+*** Show available shells
+: $ cat /etc/shells
+
+*** Show current shell
+: $ echo $SHELL
+
+*** Switch shell
+Just name the shell executable:
+: $ sh
+: $ bash
+
+More infos:
+- https://www.cyberciti.biz/faq/how-to-change-shell-to-bash/
+
+*** Exit shell
+: $ exit
+
+*** Clear (tidy up) shell
+: $ clear
+
+** Terminal interface
+Set options for terminal interface (?)
+: $ stty
+
+** File system
+*** Directories
+**** Working directory
+/print working/ (current) /directory/:
+: $ pwd
+
+**** Change directory
+: $ cd /  # root directory
+: $ cd ~  # home directory
+: $ cd    # ^
+: $ cd .  # current directory (no-op)
+
+: $ cd /dir    # absolute path
+: $ cd ~/dir   # path from home
+: $ cd ./dir   # relative path (without leading /)
+: $ cd dir     # ^
+: $ cd ../dir  # previous/parent directory (also returns to symlink dir)
+
+: $ cd -  # back to previous directory
+
+**** Create directory
+: $ mkdir <path/name …>
+- ~-p~ (/parent/ directories) creates folders in between (if needed)
+- can create multiple at once
+
+**** Remove directory
+: $ rmdir <dir>
+- can only remove empty directories!
+
+**** List directory items
+: $ ls
+: -a  # shows hidden items too
+: -l  # (long list) detailled list with permissions, file sizes, etc.
+: -r  # reverse listing
+: -t  # sort by time modified (most recent first) before lexicographic
+: -u  # use time of last access
+: -U  # use time of file creation
+: -S  # sort files by size
+: -ld  # only details for specified directory
+: -h  # human readable -> sizes with unit suffixes
+: -R  # recursive -> shows subfolders
+: -F  # shows directories with `/`, executable with `*`, links with `@`
+: -i  # shows serial number of file
+: -s  # shows number of file system blocks used by the file
+: -lisa  # detailled list with exact specs
+: -alt  # detailled list of all last modified files
+
+Format of ~-l~: permissions | number of files (dirs) or hardlinks
+(files) | owner | group | size | modification date | file name
+
+List ~n~ items:
+: $ ... | head -<n>
+
+List only <filename>:
+: $ ls -la | grep <filename>
+
+External tools:
+- [[tree]] lists items and subdirectories in a tree
+
+**** Finder
+Open files (like double click in finder)
+: $ open <path>  # open directory/file in finder (MacOS)
+:        <url>   # open URL
+: -a  # specifies application to open (otherwise uses default)
+
+Open every text file:
+: $ open *.txt
+
+**** Search files/directories
+Find location of files/directories:
+: $ find <starting dir>
+: -name "<path/pattern>"  # file names to search for
+: -print
+: -empty  # only empty files
+: -delete  # delete found files
+
+Examples:
+
+Delete all files with name ~"file-"~:
+: $ find . -name "file-*" -delete  #
+
+Write found paths to =output.txt=:
+: $ find . -name "file-*" > output.txt
+
+More infos:
+- https://kb.iu.edu/d/admm
+
+External tools:
+- [[ripgrep]] searches directories for a regex pattern respecting =.gitignore=
+- [[fzf]] fuzzy finder
+
+*** Files
+**** Create files
+: $ touch <filename>
+: -m 01120322  # change modification date (month/day/hour/min)
+: -a 01120322  # change access date (format same as above)
+
+Examples:
+
+Create 100 files named ~"file-001.txt"~, etc.:
+: $ touch file-{001..100}.txt
+
+**** Copy files
+: $ cp <source> <target>
+: -i  # (interactive) ask before overwriting
+: -r  # recursive (copies directories and subdirectories)
+: -p  # keep user permissions
+- write ~/*~ in source to copy only the content, but not the directory itself
+
+**** Move/rename files
+: $ mv <source> <target/renamed>
+: -i  # (interactive) ask before overwriting
+- move to directories with ~foo/~, since otherwise a file could be overwritten
+
+Examples:
+
+To move all files to parent dir:
+: $ mv foo/* .
+: $ mv foo/*(DN) .  # add (DN) for hidden files
+
+External tools:
+- [[rename]] can rename multiple files at once with patterns
+
+**** Remove files
+: $ rm datei
+: -i  # (interactive) asks before deleting
+: -r  # (rekursiv) also removes directories and subdirectories
+: -f  # (force) deletes without asking
+
+Examples:
+
+Remove everything in the current folder:
+: $ rm ./*
+
+**** Concatenate and print files
+: $ cat <file …>  # prints <file> (concatenation if multiple files)
+: -n  # line numbers
+
+Create ~foo.txt~ with following lines as content:
+: $ cat > foo.txt
+: $ >  foo.txt  # equivalent
+- finish with new line + ~ctrl-d~
+
+Append to ~foo.txt~ (or create, if not exists):
+: $ cat >> foo.txt
+: $ >> foo.txt  # equivalent
+
+Replace contents of ~otherFile.txt~ with ~file.txt~:
+: $ file.txt >  otherFile.txt  #
+
+Append contents of ~file.txt~ to ~otherFile.txt~:
+: $ file.txt >> otherFile.txt
+
+More infos:
+- https://superuser.com/questions/15100/difference-between-lam-and-paste
+
+// paste
+
+?
+// lam
+
+?
+
+**** View file contents
+***** Whole file
+: $ less <file>  # view whole file with linewise navigation (like vim)
+: $ more <file>  # same?
+
+? what is that:
+- -c  # ???
+- +3 foo.txt  # erst ab Zeile 3 anzeigen lassen
+- +/Begriff foo.txt  # erst ab Begriff anzeigen lassen
+
+***** Selective
+: $ head <file>  # display first 10 lines of file
+: $ tail <file>  # display last  10 lines of file
+: -n x  # `x` number of lines (e.g. `head -n 1 foo.txt`)
+: -x    # ^ (-n can be omitted)
+: -c x  # `x` bytes (characters?)
+
+? what is that:
+- -5
+- +5  # Ab Zeile 5 alle weiteren Zeilen (plus unsichtbare Zeichen wie Zeilenumbruch/Dateiende)
+- -3c  # letzte 3 Zeichen
+
+**** File stats
+View file status, creation date, last modification date, etc.:
+: $ stat <file>
+
+**** File change monitor
+External tools:
+- [[fswatch]] receives notifications when contents of files/dirs change
+
+**** Search in files
+Search contents of text files with regex:
+: $ grep <regex-str> <file-path/pattern>
+: -C[num]  # print num lines of leading & trailing context sorrounding match
+: --color=[when]  # when: 'never' | 'always' | 'auto'
+- use ~*~ to search in all files from current directory
+
+Examples:
+
+Search for ~'foo'~ in git log with colored matches + context:
+: $ git log | grep 'foo' -C 10 --color="always"
+
+
+External tools:
+- [[fzf]] fuzzy finder
+
+*** Symlink
+
+*CAUTION:* relative pathnames in the target will be interpreted as relative
+to the parent directory of the symlink that is to be created
+
+*CAUTION:* hidden paths will be ignored if not provided as absolute pathname
+- e.g. use =/Users/name/.dir/= instead of =~/.dir/=
+
+**** Softlink
+Ordinary alias, used 99% of the time.
+
+: $ ln -s <source> <target>
+: -s  # (symbolic link / softlink)
+
+**** Hardlink
+Source and target files both point to the same content.
+- same Inode ~xxxx~, same datablock
+- almost NEVER need to use this
+
+: $ ln <source> <target>
+
+*** Alias
+
+: $ alias w='cd /full/path/to/the/dir/I/always/work/on'
+- can change to directory with ~w~
+
+Saved alias:
+: $ printf "%s\n" "alias foo='cd /bar/baz'" >> ~/.zshrc
+
+Show type and path of the shortcut/command:
+: $ type -a <cmd>
+
+More infos:
+- https://unix.stackexchange.com/questions/215948/how-to-make-an-alias-permanent
+
+*** Permissions
+
+Change permissions:
+: $ chmod <change> <file>
+: +x  # make executable (e.g. for scripts)
+: u=rw,g=x,o=---  # absolute description
+: 644             # octal description
+
+: drwxr-xr-x
+- ~d~: directory | =-=: file | ~l~: symlink
+- ~rwx~ (1): owner
+- ~rwx~ (2): group
+- ~rwx~ (3): all else
+
+Octal values:
+- from ~4~: read / ~2~: write / ~1~: execute
+: 7 rwx
+: 6 rw-
+: 5 r-x
+: 4 r--
+: 3 -wx
+: 2 -w-
+: 1 --x
+: 0 ---
+
+Add user:
+: $ useradd <name> -p <pwd> -g <group> -d /home/myhomedir -s /bin/false
+: -s  # change shell-access, e.g. /sbin/nologin  or  /bin/false
+
+Add group:
+: $ groupadd <name>
+
+Delete group:
+- (CAUTION: first, add all contained members to other groups!)
+: $ groupdel <name>
+
+Delete user:
+- see https://www.cyberciti.biz/faq/linux-remove-user-command/
+: $ userdel <name>
+: -r  # delete user directory
+
+Change user:
+: $ usermod <name>
+: -s  # change shell-access, e.g. /sbin/nologin  or  /bin/false
+
+Change user password:
+: $ passwd <username>
+
+Add user to sudo group:
+: $ usermod -aG sudo <user>
+
+Inspect user details:
+: $ grep <username> /etc/passwd
+
+Change owner:
+: $ chown …
+- example: ~$ sudo chown -R yourusename:admin /usr/local/bin~
+
+List all files of a user:
+: $ find <dir> -user <user>
+
+*** Compression
+
+**** zip
+
+https://www.tutorialspoint.com/unix_commands/unzip.htm
+
+: $ zip <package.zip> <file …>
+
+: $ unzip <package.zip>
+: -l  : lists files inside zip
+: -d ./other-dir  : unzip to different directory
+
+Only unzip specified files:
+: $ unzip <package.zip> <file …>
+: $ unzip <package.zip> "file*.t?"  : wildcards
+- ~*~ for mult. chars, ~?~ for single char in wildcards
+
+Unzip everything except specified files:
+: $ unzip <package.zip> -x <file …>
+
+**** tarball
+: $ tar
+: -c  : Creates Archive
+: -x  : Extract the archive
+: -f  : creates archive with given filename
+: -t  : displays or lists files in archived file
+: -u  : archives and adds to an existing archive file
+: -v  : Displays Verbose Information
+: -A  : Concatenates the archive files
+: -z  : zip, tells tar command that creates tar file using gzip
+: -j  : filter archive tar file using tbzip
+: -W  : Verify a archive file
+: -r  : update or add file or directory in already existed .tar file
+
+: -czvf <name>.tar.gz <input-dir>  # create tarball from input dir
+: -xzvf <name>.tar.gz              # unpack tarball into current dir
+: -tzvf <name>.tar.gz              # print contents
+
+*** Encryption
+Basic (weak) encryption:
+: $ cksum <filename>
+
+Calculate and verify 128-bit MD5 hashes:
+- see https://en.wikipedia.org/wiki/Md5sum
+: $ md5sum <filename>
+Alternative:
+: $ openssl md5sum <filename>
+
+Calculate and verify SHA-1 hashes:
+- see https://en.wikipedia.org/wiki/Sha1sum
+: $ sha1sum <filename>
+
+Calculate and verify SHA-2 hashes:
+- see https://en.wikipedia.org/wiki/SHA-2
+: $ sha256sum <filename>
+Alternative:
+: $ function sha256sum() { openssl sha256 "$@" | awk '{print $2}'; }
+: $ sha256sum <filename>
+
+External tools:
+- [[gnupg]] uses GPG (open source version of PGP) to encrypt files
+
+** String formatting
+Formatted text output with variable ~%s~:
+: $ printf "Hello %s.\n" George
+
+Insert text in (new) file
+: $ printf "%s\n" "Hello test" >> test.txt
+
+More infos:
+- https://www.computerhope.com/unix/uprintf.htm
+
+** Network
+
+*** File transfer
+Curl transfers data from and to servers, via one of the protocols: HTTP,
+HTTPS, FTP, FTPS, SCP, SFTP, TFTP, DICT, TELNET, LDAP or FILE
+- to transfer multiple files use ~wget~ or FTP
+
+: $ curl <options> <URL …>
+: -o  : output file
+
+More infos:
+- https://www.tutorialspoint.com/unix_commands/curl.htm
+
+*** SSH (Secure Shell Protocol)
+
+**** SSH keys
+List all ssh key files:
+: $ ls -la ~/.ssh
+
+Common names for ssh keys:
+- ~id_rsa.pub~
+- ~id_ecdsa.pub~
+- ~id_ed25519.pub~
+
+To start the ssh-agent:
+: $ eval "$(ssh-agent -s)"
+
+To add a key to the agent;
+: $ ssh-add --apple-use-keychain <my-key-path>
+
+To delete a key from agent:
+: $ ssh-add -d "<my-key-path>.pub"
+: $ ssh-add -D  # delete all keys
+
+To change passphrase of a key or add a new passphrase:
+: $ ssh-keygen -p -f <my-key-path>
+
+**** SSH service
+Restart SSH:
+: $ service ssh restart
+
+*** HTTPS Certification
+External tools:
+- [[certbot]] can create certifications for web domains
+
+** Data manipulation
+*** Reshape a data array
+e.g. a column of numbers into a table
+
+: $ pbpaste | rs <row-n>     : reshape to n rows, linewise
+: $ pbpaste | rs -t <row-n>  : reshape to n rows, columnwise (transpose)
+: -j     : right-adjust
+: -g<n>  : gutter (space-chars between columns)
+- combine options like ~-tj~
+
+Examples with ~rs~:
+
+: $ seq 20 | rs 4
+: 1   2   3   4   5
+: 6   7   8   9   10
+: 11  12  13  14  15
+: 16  17  18  19  20
+
+: $ seq 20 | rs -t 5
+: 1   6   11  16
+: 2   7   12  17
+: 3   8   13  18
+: 4   9   14  19
+: 5   10  15  20
+
+Examples with ~pr~:
+
+: $ seq 20 | pr -5ats
+: 1   2   3   4   5
+: 6   7   8   9   10
+: 11  12  13  14  15
+: 16  17  18  19  20
+
+: $ seq 20 | pr -4ts
+: 1   6   11  16
+: 2   7   12  17
+: 3   8   13  18
+: 4   9   14  19
+: 5   10  15  20
+
+More infos:
+- https://leancrew.com/all-this/2022/09/reshaping-text/
+
+*** Print sequential or random data
+// jot
+
+?
+** Text manipulation
+*** Word count
+Count newlines, words and bytes of a file:
+: $ wc foo.txt
+: -l -w -c  : number of lines / words / chars
+
+To count chars in a string (stdin):
+: $ echo 'hallo welt' | wc
+
+*** Replace/trim chars
+~tr~ replaces or trims chars from stdin.
+
+: $ tr A-Z a-z          : replace uppercase with lowercase
+: $ tr -cs A-Za-z '\n'  : trim multiple newline chars to a single one
+
+*** Sort lines
+~sort~ sorts lines from stdin
+- confirm input with ~ctrl-d~
+
+To sort numerically in reverse order:
+: $ sort -rn
+
+** Number manipulation
+*** Convert from/to number bases
+- ~ibase~: input base
+- ~obase~: output base
+
+MUST be ~obase~ first, because ~ibase~ changes the interpretation of the
+following input numbers!
+- see https://unix.stackexchange.com/a/199620
+
+Input patterns:
+: obase=[base]; [num]                : decimal -> obase
+: ibase=[base]; [num]                : ibase -> decimal
+: obase=[base]; ibase=[base]; [num]  : ibase -> obase
+
+Examples:
+: $ bc <<< "obase=2;ibase=16;F0F0"
+
+*** Print sequence of numbers
+~seq~ prints a sequence of numbers.
+: $ seq <n>
+
+** Clipboard
+
+~pbcopy~ / ~pbpaste~ for macOS clipboard
+- see https://gainsec.com/2022/02/17/terminal-to-clipboard/
+
+Copy current path to clipboard:
+: $ pwd | pbcopy
+
+Paste/print from clipboard:
+: $ pbpaste
+
+** Date
+Display current date/time:
+: $ date
+
+Display a calendar for current date:
+: $ cal
+: $ cal 07 2017  : for a specific month
+
+** Execution time
+Measure execution time:
+: $ time <cmd>
+
+** Disk space
+Query disk space:
+: $ df -h
+
+** Images
+*** Vector graphics
+External tools:
+- [[Inkscape]] can convert between vector formats
+- [[epstopdf]] can convert ~eps~ to ~pdf~ files
+
+** Scripting runtimes
+External tools:
+- [[Babashka]] as an interface between Clojure and the shell
+- [[rlwrap]] is a wrapper for REPLs to navigate command history
+
+** Mail
+
+: $ mail         : check mails
+: $ mail <user>  : send a mail to <user>
+
+Mail CLI commands:
+: ? list     : list all commands
+: ? <n>      : mail with number [n]
+: ? +        : next mail (or just press ENTER)
+: ? -        : previous mail
+: ? [r]eply  : reply to a mail
+: ? [s]ave ?<msg-list> ?<filename>
+:            : appends each message in turn to the end of the file
+:            : - <msg-list> is the current message if not specified
+:            : - <filename> is mbox if not specified
+:            : - mail is NOT saved in mbox after saving it elsewhere
+: ? [co]py ?<msg-list> ?<filename>
+:            : same as `save` but does not mark the messages for
+:            : deletion on quit
+: ? [ho]ld ?<msg-list>
+:            : marks each message to be saved in users system mailbox
+:            : instead of mbox
+:            : - does not override delete command
+: ? e[x]it   : abort mail sessions without modifying users system mailbox
+: ? [q]uit   : end mail session
+:            : - examined messages go to mbox file unless deleted or
+:            :   already saved in which case they are discarded
+:            : - unexamined messages or those marked with `hold` or
+:            :   `preserve` go back to the users system mailbox
+
+Delete mails:
+: ? d[elete]
+: ? d <n>      : delete mail number [n]
+: ? d <n> <m>  : delete mail [n] and [m]
+: ? d <n>-<m>  : delete mails from [n] to [n]
+: ? d *        : delete all mails
+
+* External applications
+** tree
+Command-line tool for tree-view of directory
+- http://mama.indstate.edu/users/ice/tree/
+
+: $ brew install tree
+
+: $ tree <path>
+: -L [num]  : restrict to max recursion depth [num]
+: -a        : also hidden files
+: -d        : only directories
+: -f        : show full path
+: -s        : add size information
+: -P [ptn]  : list those that match the wild card [ptn]
+: -I [ptn]  : do not list those that match the wild card [ptn]
+- e.g. ~-I 'node_modules|lib'~ to ignore =node_modules= and =lib= directories
+
+** rename
+rename(1) multiple files at once
+- https://stackoverflow.com/a/1086509/1204047
+
+: $ brew install rename
+
+Examples:
+
+Substitute =.cljc= extension with =.clj= for all files beginning with ~"day"~:
+: $ rename -s .cljc .clj day*
+
+** Inkscape
+
+CLI path:
+=/Applications/Inkscape.app/Contents/Resources/bin/inkscape=
+or:
+=/usr/local/bin/inkscape=
+
+SVG to PDF:
+: $ inkscape mySVGinputFile.svg --export-area-drawing --batch-process --export-type=pdf --export-filename=output.pdf
+
+** epstopdf
+
+: $ epstopdf myEPSinputFile.eps
+
+** thefuck
+https://github.com/nvbn/thefuck
+
+: $ brew install thefuck
+
+** Babashka
+
+Clojure for shell
+- https://babashka.org
+- https://github.com/babashka/babashka
+- https://github.com/babashka/babashka/blob/master/examples/README.md
+- https://book.babashka.org
+- https://nextjournal.com/try/babashka
+
+: $ bb
+: -e <expr>  : evaluates an expression (default, option not needed)
+: -f <path>  : evaluates a file
+: -m <ns|var> : calls the `-main` function from a namespace
+:             : or calls a fully qualified var
+: -i  : bind *input* to a lazy seq of lines from stdin
+: -I  : bind *input* to a lazy seq of EDN values from stdin
+: -o  : write lines to stdout
+: -O  : writes EDN values to stdout
+
+To start a Babashka REPL:
+: $ bb repl
+
+Examples:
+
+Evaluate an expression:
+: $ bb -e '(+ 1 2)'
+
+Bind input of ~ls~ to ~*input*~ in evaluation:
+: $ ls | bb -i '(take 2 *input*)'
+
+*** Libs
+File system utilities: https://github.com/babashka/fs
+
+** certbot
+
+- https://certbot.eff.org
+- https://www.howtoforge.com/how-to-manage-lets-encrypt-ssl-tls-certificates-with-certbot/
+- https://wiki.ubuntuusers.de/certbot/
+
+List certificates:
+: $ certbot certificates
+
+Create certificate(s) for domain(s):
+: $ sudo certbot --nginx -d my-domain.de -d www.my-domain.de
+
+If this doesn’t work:
+: $ sudo certbot --authenticator webroot --installer nginx
+
+** fswatch
+
+file change monitor
+- https://github.com/emcrisostomo/fswatch
+
+: $ brew install fswatch
+
+** rlwrap
+
+Wrapper for REPL to get history (arrow up/down)
+
+: $ brew install rlwrap
+
+e.g. with CommonLisp:
+: $ rlwrap ros run
+
+** gnupg
+
+GPG (GNU Privacy Guard) is a free open source version of PGP (Pretty Good Privacy) encryption software.
+- https://blog.ghostinthemachines.com/2015/03/01/how-to-use-gpg-command-line/
+
+: $ brew install gnupg
+
+** ripgrep
+
+- https://github.com/BurntSushi/ripgrep
+
+: $ brew install ripgrep
+
+: $ rg <pattern>  # fuzzy-search for a <pattern> in current directory
+: -l  : list only filenames
+: -i  : ignore case
+: --no-require-git  : needs no git initialization to respect .gitignore rules
+: --debug           : info for debugging
+
+Respects =.gitignore= by default, IF git repo is initialized!
+
+** fzf
+Fuzzy find (fzf)
+- https://github.com/junegunn/fzf
+
+: $ brew install fzf
+
+: $ find <dir / *> -type f | fzf > selected
+- type ~esc~ to stop
+
+* Shell services
+** Weather
+: $ curl wttr.in/Mainz

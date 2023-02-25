@@ -317,10 +317,11 @@ and committed.
 ** Checkout
 ** Working Tree
 ** Git Index
-The *index* is a binary file (generally kept in =.git/index=) containing a sorted
-list of path names, each with /permissions/ and the /SHA1/ of a blob object.
-- Git stores everything in its database not by file name but by the hash value
-  of its contents
+The *index* is a binary file (generally kept in =.git/index=) containing a
+sorted list of path names, each with /permissions/ and the /SHA1/ of a blob
+object.
+- Git stores everything in its database not by file name but by the hash
+  value of its contents
 
 ~git ls-files~ can show you the contents of the index:
 #+begin_src shell
@@ -338,19 +339,20 @@ The Git index is a critical data structure in Git. It serves as the /“staging
 area”/ between the files you have on your filesystem and your /commit history/.
 - When you run ~git add~, the files from your working directory are /hashed/ and
   stored as objects in the /index/, leading them to be “staged changes”.
-- When you run ~git commit~, the staged changes as stored in the /index/ are used to
-  create that new commit.
-- When you run ~git checkout~, Git takes the data from a commit and writes it to
-  the /working directory/ and the /index/.
+- When you run ~git commit~, the staged changes as stored in the /index/ are
+  used to create that new commit.
+- When you run ~git checkout~, Git takes the data from a commit and writes it
+  to the /working directory/ and the /index/.
 
-It represents a /virtual working tree/ state by recording list of paths and their
-object names and serves as a /staging area/ to write out the next tree object to
-be committed. The state is "virtual" in the sense that it does not necessarily
-have to, and often does not, match the files in the working tree.
+It represents a /virtual working tree/ state by recording list of paths and
+their object names and serves as a /staging area/ to write out the next tree
+object to be committed. The state is "virtual" in the sense that it does not
+necessarily have to, and often does not, match the files in the working
+tree.
 
 In addition to storing your staged changes, the index also stores filesystem
-information about your working directory. This helps Git report changed files
-more quickly.
+information about your working directory. This helps Git report changed
+files more quickly.
 
 Infos:
 - [[https://shafiul.github.io//gitbook/7_the_git_index.html][Git Community Book / The Git Index]]
@@ -664,6 +666,11 @@ https://git-scm.com/book/en/v2/Git-Basics-Tagging
 : $ git tag <tag_name>                  > create lightweight tag
 : $ git tag -d <tag_name>               > delete local tag <tag_name>
 : $ git tag <tag_name> -a -m "Message"  > create annotated tag
+
+Rename a tag:
+- see https://stackoverflow.com/a/5719854/1204047
+: $ git tag <new> <old>
+: $ git tag -d <old>
 
 ** Branch
 *** git branch

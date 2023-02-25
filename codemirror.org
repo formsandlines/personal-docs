@@ -1,0 +1,12 @@
+#+title: Docs/Codemirror
+
+* Setup
+
+** React
+
+https://dev.to/adamcollier/adding-codemirror-6-to-a-react-project-36hl
+
+** basic setup
+
+The ~@codemirror/basic-setup~ package is deprecated and now called ~codemirror~:
+https://www.npmjs.com/package/codemirror

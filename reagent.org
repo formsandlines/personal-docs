@@ -30,7 +30,7 @@ Add Reagent to Clojure dependencies
 : reagent/reagent {:mvn/version "1.1.1"}
 
 Install React with NPM/Yarn (Shadow-cljs) or Cljsjs (Clojure):
-: $ <npm/yarn install> react react-dom
+: $ <npm install / yarn add> react react-dom
 
 ** Build
 
