@@ -51,14 +51,26 @@ Remove quarantine attribute:
 : $ sudo xattr -r -d com.apple.quarantine <path>
 
 * Concepts
+** User
+- ~#~ before commands means “run this as root”
+
 ** Environment Variables
 
-Print all env. variables:
+To print all env. variables:
 : $ printenv
 
-Check specific env. variable:
-: $ echo $[variable name]
-- e.g. ~$ echo $PATH~ to check ~PATH~ env variable
+To print the contents of an env. variable:
+: $ echo $[varname]
+- e.g. ~$ echo $PATH~ to inspect the ~PATH~ env. variable
+- to insert it into a string, use /double quotes/: ~$ echo "I am a $foo."~
+
+To create a new env. variable:
+: $ [varname]=[value]
+- cannot have spaces in between!
+
+To store the output of a command in an env. variable:
+: $ [varname]=$([cmd])
+: $ [varname]=`[cmd]`
 
 Examples:
 #+begin_src bash
@@ -84,7 +96,7 @@ More infos:
 
 Print ~PATH~:
 : $ echo "$PATH"
-: $ echo "${PATH//:/$'\n'}"  # human readable
+: $ echo "${PATH//:/$'\n'}"  : human readable
 
 Add to ~PATH~:
 : $ export PATH=~/bin:/home/koen/.local/bin:$PATH
@@ -128,11 +140,23 @@ Symbols:
 - ~`>`~ redirects the output stream to a file instead of the terminal.
 - ~`>>`~ appends to the file instead of replacing its contents.
 - ~`<`~ reads the files content and takes it as the input stream.
+- ~`2>`~ redirects the standard error (stderr) to a file
 
 Patterns:
-: <cmd>[stdout] >  <file(s)>  # write/replace in file(s)
-: <cmd>[stdout] >> <file(s)>  # append to file(s)
-: <cmd>[stdin]  <  <file(s)>  # read from file(s)
+: <cmd>[stdout] >  <file(s)>  : write/replace in file(s)
+: <cmd>[stdout] >> <file(s)>  : append to file(s)
+: <cmd>[stdin]  <  <file(s)>  : read from file(s)
+
+The ~tee~ command takes its input and writes it to a file or just to stdout,
+so it can be used to wrap a file in a command for pipeing.
+- this is useful to e.g. apply ~sudo~ while using ~`>`~
+- can also be used to write stdin to both a file and the terminal
+
+The syntax ~<([cmd])~ writes the output of a command in a temporary file and
+passes the file handle to another command.
+- this is useful for commands that only take files as input
+
+In Unix, everything written to =/dev/null= will be discarded.
 
 Examples:
 #+begin_src bash
@@ -145,6 +169,10 @@ $ python3 file.py < input.txt  # directs input from input.txt to file.py
 $ python3 file.py > output.txt  # directs output from file.py to output.txt
 
 $ echo 'Hallo' > hallo.txt  # writes output from echo cmd to file
+
+$ cat < hello.txt > hello2.txt  # copies the file like cp
+
+$ cat <(ls) <(ls ..)  # concatenates the output of `ls` and `ls ..`
 #+end_src
 
 ** here strings / here documents
@@ -190,7 +218,8 @@ Examples:
 - passes ~ls -la~ output to ~awk~ command (filters 7. text row)
 
 * Shells
-** Installing Bash
+** Bash
+*B*ourne *A*gain *SH*ell
 
 Install Bash 4 using homebrew:
 : $ brew install bash
@@ -226,14 +255,136 @@ Run scripts with
 or
 : $ bash <myscript>.sh
 
-Guides:
+** Variables
+See [[Environment Variables]]
+
+Variables of function arguments:
+- ~$0~ -> name of the function
+- ~$1-$9~ -> arguments 1 … 9
+- ~$@~ -> returns all arguments in a list
+  - useful for iteration over each arg in a ~for~ loop
+- ~$#~ -> number of args given to cmd
+
+Other variables:
+- ~$?~ -> error code of the previous command
+  - returns ~0~ for no errors, otherwise ~1~
+  - ~true~ always returns ~0~, ~false~ always returns ~1~
+  - can be queried in terminal after a command was called to see if it worked
+  - can be used in scripts for error handling
+- ~$_~ -> last argument of the previous command
+  - can be used in the terminal prompt to reuse the argument of the last cmd
+- ~$$~ -> PID (process ID of the command that is running)
+
+** Logical operators
+
+| Operator | Description          |
+|----------+----------------------|
+| x ~&&~ y   | logical AND          |
+| x ~\vbar\vbar~ y   | logical OR           |
+| x ~;~ y    | concatenate commands |
+
+- logical operators short-circuit like in e.g. JavaScript
+- ~;~ will execute concatenated commands one after the other
+
+** Control structures
+
+*for* loops:
+: for myitem in mylist; do
+:     ...
+: done
+
+*if* conditionals:
+: if mypred; then
+:    ...
+: fi
+
+Comparators to *test* expressions:
+
+| Operator  | Operand Types | Evaluates true if …                     |
+|-----------+---------------+-----------------------------------------|
+| ~-b~ f      | file          | exists and is a block special file      |
+| ~-c~ f      | file          | exists and is a character               |
+| ~-d~ f      | file          | exists and is a directory               |
+| ~-e~ f      | file          | exists (regardless of type)             |
+| ~-f~ f      | file          | exists and is a regular file            |
+| ~-g~ f      | file          | exists and its set group ID flag is set |
+| ~-k~ f      | file          | exists and its sticky bit is set        |
+| ~(~ e ~)~     | expression    | is true                                 |
+| ~!~ e       | expression    | is false                                |
+| e1 ~a~ e2   | expressions   | are both true                           |
+| e1 ~o~ e2   | expressions   | either one is true                      |
+| s         | string        | is not the null string                  |
+| ~-n~ s      | string        | length is non-zero                      |
+| ~-z~ s      | string        | length is zero                          |
+| s1 ~=~ s2   | strings       | are identical                           |
+| s1 ~!=~ s2  | strings       | are not identical                       |
+| s1 ~<~ s2   | strings       | lower binary value of chars than        |
+| s1 ~>~ s2   | strings       | higher binary value of chars than       |
+| n1 ~-eq~ n2 | integers      | algebr. equal                           |
+| n1 ~-ne~ n2 | integers      | not algebr. equal                       |
+| n1 ~-gt~ n2 | integers      | algebr. greater than                    |
+| n1 ~-ge~ n2 | integers      | algebr. greater than or equal           |
+| n1 ~-lt~ n2 | integers      | algebr. less than                       |
+| n1 ~-le~ n2 | integers      | algebr. less than or equal              |
+
+- consult ~man test~ to see which comparators are available
+- evaluates to ~0~ if true and ~1~ if false or if there is no expression
+- the ~a~ operator has a higher precedence than the ~-o~ operator
+
+Examples:
+#+begin_src bash
+for file in "$@"; do  # for each file in all the arguments
+    grep foobar "$file" > /dev/null 2> /dev/null
+    # When pattern is not found, grep has exit status 1
+    # We redirect STDOUT and STDERR to a null register
+    #   since we do not care about them
+    if [[ "$?" -ne 0 ]]; then  # if error code is not equal to `0`
+        echo "File $file does not have any foobar, adding one"
+        echo "# foobar" >> "$file"
+    fi
+done
+#+end_src
+
+** Bash functions
+
+To store a function in the env:
+#+begin_src bash
+mcd () {
+  mkdir -p "$1"
+  cd "$1"
+}
+#+end_src
+: $ source <mcd.sh>
+: $ mcd foo  : calls the `mcd` function with `foo` as `$1` arg
+
+** Guides:
 - https://www.freecodecamp.org/news/shell-scripting-crash-course-how-to-write-bash-scripts-in-linux/
 
 * Commands
+** Source / .
+: source <file> [args]
+: . <full path to file> [args]
+
+Reads and executes commands from specified ~<file>~ . Useful to load
+functions, variables and config files into shell scripts.
+- with ~.~ , a full (relative or absolute) path must be supplied
+
+More infos:
+- https://linuxize.com/post/bash-source-command/
+
 ** Command information
 *** Manual
 Open man-page for a command:
 : $ man <cmd>
+
+How to read usage notes:
+: ls [OPTION]... [FILE]...
+- square brackets mean optional
+- ~...~ means one or more
+
+How to read argument notes:
+- anything that doesn’t take a value is called a *flag*
+- anything that takes a value is an *option*
 
 Search man-pages for a ~term~:
 : $ man -k <term>
@@ -281,7 +432,17 @@ Only this login/session:
 
 *** Superuser
 Execute as superuser (“Super user do”):
-: sudo <cmd>
+: $ sudo <cmd>
+
+Get superuser shell:
+: $ sudo su
+- type ~exit~ to return to previous shell
+
+To write to a permission-locked file using pipes:
+: $ sudo <cmd> > <file>      : permission denied!
+: $ <cmd> | sudo tee <file>  : this works
+- in the first case, only ~cmd~ will be executed by ~sudo~ and it doesn’t know
+  about ~file~, so ~sudo~ will not apply to ~file~
 
 ** Shell
 *** Show default shell of user
@@ -309,6 +470,9 @@ More infos:
 : $ clear
 
 ** Terminal interface
+Print arguments to stdout:
+: $ echo <text>
+
 Set options for terminal interface (?)
 : $ stty
 
@@ -319,18 +483,18 @@ Set options for terminal interface (?)
 : $ pwd
 
 **** Change directory
-: $ cd /  # root directory
-: $ cd ~  # home directory
-: $ cd    # ^
-: $ cd .  # current directory (no-op)
+: $ cd /  : root directory
+: $ cd ~  : home directory
+: $ cd    : ^
+: $ cd .  : current directory (no-op)
 
-: $ cd /dir    # absolute path
-: $ cd ~/dir   # path from home
-: $ cd ./dir   # relative path (without leading /)
-: $ cd dir     # ^
-: $ cd ../dir  # previous/parent directory (also returns to symlink dir)
+: $ cd /dir    : absolute path
+: $ cd ~/dir   : path from home
+: $ cd ./dir   : relative path (without leading /)
+: $ cd dir     : ^
+: $ cd ../dir  : previous/parent directory (also returns to symlink dir)
 
-: $ cd -  # back to previous directory
+: $ cd -  : back to previous directory
 
 **** Create directory
 : $ mkdir <path/name …>
@@ -343,21 +507,21 @@ Set options for terminal interface (?)
 
 **** List directory items
 : $ ls
-: -a  # shows hidden items too
-: -l  # (long list) detailled list with permissions, file sizes, etc.
-: -r  # reverse listing
-: -t  # sort by time modified (most recent first) before lexicographic
-: -u  # use time of last access
-: -U  # use time of file creation
-: -S  # sort files by size
-: -ld  # only details for specified directory
-: -h  # human readable -> sizes with unit suffixes
-: -R  # recursive -> shows subfolders
-: -F  # shows directories with `/`, executable with `*`, links with `@`
-: -i  # shows serial number of file
-: -s  # shows number of file system blocks used by the file
-: -lisa  # detailled list with exact specs
-: -alt  # detailled list of all last modified files
+: -a   : shows hidden items too
+: -l   : (long list) detailled list with permissions, file sizes, etc.
+: -r   : reverse listing
+: -t   : sort by time modified (most recent first) before lexicographic
+: -u   : use time of last access
+: -U   : use time of file creation
+: -S   : sort files by size
+: -ld  : only details for specified directory
+: -h   : human readable -> sizes with unit suffixes
+: -R   : recursive -> shows subfolders
+: -F   : shows directories with `/`, executable with `*`, links with `@`
+: -i   : shows serial number of file
+: -s   : shows number of file system blocks used by the file
+: -lisa  : detailled list with exact specs
+: -alt   : detailled list of all last modified files
 
 Format of ~-l~: permissions | number of files (dirs) or hardlinks
 (files) | owner | group | size | modification date | file name
@@ -373,9 +537,9 @@ External tools:
 
 **** Finder
 Open files (like double click in finder)
-: $ open <path>  # open directory/file in finder (MacOS)
-:        <url>   # open URL
-: -a  # specifies application to open (otherwise uses default)
+: $ open <path>  : open directory/file in finder (MacOS)
+:        <url>   : open URL
+: -a  : specifies application to open (otherwise uses default)
 
 Open every text file:
 : $ open *.txt
@@ -383,10 +547,10 @@ Open every text file:
 **** Search files/directories
 Find location of files/directories:
 : $ find <starting dir>
-: -name "<path/pattern>"  # file names to search for
+: -name "<path/pattern>"  : file names to search for
 : -print
-: -empty  # only empty files
-: -delete  # delete found files
+: -empty   : only empty files
+: -delete  : delete found files
 
 Examples:
 
@@ -406,8 +570,8 @@ External tools:
 *** Files
 **** Create files
 : $ touch <filename>
-: -m 01120322  # change modification date (month/day/hour/min)
-: -a 01120322  # change access date (format same as above)
+: -m 01120322  : change modification date (month/day/hour/min)
+: -a 01120322  : change access date (format same as above)
 
 Examples:
 
@@ -416,30 +580,30 @@ Create 100 files named ~"file-001.txt"~, etc.:
 
 **** Copy files
 : $ cp <source> <target>
-: -i  # (interactive) ask before overwriting
-: -r  # recursive (copies directories and subdirectories)
-: -p  # keep user permissions
+: -i  : (interactive) ask before overwriting
+: -r  : recursive (copies directories and subdirectories)
+: -p  : keep user permissions
 - write ~/*~ in source to copy only the content, but not the directory itself
 
 **** Move/rename files
 : $ mv <source> <target/renamed>
-: -i  # (interactive) ask before overwriting
+: -i  : (interactive) ask before overwriting
 - move to directories with ~foo/~, since otherwise a file could be overwritten
 
 Examples:
 
 To move all files to parent dir:
 : $ mv foo/* .
-: $ mv foo/*(DN) .  # add (DN) for hidden files
+: $ mv foo/*(DN) .  : add (DN) for hidden files
 
 External tools:
 - [[rename]] can rename multiple files at once with patterns
 
 **** Remove files
 : $ rm datei
-: -i  # (interactive) asks before deleting
-: -r  # (rekursiv) also removes directories and subdirectories
-: -f  # (force) deletes without asking
+: -i  : (interactive) asks before deleting
+: -r  : (rekursiv) also removes directories and subdirectories
+: -f  : (force) deletes without asking
 
 Examples:
 
@@ -447,17 +611,17 @@ Remove everything in the current folder:
 : $ rm ./*
 
 **** Concatenate and print files
-: $ cat <file …>  # prints <file> (concatenation if multiple files)
-: -n  # line numbers
+: $ cat <file …>  : prints <file> (concatenation if multiple files)
+: -n  : line numbers
 
 Create ~foo.txt~ with following lines as content:
 : $ cat > foo.txt
-: $ >  foo.txt  # equivalent
+: $ >  foo.txt  : equivalent
 - finish with new line + ~ctrl-d~
 
 Append to ~foo.txt~ (or create, if not exists):
 : $ cat >> foo.txt
-: $ >> foo.txt  # equivalent
+: $ >> foo.txt  : equivalent
 
 Replace contents of ~otherFile.txt~ with ~file.txt~:
 : $ file.txt >  otherFile.txt  #
@@ -477,8 +641,8 @@ More infos:
 
 **** View file contents
 ***** Whole file
-: $ less <file>  # view whole file with linewise navigation (like vim)
-: $ more <file>  # same?
+: $ less <file>  : view whole file with linewise navigation (like vim)
+: $ more <file>  : same?
 
 ? what is that:
 - -c  # ???
@@ -486,11 +650,16 @@ More infos:
 - +/Begriff foo.txt  # erst ab Begriff anzeigen lassen
 
 ***** Selective
-: $ head <file>  # display first 10 lines of file
-: $ tail <file>  # display last  10 lines of file
-: -n x  # `x` number of lines (e.g. `head -n 1 foo.txt`)
-: -x    # ^ (-n can be omitted)
-: -c x  # `x` bytes (characters?)
+: $ head <file>  : display first 10 lines of file
+: $ tail <file>  : display last  10 lines of file
+: -n x  : `x` number of lines (e.g. `head -n 1 foo.txt`)
+: -x    : ^ (-n can be omitted)
+: -c x  : `x` bytes (characters?)
+
+Examples:
+
+Show only the 4. line:
+: foo.txt | head -4 | tail -1
 
 ? what is that:
 - -5
@@ -508,8 +677,11 @@ External tools:
 **** Search in files
 Search contents of text files with regex:
 : $ grep <regex-str> <file-path/pattern>
-: -C[num]  # print num lines of leading & trailing context sorrounding match
-: --color=[when]  # when: 'never' | 'always' | 'auto'
+: -i, --ignore-case  : case-insensitive matching
+: -C[num]            : print `num` lines of leading & trailing
+:                    : context sorrounding match
+: --color=[when]     : mark up matching text
+:                    : `when`: `never` | `always` | `auto`
 - use ~*~ to search in all files from current directory
 
 Examples:
@@ -520,6 +692,8 @@ Search for ~'foo'~ in git log with colored matches + context:
 
 External tools:
 - [[fzf]] fuzzy finder
+**** Cut out portions of a file
+: $ cut --delimiter=' ' -f 2 <file>
 
 *** Symlink
 
@@ -533,7 +707,7 @@ to the parent directory of the symlink that is to be created
 Ordinary alias, used 99% of the time.
 
 : $ ln -s <source> <target>
-: -s  # (symbolic link / softlink)
+: -s  : (symbolic link / softlink)
 
 **** Hardlink
 Source and target files both point to the same content.
@@ -557,18 +731,23 @@ More infos:
 - https://unix.stackexchange.com/questions/215948/how-to-make-an-alias-permanent
 
 *** Permissions
-
 Change permissions:
 : $ chmod <change> <file>
-: +x  # make executable (e.g. for scripts)
-: u=rw,g=x,o=---  # absolute description
-: 644             # octal description
+: +x  : make executable (e.g. for scripts)
+: u=rw,g=x,o=---  : absolute description
+: 644             : octal description
 
 : drwxr-xr-x
 - ~d~: directory | =-=: file | ~l~: symlink
 - ~rwx~ (1): owner
 - ~rwx~ (2): group
 - ~rwx~ (3): all else
+
+Semantics are a bit different for directories:
+- *read* means you are allowed to see the dir. contents
+- *write* means you are allowed to rename, create or move files within the dir.
+- *execute* means you are allowed to enter/open the dir.
+  - to enter a dir., you must have ~x~ permission for it, and all its parents
 
 Octal values:
 - from ~4~: read / ~2~: write / ~1~: execute
@@ -583,7 +762,7 @@ Octal values:
 
 Add user:
 : $ useradd <name> -p <pwd> -g <group> -d /home/myhomedir -s /bin/false
-: -s  # change shell-access, e.g. /sbin/nologin  or  /bin/false
+: -s  : change shell-access, e.g. /sbin/nologin  or  /bin/false
 
 Add group:
 : $ groupadd <name>
@@ -595,11 +774,11 @@ Delete group:
 Delete user:
 - see https://www.cyberciti.biz/faq/linux-remove-user-command/
 : $ userdel <name>
-: -r  # delete user directory
+: -r  : delete user directory
 
 Change user:
 : $ usermod <name>
-: -s  # change shell-access, e.g. /sbin/nologin  or  /bin/false
+: -s  : change shell-access, e.g. /sbin/nologin  or  /bin/false
 
 Change user password:
 : $ passwd <username>
@@ -651,9 +830,9 @@ Unzip everything except specified files:
 : -W  : Verify a archive file
 : -r  : update or add file or directory in already existed .tar file
 
-: -czvf <name>.tar.gz <input-dir>  # create tarball from input dir
-: -xzvf <name>.tar.gz              # unpack tarball into current dir
-: -tzvf <name>.tar.gz              # print contents
+: -czvf <name>.tar.gz <input-dir>  : create tarball from input dir
+: -xzvf <name>.tar.gz              : unpack tarball into current dir
+: -tzvf <name>.tar.gz              : print contents
 
 *** Encryption
 Basic (weak) encryption:
@@ -721,7 +900,7 @@ To add a key to the agent;
 
 To delete a key from agent:
 : $ ssh-add -d "<my-key-path>.pub"
-: $ ssh-add -D  # delete all keys
+: $ ssh-add -D  : delete all keys
 
 To change passphrase of a key or add a new passphrase:
 : $ ssh-keygen -p -f <my-key-path>
@@ -1023,7 +1202,7 @@ GPG (GNU Privacy Guard) is a free open source version of PGP (Pretty Good Privac
 
 : $ brew install ripgrep
 
-: $ rg <pattern>  # fuzzy-search for a <pattern> in current directory
+: $ rg <pattern>  : fuzzy-search for a <pattern> in current directory
 : -l  : list only filenames
 : -i  : ignore case
 : --no-require-git  : needs no git initialization to respect .gitignore rules

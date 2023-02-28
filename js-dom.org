@@ -848,6 +848,11 @@ An EventTarget object must implement 3 methods:
 - ~removeEventListener()~
 - ~dispatchEvent()~
 
+To get all EventListeners for an EventTarget:
+: getEventListeners(domElement)
+- supported in developer tools console for Chrome, Firefox and Safari
+- see [[https://developer.chrome.com/docs/devtools/console/utilities/#getEventListeners-function][Documentation]]
+
 *** I: Window
 https://developer.mozilla.org/en-US/docs/Web/API/Window
 
