@@ -33,6 +33,19 @@
   | TAB             | cycle CURRENT: top-level -> first-sublevel         |
   | SHIFT TAB       | cycle ALL: top-level -> first-sublevel -> all -> … |
 
+* Special characters / Entities
+
+Enter a special character as unicode with ~C-x 8 RET~ .
+
+Escape characters:
+- e.g. ~\nbsp~ (non-breaking space) or ~\zwsp~ (zero-width space)
+- see https://emacs.stackexchange.com/a/70505
+
+*Entities* are special symbols that can be inserted with a LaTeX-like syntax.
+- with ~org-toggle-pretty-entities~ (~C-c C-x \~) they can be rendered in emacs
+- e.g. \alpha will render as α
+- use \vbar in tables to insert a literal pipe
+
 * Markup
 
 ** Text formats

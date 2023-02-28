@@ -1,0 +1,5 @@
+#+title: Docs/Unix
+
+* /tmp directory
+
+https://www.fosslinux.com/41739/linux-tmp-directory-everything-you-need-to-know.htm
