@@ -118,13 +118,13 @@ quotes in this case.
 More infos:
 - https://koenwoortman.com/zsh-add-directory-to-path/
 
-** stdin / stdout
+** stdin / stdout / stderr
 
-All Unix shell applications have 3 unique streams that connect them to the
-outside world:
-- /Standard Input/, or *stdin*
-- /Standard Output/, or *stdout*
-- /Standard Error/, or *stderr*
+All Unix shell applications have 3 standard IO streams, each represented by
+a numeric *file descriptor* (a number representing an open file):
+- ~0~ -> *stdin*, the /standard input/ stream.
+- ~1~ -> *stdout*, the /standard output/ stream.
+- ~2~ -> *stderr*, the /standard error/ stream.
 
 Keyboard commands in input streams:
 - ~ctrl-c~ to cancel input
@@ -173,7 +173,14 @@ $ echo 'Hallo' > hallo.txt  # writes output from echo cmd to file
 $ cat < hello.txt > hello2.txt  # copies the file like cp
 
 $ cat <(ls) <(ls ..)  # concatenates the output of `ls` and `ls ..`
+
+$ diff <(ls foo) <(ls bar)  # can show the difference between two directories
+
+$ cat x.txt 2> error.txt  # if x.txt is missing, error shows up in error.txt
 #+end_src
+
+More infos:
+- https://linuxize.com/post/bash-redirect-stderr-stdout/
 
 ** here strings / here documents
 
@@ -217,6 +224,39 @@ Examples:
 : $ ls -la | awk '{print $7}'
 - passes ~ls -la~ output to ~awk~ command (filters 7. text row)
 
+** Reading input
+: $ read <varname>
+: $ read -p <prompt string> <varname>  : does not work in zsh
+: $ read <varname>\?<prompt string>    : use this instead
+
+Prompts the user interactively to enter a value that will be stored in a
+variable. An optional prompt string can be given after a ~`?`~ character.
+
+From ~man zshbuiltins~: “If the first argument contains a ~`?`~, the remainder
+of this word is used as a prompt on standard error when the shell is
+interactive.”
+
+Examples:
+: $ read "name?what's your name? "  : can be a single quoted string
+: > what's your name?
+: < Bob
+: $ echo $name
+: > Bob
+
+In shell scripts, combine with ~echo~ for prompts:
+#+begin_src bash
+#!/bin/bash
+
+echo "Enter a number"
+read a
+
+echo "Enter a number"
+read b
+
+var=$((a+b))
+echo $var
+#+end_src
+
 * Shells
 ** Bash
 *B*ourne *A*gain *SH*ell
@@ -250,10 +290,17 @@ Change the shell for the user:
 Most portable way to reference bash in scripts:
 : #!/usr/bin/env bash
 
+Using the ~env~ command, the environment variable for a different scripting
+runtime can be looked up in a script to be executed with that runtime:
+: #!/usr/bin/env bb
+: #!/usr/bin/env python
+
 Run scripts with
 : $ ./<myscript>.sh
 or
 : $ bash <myscript>.sh
+
+The ~exit~ command can stop a script.
 
 ** Variables
 See [[Environment Variables]]
@@ -288,51 +335,114 @@ Other variables:
 
 ** Control structures
 
-*for* loops:
-: for myitem in mylist; do
-:     ...
+*** *for*-loops:
+: for <item-var> in <items…>; do
+:   …
 : done
 
-*if* conditionals:
-: if mypred; then
-:    ...
+- ~<items…>~ can be an index range with ~{from..to}~ such as ~{1..5}~
+*** while-loops
+
+*** *if*-conditionals
+: if [[[ <condition> ]]]
+: then
+:   …
+: elif [[[ <condition> ]]]; then
+:   …
+: else
+:   …
 : fi
 
-Comparators to *test* expressions:
+- ~if … then~ can  be written in one line separated by a semicolon
+- ~[ … ]~ is a posix shell compliant condition test
+  - use if script should be portable across shells
+- ~[[ … ]]~ is an extension of ~[ … ]~ and supports extra operations, e.g. ~||~
+  instead of ~-o~ and regex matching with ~=~~
+  - inspired from Korn shell
+  - list of differences: [[http://www.gnu.org/software/bash/manual/bashref.html#Conditional-Constructs][bash manual section on conditional constructs]]
+  - also see: https://stackoverflow.com/a/13542854/1204047
 
-| Operator  | Operand Types | Evaluates true if …                     |
-|-----------+---------------+-----------------------------------------|
-| ~-b~ f      | file          | exists and is a block special file      |
-| ~-c~ f      | file          | exists and is a character               |
-| ~-d~ f      | file          | exists and is a directory               |
-| ~-e~ f      | file          | exists (regardless of type)             |
-| ~-f~ f      | file          | exists and is a regular file            |
-| ~-g~ f      | file          | exists and its set group ID flag is set |
-| ~-k~ f      | file          | exists and its sticky bit is set        |
-| ~(~ e ~)~     | expression    | is true                                 |
-| ~!~ e       | expression    | is false                                |
-| e1 ~a~ e2   | expressions   | are both true                           |
-| e1 ~o~ e2   | expressions   | either one is true                      |
-| s         | string        | is not the null string                  |
-| ~-n~ s      | string        | length is non-zero                      |
-| ~-z~ s      | string        | length is zero                          |
-| s1 ~=~ s2   | strings       | are identical                           |
-| s1 ~!=~ s2  | strings       | are not identical                       |
-| s1 ~<~ s2   | strings       | lower binary value of chars than        |
-| s1 ~>~ s2   | strings       | higher binary value of chars than       |
-| n1 ~-eq~ n2 | integers      | algebr. equal                           |
-| n1 ~-ne~ n2 | integers      | not algebr. equal                       |
-| n1 ~-gt~ n2 | integers      | algebr. greater than                    |
-| n1 ~-ge~ n2 | integers      | algebr. greater than or equal           |
-| n1 ~-lt~ n2 | integers      | algebr. less than                       |
-| n1 ~-le~ n2 | integers      | algebr. less than or equal              |
+*** *test* expressions
+: test <expression>
+: [ <expression> ]
+- can be used in conditionals
+- returns exit code ~0~ if true and ~1~ if false or ~>1~ if error occurred
+- the ~-a~ operator has a higher precedence than the ~-o~ operator
+- comparators for *test* expressions (from ~man test~):
+  | Operator  | Operand Types | Evaluates true if …                     |
+  |-----------+---------------+-----------------------------------------|
+  | ~-b~ f      | file          | exists and is a block special file      |
+  | ~-c~ f      | file          | exists and is a character               |
+  | ~-d~ f      | file          | exists and is a directory               |
+  | ~-e~ f      | file          | exists (regardless of type)             |
+  | ~-f~ f      | file          | exists and is a regular file            |
+  | ~-g~ f      | file          | exists and its set group ID flag is set |
+  | ~-k~ f      | file          | exists and its sticky bit is set        |
+  | ~(~ e ~)~     | expression    | is true                                 |
+  | ~!~ e       | expression    | is false                                |
+  | e1 ~-a~ e2  | expressions   | are both true (/and/)                     |
+  | e1 ~-o~ e2  | expressions   | either one is true (/or/)                 |
+  | s         | string        | is not the null string                  |
+  | ~-n~ s      | string        | length is non-zero                      |
+  | ~-z~ s      | string        | length is zero                          |
+  | s1 ~=~ s2   | strings       | are identical                           |
+  | s1 ~!=~ s2  | strings       | are not identical                       |
+  | s1 ~<~ s2   | strings       | lower binary value of chars than        |
+  | s1 ~>~ s2   | strings       | higher binary value of chars than       |
+  | n1 ~-eq~ n2 | integers      | algebr. equal                           |
+  | n1 ~-ne~ n2 | integers      | not algebr. equal                       |
+  | n1 ~-gt~ n2 | integers      | algebr. greater than                    |
+  | n1 ~-ge~ n2 | integers      | algebr. greater than or equal           |
+  | n1 ~-lt~ n2 | integers      | algebr. less than                       |
+  | n1 ~-le~ n2 | integers      | algebr. less than or equal              |
 
-- consult ~man test~ to see which comparators are available
-- evaluates to ~0~ if true and ~1~ if false or if there is no expression
-- the ~a~ operator has a higher precedence than the ~-o~ operator
+*** Examples:
 
-Examples:
+Counting from 1 to 5 with for:
 #+begin_src bash
+#!/usr/bin/env bash
+
+for i in {1..5}; do
+  echo $i
+done
+#+end_src
+
+Counting from 1 to 5 with while:
+#+begin_src bash
+#!/usr/bin/env bash
+
+i=1
+while [[ $i -le 5 ]] ; do
+  echo "$i"
+  (( i += 1 ))
+done
+#+end_src
+
+Comparing two input numbers:
+#+begin_src bash
+#!/usr/bin/env bash
+
+echo 'Pick a number X'
+read x
+echo 'Pick a number Y'
+read y
+
+if [ $x -gt $y ]
+  then
+    echo 'X is greater than Y'
+  elif [ $x -lt $y ]
+  then
+    echo 'X is less than Y'
+  elif [ $x -eq $y ]
+  then
+    echo 'X is equal to Y'
+fi
+#+end_src
+
+Checking for a word in multiple input files and adding it if not found:
+#+begin_src bash
+#!/usr/bin/env bash
+
 for file in "$@"; do  # for each file in all the arguments
     grep foobar "$file" > /dev/null 2> /dev/null
     # When pattern is not found, grep has exit status 1
@@ -357,9 +467,12 @@ mcd () {
 : $ source <mcd.sh>
 : $ mcd foo  : calls the `mcd` function with `foo` as `$1` arg
 
+** Debugging
+External tools:
+- [[shellcheck]]
+
 ** Guides:
 - https://www.freecodecamp.org/news/shell-scripting-crash-course-how-to-write-bash-scripts-in-linux/
-
 * Commands
 ** Source / .
 : source <file> [args]
@@ -395,15 +508,28 @@ Search man-pages for a ~term~:
   - ~enter/e~: move 1 line
   - ~/[word]~ : search for ~[word]~ (~n~ for next occurrence)
 
+For built-in commands in ~zsh~:
+: $ man zshbuiltins
+
 *** Command History
 Print command history:
 : $ history
+: $ history 1  : from the beginning (1. command)
+
+Use ~ctrl-r~ to backward-search in command history and insert a previous
+command into the prompt.
 
 Repeat command with ~id~ (retrieved from history):
 : $ !<id>
 
 Repeat previous command:
 : $ !!
+
+
+Examples:
+
+Show all previous uses of the ~touch~ command:
+: $ history 1 | grep touch
 
 *** Show executable associated with a command
 : $ which <cmd>
@@ -496,6 +622,9 @@ Set options for terminal interface (?)
 
 : $ cd -  : back to previous directory
 
+External tools:
+- auto jump (?)
+
 **** Create directory
 : $ mkdir <path/name …>
 - ~-p~ (/parent/ directories) creates folders in between (if needed)
@@ -520,6 +649,7 @@ Set options for terminal interface (?)
 : -F   : shows directories with `/`, executable with `*`, links with `@`
 : -i   : shows serial number of file
 : -s   : shows number of file system blocks used by the file
+: -G   : colorized output
 : -lisa  : detailled list with exact specs
 : -alt   : detailled list of all last modified files
 
@@ -534,6 +664,9 @@ List only <filename>:
 
 External tools:
 - [[tree]] lists items and subdirectories in a tree
+- [[broot]] like ~tree~ but hides files in “unlisted” and enables fuzzy
+  keyboard-navigation within listed directories
+- [[nnn]] is like a mini file-explorer with keyboard-navigation
 
 **** Finder
 Open files (like double click in finder)
@@ -545,17 +678,43 @@ Open every text file:
 : $ open *.txt
 
 **** Search files/directories
-Find location of files/directories:
+Find location of files/directories (recursively searches in subdirs):
 : $ find <starting dir>
 : -name "<path/pattern>"  : file names to search for
+: -type <t>  : type of files to search for
+: -mtime <offset-time>  : find all files modified within <offset-time>
 : -print
 : -empty   : only empty files
 : -delete  : delete found files
+: -exec <cmd> <?>  : execute command on found files
+
+Possible types for ~-type~:
+| Symbol | Meaning           |
+|--------+-------------------|
+| ~b~      | block special     |
+| ~c~      | character special |
+| ~d~      | directory         |
+| ~f~      | regular file      |
+| ~l~      | symbolic link     |
+| ~p~      | FIFO              |
+| ~s~      | socket            |
 
 Examples:
 
+Find all =src/= directories in current working dir:
+: $ find . -name src -type d
+
+Find all Python files in a =test/= dir with any number of parent dirs:
+: $ find . -path '**/test/*.py' -type f
+
+Find all files modified within the last 24h:
+: $ find . -mtime -1
+
 Delete all files with name ~"file-"~:
 : $ find . -name "file-*" -delete  #
+
+Find all files with ~.tmp~ extension and call command ~rm~ on them:
+: $ find . -name "*.tmp" -exec rm {} \;
 
 Write found paths to =output.txt=:
 : $ find . -name "file-*" > output.txt
@@ -564,8 +723,20 @@ More infos:
 - https://kb.iu.edu/d/admm
 
 External tools:
-- [[ripgrep]] searches directories for a regex pattern respecting =.gitignore=
 - [[fzf]] fuzzy finder
+- [[fd]] like ~find~ but defaults to regex, respects =.gitignore=, color-codes
+  output and has better unicode support
+- [[ripgrep]] searches directories for a regex pattern respecting =.gitignore=
+
+**** Search filesystem via database
+~locate~ searches a (periodically updated) indexed database for all
+pathnames which match a ~pattern~.
+- much faster than e.g. ~find~
+
+: $ locate <pattern>
+
+The ~updatedb~ command is running through ~cron~ to keep the database
+up-to-date.
 
 *** Files
 **** Create files
@@ -609,6 +780,10 @@ Examples:
 
 Remove everything in the current folder:
 : $ rm ./*
+**** Clear file contents
+To make a file completely empty:
+: : > <file>
+- ~:~ is the shell no-op command
 
 **** Concatenate and print files
 : $ cat <file …>  : prints <file> (concatenation if multiple files)
@@ -682,18 +857,23 @@ Search contents of text files with regex:
 :                    : context sorrounding match
 : --color=[when]     : mark up matching text
 :                    : `when`: `never` | `always` | `auto`
+: -R                 : recursively searches for files
 - use ~*~ to search in all files from current directory
 
 Examples:
 
+Searches for ~foobar~ in =mcd.sh=:
+: $ grep foobar mcd.sh
+
+Recursively search for ~foobar~ in all files from the current directory:
+: $ grep -R foobar .
+
 Search for ~'foo'~ in git log with colored matches + context:
 : $ git log | grep 'foo' -C 10 --color="always"
 
-
 External tools:
+- [[ripgrep]] searches directories for a regex pattern respecting =.gitignore=
 - [[fzf]] fuzzy finder
-**** Cut out portions of a file
-: $ cut --delimiter=' ' -f 2 <file>
 
 *** Symlink
 
@@ -982,7 +1162,69 @@ To count chars in a string (stdin):
 To sort numerically in reverse order:
 : $ sort -rn
 
-** Number manipulation
+*** Cut out parts of text
+: $ cut -b <list> [-n] …  : byte positions
+: $ cut -c <list> …       : char positions
+: $ cut -f <list> [-w | -d <delim>] [-s] …  : fields (separated by delimiter)
+- ~list~: comma or whitespace separated set of numbers and/or ranges
+
+Examples:
+
+To extract whitespace/tab-separated parts of a string:
+: $ echo 'hallo welt' | cut -f 2 -w
+: > welt
+
+To cut out portions of a file:
+: $ cut --delimiter=' ' -f 2 <file>
+
+** Numeric expressions
+*** Calculate
+**** Integer arithmetic
+: $ expr <expression>
+: $ echo $(( <expression> ))  : auto-escaped!
+- expression symbols like ~*~ and ~**~ must be escaped with ~expr~
+- uses signed integer math with a range according to the C ~intmax_t~ data type
+- fractions will be truncated
+
+Examples:
+: $ expr 2 + 5
+: > 7
+: $ expr 13 - 9
+: > 4
+: $ expr 5 \* 3      : `*` needs to be escaped!
+: $ echo $((5 * 3))  : no need to escape with shell arithmetic
+: > 15
+: $ expr 16 / 3
+: > 5                : cuts off decimals
+: $ echo $((5 ** 3))
+: > 125
+: $ echo $((5 % 3))  : modulus operator
+: > 2
+
+To store calculation results in variables:
+: $ foo=$((3+9))
+: $ echo $foo
+: > 12
+
+**** Decimal arithmetic (arbitrary precision)
+: $ bc  : enters a REPL-like environment
+- ~bc~ stands for “bash calculator”
+- the ~scale~ of an expression is the number of digits in the decimal part
+
+Examples:
+: $ bc
+: >>> scale=2  : to set number of decimal places to 2
+: >>> 22/7
+: 3.14
+: >>> scale=4
+: >>> 22/7
+: 3.1428
+: >>> quit  : to exit the REPL
+
+To directly input a sequence of commands without entering the REPL:
+: $ echo "scale=2;22/7" | bc
+: > 3.14
+
 *** Convert from/to number bases
 - ~ibase~: input base
 - ~obase~: output base
@@ -1202,13 +1444,33 @@ GPG (GNU Privacy Guard) is a free open source version of PGP (Pretty Good Privac
 
 : $ brew install ripgrep
 
-: $ rg <pattern>  : fuzzy-search for a <pattern> in current directory
-: -l  : list only filenames
-: -i  : ignore case
+: $ rg <pattern>    : fuzzy-search for a <pattern> in current directory
+: -l                : list only filenames
+: -i                : ignore case
+: -., --hidden      : don’t ignore hidden files
+: -C <n>            : adds `n` lines of context around the matching line
+: -t <type>         : only files matching `type` (see `--type-list`)
+: --type-list       : show all supported file types
+: --files-without-match
+:                   : print paths that contain zero matches and suppress match
 : --no-require-git  : needs no git initialization to respect .gitignore rules
 : --debug           : info for debugging
+: --stats           : prints statistics about matches
+- by default, skipps hidden files or directories
+  - (might not always be true?)
+- files whitelisted in ignore files will show up, even if they are hidden
+  and the ~--hidden~ flag is not set
 
 Respects =.gitignore= by default, IF git repo is initialized!
+
+Examples:
+
+Find ~"import requests"~ occurrences in Python files within the =~/scratch= dir
+and add 5 lines of context around results:
+: $ rg "import requests" -t py -C 5 ~/scratch
+
+Find all (incl. hidden) shell files that don’t have a /shebang/:
+: $ rg -u --files-without-match "^#\!" -t sh
 
 ** fzf
 Fuzzy find (fzf)
@@ -1218,6 +1480,28 @@ Fuzzy find (fzf)
 
 : $ find <dir / *> -type f | fzf > selected
 - type ~esc~ to stop
+
+Examples:
+
+To fuzzy-search in =foo.txt=:
+: $ cat foo.txt | fzf
+
+** shellcheck
+Used to debug shell scripts.
+- https://github.com/koalaman/shellcheck
+
+: $ brew install shellcheck
+
+** tldr
+Community-created usage examples for common shell commands.
+- https://tldr.sh
+
+: $ brew install tldr
+** fd
+A simple, fast and user-friendly alternative to 'find'
+- https://github.com/sharkdp/fd
+
+: $ brew install fd
 
 * Shell services
 ** Weather
