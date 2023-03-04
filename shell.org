@@ -31,6 +31,9 @@ Can also use Vim shortcuts.
 | ~ctrl-E~   | go the end                 |
 | ~alt-B~    | go backward                |
 
+** Break a command into multiple lines
+Use ~\~ at the end of each line.
+
 ** Fixes
 *** How to fix homebrew error: “invalid active developer path” after upgrade to
 OS X El Capitan?:
@@ -129,6 +132,9 @@ a numeric *file descriptor* (a number representing an open file):
 Keyboard commands in input streams:
 - ~ctrl-c~ to cancel input
 - ~ctrl-d~ to send(?) input (e.g. in ~sort~)
+
+To tell a command to use /stdin/ / /stdout/ rather than a given file, type ~-~ .
+- might not work on all commands
 
 More infos:
 - https://www.howtogeek.com/435903/what-are-stdin-stdout-and-stderr-on-linux/
@@ -256,6 +262,9 @@ read b
 var=$((a+b))
 echo $var
 #+end_src
+** Pager
+A pager is a covenient way to display and navigate large amounts of text in
+the Terminal. It is opened with commands like ~less~ or ~man~.
 
 * Shells
 ** Bash
@@ -537,6 +546,17 @@ Show all previous uses of the ~touch~ command:
 *** Undo/correct commands
 External tools:
 - [[thefuck]] can correct syntax errors of executed commands
+*** Construct arg list for a command and execute
+: xargs
+
+Examples:
+
+To pipe a sequence of arguments as lines of text from /stdin/ into a
+function call:
+: … | xargs <command>
+
+: $ echo 'foo.txt\nbar.txt\nbaz.txt' | xargs touch
+: (creates files foo.txt, bar.txt and baz.txt)
 
 ** User
 *** Current user
@@ -875,6 +895,13 @@ External tools:
 - [[ripgrep]] searches directories for a regex pattern respecting =.gitignore=
 - [[fzf]] fuzzy finder
 
+*** Logs
+~log~ enables access to system wide log messages created by ~os_log~, ~os_trace~
+and other logging systems.
+
+To stream the whole log (can be huge):
+: $ log show
+
 *** Symlink
 
 *CAUTION:* relative pathnames in the target will be interpreted as relative
@@ -1105,33 +1132,37 @@ e.g. a column of numbers into a table
 
 Examples with ~rs~:
 
+: $ echo "a\nb\nc\nd" | rs 2
+: > a  b
+:   c  d
+
 : $ seq 20 | rs 4
-: 1   2   3   4   5
-: 6   7   8   9   10
-: 11  12  13  14  15
-: 16  17  18  19  20
+: > 1   2   3   4   5
+:   6   7   8   9   10
+:   11  12  13  14  15
+:   16  17  18  19  20
 
 : $ seq 20 | rs -t 5
-: 1   6   11  16
-: 2   7   12  17
-: 3   8   13  18
-: 4   9   14  19
-: 5   10  15  20
+: > 1   6   11  16
+:   2   7   12  17
+:   3   8   13  18
+:   4   9   14  19
+:   5   10  15  20
 
 Examples with ~pr~:
 
 : $ seq 20 | pr -5ats
-: 1   2   3   4   5
-: 6   7   8   9   10
-: 11  12  13  14  15
-: 16  17  18  19  20
+: > 1   2   3   4   5
+:   6   7   8   9   10
+:   11  12  13  14  15
+:   16  17  18  19  20
 
 : $ seq 20 | pr -4ts
-: 1   6   11  16
-: 2   7   12  17
-: 3   8   13  18
-: 4   9   14  19
-: 5   10  15  20
+: > 1   6   11  16
+:   2   7   12  17
+:   3   8   13  18
+:   4   9   14  19
+:   5   10  15  20
 
 More infos:
 - https://leancrew.com/all-this/2022/09/reshaping-text/
@@ -1155,12 +1186,57 @@ To count chars in a string (stdin):
 : $ tr A-Z a-z          : replace uppercase with lowercase
 : $ tr -cs A-Za-z '\n'  : trim multiple newline chars to a single one
 
+Examples:
+
+Map each character of the first set to the corresponding character of the
+second set:
+: $ echo 'hello, world' | tr 'ewol' 'ane.'
+: > ha..e, ner.d
+
+Delete all occurrences of the specified set of characters from the input:
+: $ echo 'hello, world' | tr -d 'le'
+: > ho, word
+
+Compress a series of identical characters to a single character:
+: $ echo 'feeding apple tree seeds' | tr -s 'ep'
+: > feding aple tre seds
+
+Lower to upper case:
+: $ echo 'foo bar' | tr "[:lower:]" "[:upper:]"
+: > FOO BAR
+
+Strip out non-printable characters:
+: $ echo 'n\na\tsa' | tr -cd "[:print:]"
+: > nasa%
+
 *** Sort lines
 ~sort~ sorts lines from stdin
+: $ sort <text>
+: -n  : numeric sort
+: -r  : reverse order
+: -u  : unique keys
+: -f, --ignore-case
+: -k<start,stop>  : select a whitespace-separated column to sort by
+: -t <delim>  : to specify a different delimiter for `-k`
 - confirm input with ~ctrl-d~
+
+Examples:
+
+To start and stop ~sort~ at the first column of the input:
+: $ sort -nk1,1
 
 To sort numerically in reverse order:
 : $ sort -rn
+
+*** Filter unique lines
+~uniq~ takes a sorted list of lines and prints only those that are unique.
+: $ uniq <text>
+: -c  : display count of duplicate lines
+
+Examples:
+: $ echo 'hello\nhello\nworld\nworld\nworld' | uniq -c
+: > 2 hello
+:   3 world
 
 *** Cut out parts of text
 : $ cut -b <list> [-n] …  : byte positions
@@ -1176,6 +1252,254 @@ To extract whitespace/tab-separated parts of a string:
 
 To cut out portions of a file:
 : $ cut --delimiter=' ' -f 2 <file>
+
+*** sed (stream editor)
+Applies a regular expression find/replace pattern on each input line.
+
+: $ sed <command/pattern> [file …]
+: -E  : use extended (modern) rather than basic regular expressions (BRE’s)
+Used to make changes to the contents of a stream.
+- modification of an earlier programm called ~ed~.
+- matches patterns and applies replacement only once per line
+- the ~-E~ flag is recommended since ~sed~ is very old and often matches
+  special symbols literally
+  - e.g. without the flag groups ~(…)~ would have to be escaped: ~\(…\)~
+
+Use ~\n~ to reference capture groups in the replace pattern.
+
+Modifiers:
+| Symbol | Description                          |
+|--------+--------------------------------------|
+| ~g~      | global (try multiple times per line) |
+|        |                                      |
+
+Examples:
+
+: $ echo 'bba' | sed 's/[ab]//'  : > ba
+: $ echo 'bba' | sed 's/[ab]//g'  : >
+: $ echo 'abcababc' | sed -E 's/(ab|bc)*//g'  : > cc
+: $ echo 'abcabbc' | sed -E 's/(ab|bc)*//g'  : > c
+: $ echo 'Disconnected from invalid user Disconnected from 84.211' | sed 's/.*Disconnected from //'  : > 84.211
+
+More infos:
+- https://www.regular-expressions.info
+
+External tools:
+- regular expression debugger:
+  - https://regex101.com
+
+*** awk (column-based pattern-directed scanning and processing)
+- ~awk~ is a whole programming language for data processing
+- it can express what many specialized command-line tools are able to do
+- by default parses input in whitespace-separated columns
+
+Special patterns (in order):
+- ~BEGIN { <expr> }~ -> matches line 0
+- ~<regex-ptn> { <expr> }~ -> matches every line with ~<regex-ptn>~
+- ~END { <expr> }~ -> matches after the last line
+
+Examples:
+
+Print a specific column:
+: $ echo 'hello foo\nworld bar' | awk '{print $1}'
+: > hello
+:   world
+: $ echo 'hello foo\nworld bar' | awk '{print $2}'
+: > foo
+:   bar
+
+Print whole lines where in column 1 each entry is a '1' and in column 2
+each entry starts with a 'c' and ends with an 'e':
+: $ awk '$1 == 1 && $2 ~ /^c.*e$/ {print $0}'
+
+Print the number of lines where in column 1 each entry is a '1':
+- on line 0, set variable ~rows~ to ~0~
+- on every line that matches ~$1 == 1~, increment ~rows~
+- after the last line is matched, print the value of ~rows~
+: $ awk 'BEGIN { rows = 0 } $1 == 1 {rows += 1} END { print rows }'
+- this is the same as running ~wc -l~ afterwards
+
+*** Concatenate multiple lines
+: $ paste <file …>
+: -s         : concatenate all lines of each input file
+: -d <list>  : use one or more of given chars to replace newline
+- replaces all but the last /newline/ character
+- by default, replaces /newlines/ with a single /tab/ character
+- use ~-~ to specify the /stdin/ instead of a file
+
+Examples:
+
+: $ paste -sd, <(seq 20)
+: $ seq 20 | paste -sd, -  : same, but with pipeing
+: > 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20
+
+*** Tabular display
+~column~ can format text into multiple columns, its purpose is to fit data
+into the terminal for display. Use ~rs~ or ~pr~ to actually transform text
+into a tabular format.
+
+: $ column <file …/stdin>
+: -c <column>  : fit input lines into n columns determined by `column` chars
+: -t  : create table from separation by whitespace or delim chars (see `-s`)
+: -s  : specify a set of chars to delim columns for the `-t` option
+- formats input into multiple columns
+- empty lines are ignored
+- by default, fills all available space with columns
+- rows are filled before columns
+
+Examples:
+
+: $ echo "header1 header2\nbar foo\n" | column -t
+: > header1  header2
+:   bar      foo
+
+: input.txt:
+: No.|Country|Yes/No
+: 01|India|Y
+: 02|US|Y
+: 03|Australia|Y
+: 04|China|N
+: 05|Russia|Y
+: 06|Japan|Y
+: 07|Singapore|Y
+: 08|South Korea|N
+: 09|Finaland|Y
+: 10|Ireland|Y
+
+: $  column -t -s '|' input.txt
+: > No.  Country      Yes/No
+:   01   India        Y
+:   02   US           Y
+:   03   Australia    Y
+:   04   China        N
+:   05   Russia       Y
+:   06   Japan        Y
+:   07   Singpaore    Y
+:   08   South Korea  N
+:   09   Finaland     Y
+:   10   Ireland      Y
+
+More infos:
+- https://www.howtoforge.com/linux-column-command/
+
+*** Line-oriented text editor
+: $ ed [<filename>]
+: -p<char>  : use prompt `char`
+: -s        : suppress diagnostics (good for scripts)
+- commands are single characters on a line and may have parameters
+- regular expressions in addresses or commands interpret /POSIX Basic
+  Regular Expressions (BRE)/
+
+**** Line addresses
+Many commands use line addresses (relative to the current line)
+- 0, 1 or 2 addresses followed by the command
+- the address ~0~ does not represent a line, but the beginning of the buffer
+  - only valid in some commands
+: <cmd>   : uses default address
+: n<cmd>  : uses address `n`
+
+Commands often have default addresses if no address is given
+- if not specified otherwise, the default is the current address
+- when a file is first read, current address is the last line in buffer
+
+Special address symbols:
+| Symbol | Meaning                |
+|--------+------------------------|
+| ~.~      | current line in buffer |
+| ~$~      | last line in buffer    |
+
+*Address ranges* are 2 addresses separated by a ~,~ or ~;~ .
+:  , <cmd>  : from first to last address (both incl.)
+:  ; <cmd>  : from current to last address (both incl.)
+:  ,m<cmd>  : from first to `m` address (both incl.)
+:  ;m<cmd>  : from current to `m` address (both incl.)
+: n, <cmd>  : same as just `n<cmd>`
+: n; <cmd>  : same as just `n<cmd>`
+: n,m<cmd>  : addresses from `n` to `m` (both incl.)
+: n;m<cmd>  : same, but … (?)
+
+*Regex patterns* can be given to find specific lines:
+: /<re>/[I]  : next line containing pattern `re`
+: ?<re>?[I]  : previous line containing pattern `re`
+- ~/~ searches downwards from start of buffer to (if necessary) current line
+- ~?~ searches upwards from end of buffer to (if necessary) current line
+- ~I~ -> case-insensitive match
+- can be repeated for next matches
+
+**** Commands
+General operations
+: w [filename]  : write buffer to (a new / the loaded) file
+: h     : show help (in case of `?`)
+: H     : show help by default
+: P     : show a prompt symbol (or use `-p` option)
+: q     : exit the editor
+
+Line Editing
+: [.]a     : begin append new lines after (current) line (0-address valid)
+: [.]i     : begin insert new lines before (current) line (0-addr. valid)
+: [.,.]c   : begin change (current) line(s) (possibly add new ones after)
+: [.,.]d   : delete (current) line(s)
+: .        : end editing (return to prompt)
+: <n>t<m>  : (?) copy from line `n` to line `m`
+: <n>m<m>  : (?) move line `n` to line `m`
+- ~a~, ~i~ and ~c~ put the editor in input mode, which can be exited via ~.~ cmd
+
+Line Navigation
+: [.,.]p   : print (current) line(s) (moves current line)
+: [.,.]n   : same as `p`, but includes the line number
+: <n>      : go to line number `n`
+: -[n]     : jump to previous/`n` lines relative to current line
+: +[n]     : jump to next/`n` lines relative to current line
+
+Run unix shell commands by prepending a ~!~ :
+: !date
+: > Sat Mar  4 02:36:30 CET 2023
+: !for s in hello world; do echo $s; done
+: > hello
+:   world
+:   !
+
+Opening an existing text file by specifying a ~filename~ argument appends
+new lines to the file when insert mode is active.
+
+**** Scripting
+- use the ~-s~ flag to make it less verbose
+- commands need to be separated by ~\n~ for new lines
+- remember to add ~w~ command at the end to write to the file
+
+For debugging:
+- always add ~H~ at the beginning for debugging information
+- make a dry run first by appending the command ~,p~ instead of ~w~ to see
+  how the new text looks like
+
+~ed~ can be piped through ~stdin~ (no need to exit with ~q~):
+: $ echo '<ed commands>' | ed <file>
+
+With Here-strings:
+: $ ed <file> <<< '<ed commands>'
+
+With Here-documents:
+: $ ed <file> <<EOF
+: <ed commands>
+: EOF
+
+**** Examples
+: $ echo 'a\nHallo Welt\nNeue Zeile\n.\nw' | ed edtest.txt
+: > t
+:   0
+:   22
+: $ cat edtest.txt
+: > Hallo Welt
+:   Neue Zeile
+
+**** More infos
+Documentation:
+- https://linux.die.net/man/1/ed
+- https://www.gnu.org/software/ed/manual/ed_manual.html
+
+Tutorials:
+- https://www.howtoforge.com/linux-ed-command/
+- https://wiki.bash-hackers.org/howto/edit-ed
 
 ** Numeric expressions
 *** Calculate
@@ -1208,11 +1532,15 @@ To store calculation results in variables:
 
 **** Decimal arithmetic (arbitrary precision)
 : $ bc  : enters a REPL-like environment
+: -i, --interactive  : force interactive mode
+: -l, --mathlib      : uses extended math library
+: -h, --help         : print usage
 - ~bc~ stands for “bash calculator”
+- always use ~-l~ flag to get full features
 - the ~scale~ of an expression is the number of digits in the decimal part
 
 Examples:
-: $ bc
+: $ bc -l
 : >>> scale=2  : to set number of decimal places to 2
 : >>> 22/7
 : 3.14
@@ -1224,6 +1552,11 @@ Examples:
 To directly input a sequence of commands without entering the REPL:
 : $ echo "scale=2;22/7" | bc
 : > 3.14
+
+Concatenate single-number lines with ~+~ into an arithmetic sum expression
+and evaluate it:
+: $ seq 9 | paste -sd+ - | bc -l
+: > 45
 
 *** Convert from/to number bases
 - ~ibase~: input base
@@ -1502,6 +1835,12 @@ A simple, fast and user-friendly alternative to 'find'
 - https://github.com/sharkdp/fd
 
 : $ brew install fd
+** journalctl
+Log analyzer on Linux.
+** ffmpeg
+To encode and decode videos and (to some extend) images.
+** convert
+Image manipulation
 
 * Shell services
 ** Weather
