@@ -1,0 +1,909 @@
+#+title: Docs/React
+
+Resources:
+- [[https://github.com/typescript-cheatsheets/react][Typescript-React Cheatsheet]]
+
+Tutorials:
+- [[https://www.youtube.com/watch?v=w7ejDZ8SWv8][React JS Crash Course 2021 by Traversy Media]]
+
+Browser extensions:
+- [[https://chrome.google.com/webstore/detail/react-developer-tools/fmkadmapgofadopljbjfkapdkoienihi?hl=en][React Developer Tools for Chrome]]
+- [[https://addons.mozilla.org/en-US/firefox/addon/react-devtools/][React Developer Tools for Firefox]]
+
+VS Code extensions:
+- ~ES7 React/Redux/GraphQL/React-Native snippets~
+
+Useful snippets:
+- ~_rafce~
+
+* Setup
+Import react libraries:
+: import React from 'react';
+: import ReactDOM from 'react-dom';
+
+Render component on DOM load:
+#+begin_src typescript
+ReactDOM.render(
+  <MyComponent />,
+  document.getElementById('root')
+);
+#+end_src
+
+To try the built app on a local server, we can use serve:
+: $ sudo npm i -g serve
+: $ serve -s build -p 8000
+
+* Components
+“A good rule of thumb is that if a part of your UI is used several times
+(Button, Panel, Avatar), or is complex enough on its own (App, FeedStory,
+Comment), it is a good candidate to be extracted to a separate component.”
+- https://reactjs.org/docs/components-and-props.html
+
+** Dynamic generation of components
+When creating components dynamically (e.g. by iterating on a list), each new
+component must have a unique id such that React can identify it.
+
+Using the iteration index as an id may cause trouble in some cases and
+therefore is not advised.
+#+begin_src typescript
+<ul>
+  {items.map((item, index) => {
+    return ( <li key={index}>{item}</li> );
+  })}
+</ul>
+#+end_src
+
+Instead, the built-in function ~crypto.randomUUID()~ can be used to generate a
+unique identifier for each list item.
+
+Using this function directly on the component would generate a different id
+on each re-render, so it should be assigned to each object *when the state of
+the list is updated*.
+#+begin_src typescript
+function handleAddItem(value) {
+  const nextItem = {
+    id: crypto.randomUUID(),
+    // ...
+  };
+  const nextItems = [...items, nextItem];
+  setItems(nextItems);
+}
+#+end_src
+
+** Controlling inputs
+Uncontrolled inputs manage their state by using the browsers default
+behaviour, controlled inputs are state-managed by React.
+
+#+begin_src typescript
+function Form() {
+  const [email, setEmail] = React.useState(""); // <- must match value type
+
+  return (
+    <form>
+      <label htmlFor="email-input">
+        Email address
+      </label>
+      <input
+        id="email-input"
+        type="email"
+        value={email} // <- tells React that this input should be controlled
+        onChange={event => setEmail(event.target.value)}
+      />
+    </form>
+  );
+}
+#+end_src
+
+More infos:
+- https://www.joshwcomeau.com/react/data-binding/
+
+** Props
+Properties are for configurating a component
+- they are immutable /(read-only)/
+- they are passed down to a component or found via default
+
+With function components:
+#+begin_src typescript
+// passing prop-arguments to a component:
+<MyComponent myArg={'myVal'} />
+
+// defining props in components:
+const MyComponent = (props) => {
+  return (
+    <p>props.myArg</p>
+  );
+}
+
+// shorter with destructuring:
+const MyComponent = ({ myArg }) => {
+  return (
+    <p>myArg</p>
+  );
+}
+
+// can have default values:
+const MyComponent = ({ myArg='Default value' }) => { … }
+// or:
+MyComponent.defaultProps = {
+  myArg: 'Default value',
+}
+#+end_src
+
+With class components:
+#+begin_src typescript
+class MyComponent extends React.Component {
+  render() {
+    return (
+      <p>{this.props.myArg}</p>
+    );
+  }
+}
+
+// defaults inside definition:
+class ... {
+  static defaultProps = {
+    myArg: 'Default value',
+  }
+}
+// or outside:
+MyComponent.defaultProps = {
+  myArg: 'Default value',
+}
+#+end_src
+
+* State
+State is specific data within a component
+- /mutable/ -> changes over time
+- can be passed down to child components as [[Props]] (-> downward data flowq)
+
+Managing /App-level/ (or “global”) state
+- *context-API* (built into React)
+- *Redux* (3rd-party state manager)
+
+More infos:
+- [[https://beta.reactjs.org/learn/state-a-components-memory][State: A Component's Memory (React Docs)]]
+- [[https://beta.reactjs.org/learn/choosing-the-state-structure][Choosing the State Structure (React Docs)]]
+- [[https://beta.reactjs.org/learn/sharing-state-between-components][Sharing State Between Components]]
+
+** Setting state
+*** in function components
+Normal variables do not retain their mutated value between renders and
+their change does not get noticed by React to update the component
+accordingly.
+
+These functions are served by the [[useState]] hook which provides:
+- a *state variable* that retains state between renders
+- a *state setter function* that updates the state variable and triggers React
+  to cause a re-render of the component
+
+*** in class components
+State in a /class component/ is internally a /POJO/ (plain old js object) on an
+instance with key-value pairs (~instance.state~).
+
+Setting the state will re-render the component and all its children, if
+~this.setState()~ is called.
+- React controls when the change actually happens
+
+#+begin_src typescript
+class MyComponent extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { // initializes state
+      value: null,
+    }
+  }
+
+  render() {
+    return (
+      <button
+        onClick={() => this.setState({value: 'X'})} // sets new state
+      >
+        {this.state.value}
+      </button>
+    );
+  }
+}
+#+end_src
+
+Can be passed in an additional callback function that is executed after the
+state has been updated.
+
+*Warning:* if we set state on an event handler defined as a normal function,
+something like ~this.setState~ will not be defined since it is called from
+React (not from the component), so we have to bind the component’s ~this~ to
+the function’s ~this~:
+#+begin_src typescript
+class MyComponent {
+  constructor {
+    this.myHandler = this.myHandler.bind(this);
+  }
+}
+#+end_src
+
+However, with arrow functions, ~this~ is automatically inherited from the
+parent scope.
+- see: [[https://www.codementor.io/@dariogarciamoya/understanding-this-in-javascript-with-arrow-functions-gcpjwfyuc][Understanding "this" in javascript with arrow functions]]
+
+Instances of class components manage their state independent from one another.
+- if we build the same component inside two different ~ReactDOM.render()~
+  calls, they will be independent
+- if we insert the same component twice in one ~ReactDOM.render()~ call, both
+  instances will be independent
+
+** Updating the UI
+
+*** in function components
+See [[useEffect]] and [[useRef]].
+
+*** in function components (without hooks)
+Updating the UI is only possible by creating a new element and passing it to
+~ReactDOM.render~.
+- since React compares the UI trees, only relevant components will be updated
+
+Examples:
+#+begin_src typescript
+// with a timer:
+
+function tick() {
+  const element = (
+    <div>
+      <h1>Hello, world!</h1>
+      <h2>It is {new Date().toLocaleTimeString()}.</h2>
+    </div>
+  );
+  ReactDOM.render(element, document.getElementById('root'));
+}
+
+setInterval(tick, 1000);
+
+
+// by interaction:
+
+<button onclick="refresh();">Refresh</button>
+
+window.refresh = function() {
+  const element = (
+    <div>
+      <h1>Hello, world!</h1>
+      <h2>It is {new Date().toLocaleTimeString()}.</h2>
+    </div>
+  );
+  ReactDOM.render(element, document.getElementById('root'));
+}
+#+end_src
+*** in class components
+Class components can manage their own state and render their output
+according to state changes.
+
+Use Reacts /lifecycle methods/ (like ~componentDidMount()~) to set and discard
+time-based events for the duration of a component:
+#+begin_src typescript
+class Clock extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      date: new Date(),
+    };
+  }
+
+  componentDidMount() {
+    this.timerID = setInterval(
+      () => this.tick(),
+      1000
+    );
+  }
+  componentWillUnmount() {
+    clearInterval(this.timerID);
+  }
+
+  tick() {
+    this.setState({
+      date: new Date(),
+    });
+  }
+
+  render() {
+    return (
+      <div>
+        <h1>Wake up!</h1>
+        <h2>It is {this.state.date.toLocaleTimeString()}.</h2>
+      </div>
+    );
+  }
+}
+#+end_src
+** Reducer pattern
+
+See [[useReducer]] hook.
+
+Reducers are often used in conjunction with the [[Context API]].
+
+Dispatches can be wrapped in /handler functions/ which can be easily passed
+down as props to components such that these components can remain ignorant
+about what is being changed and how it is done.
+
+More Infos:
+- [[https://beta.reactjs.org/learn/extracting-state-logic-into-a-reducer][Extracting State Logic into a Reducer (React docs)]]
+
+* Events
+
+** Event handler
+* Effects
+Effects run at the end of the /rendering process/ (after the screen updates) to
+*synchronize a component with a system* outside of React via /side-effects/.
+
+Examples of external systems:
+- browser API
+- third-party widgets
+- network
+
+Usage examples for effects:
+- control non-React components based on React state
+- set up a server connection or send an analytics log on component mount
+- make http-requests on page-load
+
+More infos:
+- [[https://beta.reactjs.org/learn/synchronizing-with-effects][Synchronizing with Effects (React Docs)]]
+
+** Effect handler
+*** in function components
+
+- see [[useEffect]]
+
+* Refs
+See [[useRef]].
+* Context API
+
+*Contexts* solve the problem of /“prop drilling”/ if props need to be passed too
+deeply down the tree or a prop is shared by many components on different
+levels, such that state has to be /“lifted up”/ and as a result props have to be
+passed down many levels as well.
+
+A context can be /“teleported”/ from a component down to a distant child. The
+child component will always receive the context provided by its /closest
+ancestor/, that may also receive contexts.
+- this allows components to /adapt to their sorroundings/ by displaying
+  themselves differently depending on which context they are rendered in
+- context passes through any components in between (similar to CSS property
+  inheritance)
+- contexts are separate and don’t override each other
+
+Three steps are involved in React contexts:
+1. *create* a context somewhere (maybe in another file)
+2. *use* that context from the component that needs the data
+3. *provide* that context from the component that specifies the data
+
+*Alternative approaches* before considering contexts:
+- passing props directly to make the data flow more explicit
+- passing components as ~children~ and directly give them the props they need to
+  avoid indirectly passing those props down to intermediate components that
+  may not need them
+  - e.g. instead of ~<Layout posts={posts} />~, make ~Layout~ take ~children~ as a
+    prop: ~<Layout><Posts posts={posts} /></Layout>~, so that ~Layout~ doesn’t
+    need to know about ~posts~ at all
+
+*Use-cases* for contexts:
+- theming (e.g. dark mode)
+- current account (e.g. currently logged in user)
+- routing (e.g. holding the current route)
+- managing application-wide state (in conjunction with [[useReducer]])
+- any information needed by distant components in different parts of the tree
+
+Contexts are often used in conjunction with the [[Reducer pattern]].
+
+More infos:
+- [[https://beta.reactjs.org/learn/passing-data-deeply-with-context][Passing Data Deeply with Context (React Docs)]]
+- [[https://beta.reactjs.org/learn/scaling-up-with-reducer-and-context][Scaling Up with Reducer and Context (React Docs)]]
+
+** 1. Creating contexts
+: import { createContext } from 'react';
+: export const SomeContext = createContext(defaultValue);
+- can be declared in a new file, e.g. =./SomeContext.js=
+
+This creates ~SomeContext~ independent of the component(s) that provide(s) it.
+- the ~defaultValue~ can be of any type
+
+** 2. Using contexts
+: import { useContext } from 'react';
+: import { SomeContext } from './SomeContext.js';
+:
+: function MyComponent() {
+:   const value = useContext(SomeContext);
+:   // ...
+: }
+
+To use ~value~, ~MyComponent~ does not need to receive it as a prop from parent
+components anymore.
+
+See [[useContext]]
+
+** 3. Providing contexts
+: import { SomeContext } from './SomeContext.js';
+:
+: function AnchestorComponent() {
+:   // ...
+:   return (
+:     // ...
+:       <SomeContext.Provider value={someValue}>
+:         // ...
+:       </SomeContext.Provider>
+:   );
+: }
+
+If any component inside the (nearest) ~<SomeContext.Provider>~ wrapper asks
+for ~SomeContext~, it will receive ~someValue~.
+- a provider component may itself use the context it provides to calculate a
+  new value based on what it reads from its closest provider (or the default
+  value, if there is none)
+
+* Hooks
+React Hooks are functions that let us “hook” into the React /state/ and
+/lifecycle/ features from *function components*.
+- can /only/ be called at the /top level/ of components
+- more like declarations despite being functions
+- prior to the introduction of hooks in /React 16.8/ stateful components had to
+  be classes
+
+** useState
+: import { useState } from 'react';
+: const [state, setState] = useState(initialState);
+
+[[https://beta.reactjs.org/reference/react/useState]]
+
+Declares a [[State]] variable for a function component.
+- takes the initial value of the state variable
+- returns a state variable and a function to set/update it
+
+State variables are local/private and every instance of a component will
+have its own state, isolated from the other components.
+
+[[https://beta.reactjs.org/learn/state-a-components-memory#how-does-react-know-which-state-to-return][Under the hood]], React remembers the current state value by index (which
+depends on the order of ~useState~ calls) and on subsequent calls to the
+component function returns the current instead of the initial value.
+
+*** Usage examples
+
+#+begin_src typescript
+function Counter() {
+  const [count, setCount] = useState(0);
+
+  function handleClick() {
+    setCount(count + 1);
+  }
+
+  return (
+    <button onClick={handleClick}>
+      {count}
+    </button>
+  );
+}
+#+end_src
+
+** useEffect
+: import { useEffect } from 'react';
+: useEffect(setup, dependencies?);
+
+[[https://beta.reactjs.org/reference/react/useEffect]]
+
+Declares [[Effects]] in function components.
+- takes a *setup function* for the effect logic and an *array of dependencies*
+  - the setup fn may optionally return a *cleanup function*
+  - the dependencies should list all /reactive values/ referenced inside the
+    setup function
+- returns ~undefined~
+
+By default, the /setup function/ runs on every render. By specifying
+*dependencies*, calls can be constrained to when a dependency changes.
+- dependency values are compared by React using [[https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is][Object.is]] comparison
+- [[refs]] have a /stable identity/ and don’t need to be specified in dependencies
+- ~set~ functions returned by [[useState]] also have a stable identity
+
+Some effects need a *cleanup function* for garbage collection or to return to
+a neutral state, e.g. disconnect, unsubscribe, cancel, ignore, etc.
+
+Effect handling during the component’s lifecycle:
+- *on component mount*, React will run the /setup function/ of the effect
+- *if the dependencies changed on re-renders*, React will first run the
+  /cleanup function/ (if provided) with the old values and then the /setup
+  function/ with the new values
+- *on component unmount*, React will run the /cleanup function/ one last time
+
+*** Usage Examples
+
+#+begin_src typescript
+function MyComponent() {
+  useEffect(() => {
+    // effect logic on call
+    return () => {
+      …
+      // garbage collection after unmount
+    };
+  }, […]); // dependencies
+  // ...
+}
+
+useEffect(() => {
+  // This runs after every render
+});
+
+useEffect(() => {
+  // This runs only on mount (when the component appears)
+}, []);
+
+useEffect(() => {
+  // This runs on mount *and also* if either a or b have changed since the last render
+}, [a, b]);
+#+end_src
+
+** useContext
+: import { useContext } from 'react';
+: const value = useContext(SomeContext);
+
+https://beta.reactjs.org/reference/react/useContext
+
+Requests the value of a [[ContextAPI][context]], which is /provided/ by the closest
+~SomeContext.Provider~ above the calling component in the tree.
+- takes a /context/ previously declared by ~createContext~
+- returns the closest /context value/ for the passed context
+  - if ~SomeContext~ is not provided by any anchestor component, React uses
+    the ~defaultValue~ specified with ~createContext~
+  - *does not consider* providers in the component from which ~useContext~ is
+    being called
+
+React *automatically re-renders* all children that use a particular context
+starting from the provider that receives a /different/ value.
+- values are compared via ~Object.is~
+
+See [[Context API]]
+
+*** Usage Examples
+
+#+begin_src typescript
+
+#+end_src
+
+** useReducer
+: import { useReducer } from 'react';
+: const [state, dispatch] = useReducer(reducer, initialArg, init?);
+
+https://beta.reactjs.org/reference/react/useReducer
+
+Declares a [[State]] variable for a function component together with a dispatch
+function.
+- takes a ~reducer~ function and the initial value/argument
+  - may take an optional ~init~ function that specifies how the initial state
+    is calculated as a result of calling ~init(initialArg)~
+  - if ~init~ is not provided, the initial state will be ~initialArg~
+- returns an array of 2 values: the *current state* and the *dispatch function*
+
+The ~reducer~ must be a pure function that specifies how the state gets updated.
+- should take the *state* and an *action* as arguments
+- should return the next state.
+
+Functionally equivalent to [[useState]], but with more organized state updates
+- moves update logic into a single function outside of the component
+  - can be especially helpful for *debugging* and *testing*
+- similar to event dispatches in re-frame
+- more infos: [[https://beta.reactjs.org/learn/extracting-state-logic-into-a-reducer#comparing-usestate-and-usereducer][Comparing useState and useReducer (React docs)]]
+
+See [[Reducer pattern]] for general infos.
+
+*** ~dispatch~ function
+Updates the state to a different value and triggers a re-render.
+- takes an ~action~ as the only argument, which can be of any type
+  - usually an object with a ~type~ property identifying it and maybe other
+    properties for additional arguments
+- sets the next state by calling the provided ~reducer~ function with the
+  current ~state~ and the /action/ passed to it
+- does not have a return value
+
+*Warning:* the state update only takes effect after the next render, so
+reading it directly after dispatch will return the old value!
+- re-render will be skipped if the new value is identical to current ~state~
+
+#+begin_src typescript
+function reducer(state, action) {
+  // ...
+}
+
+function MyComponent() {
+  const [state, dispatch] = useReducer(reducer, 'initial value');
+
+  function handleClick() {
+    dispatch({ type: 'dispatch-type', some-arg: 'some value' });
+  }
+  // ...
+}
+#+end_src
+
+*** Usage examples
+
+#+begin_src typescript
+function reducer(state, action) {
+  switch (action.type) {
+    case 'incremented_age': {
+      return {
+        name: state.name,
+        age: state.age + 1
+      };
+    }
+    case 'changed_name': {
+      return {
+        name: action.nextName,
+        age: state.age
+      };
+    }
+  }
+  throw Error('Unknown action: ' + action.type);
+}
+
+export default function Counter() {
+  const [state, dispatch] = useReducer(reducer, { name: 'Peter', age: 35 });
+
+  function handleButtonClick() {
+    dispatch({ type: 'incremented_age' });
+  }
+
+  function handleInputChange(e) {
+    dispatch({
+      type: 'changed_name',
+      nextName: e.target.value
+    });
+  }
+
+  return (
+    <>
+      <input value={state.name} onChange={handleInputChange} />
+      <button onClick={() => {
+        dispatch({ type: 'incremented_age' })
+      }}>
+        Increment age
+      </button>
+      <p>{state.name} is {state.age} years old.</p>
+    </>
+  );
+}
+#+end_src
+
+** useRef
+: const ref = useRef(initialValue);
+: import { useRef } from 'react';
+
+https://beta.reactjs.org/reference/react/useRef
+
+/useRef/ declares a [[Refs][ref]] to reference a value that’s not needed for rendering.
+- it takes an initial value to set its ~current~ property to
+- it returns an object with just a ~current~ property, which denotes its value
+  and can be reassigned later on
+
+It is similar to [[useState]], but unlike state, its ~current~ property is *mutable*
+and changing it does *not trigger a re-render*.
+- React is not aware of changes to a ref, since it is a plain JS object
+- on the next renders, ~useRef~ will return the same object
+
+Refs can be assigned to the ~ref~ attribute of a JSX node to keep a reference
+to the rendered DOM element.
+- React will set its ~current~ property automatically
+
+Refs are useful to store and read local state that does not affect the
+visual output of a component and is persisted across renders.
+- while ~useState~ can be compared to ~r/atom~ in Reagent, ~useRef~ can be
+  compared to declaring a normal Clojure ~atom~
+
+*** Usage examples
+
+#+begin_src typescript
+function Counter() {
+  let ref = useRef(0);
+
+  function handleClick() {
+    ref.current = ref.current + 1;
+    alert('You clicked ' + ref.current + ' times!');
+  }
+
+  return (
+    <button onClick={handleClick}>
+      Click me!
+    </button>
+  );
+}
+#+end_src
+Unlike the counter example in [[useState]], this example doesn’t use the value
+of the ~ref~ to render the component but only uses it in the click handler, so
+it does not need to trigger a re-render on change.
+
+
+Using ~ref~ to access DOM properties:
+#+begin_src typescript
+function Form() {
+  const inputRef = useRef(null);
+
+  function handleClick() {
+    inputRef.current.focus();
+  }
+
+  return (
+    <>
+      <input ref={inputRef} />
+      <button onClick={handleClick}>
+        Focus the input
+      </button>
+    </>
+  );
+}
+#+end_src
+
+* JSX
+Babel takes care of transpiling JSX syntax to JS
+- https://babeljs.io/repl
+
+Components can nest as arguments inside other components
+- there can be only 1 root element
+#+begin_src typescript
+<h1>
+  Hello <span>World</span>!
+</h1>
+
+React.createElement('h1', null, 'Hello ',
+  React.createElement('span', null, 'World'),
+  '!'
+);
+
+// Fragments can hold any number of elements without creating a DOM node:
+<> … </>
+
+React.createElement(React.Fragment, null, …);
+#+end_src
+
+In curly brackets we can insert any JavaScript expression:
+#+begin_src typescript
+<p>My number is {2 * 21}.</p>
+
+React.createElement("p", null, "My number is ", 2 * 21, ".");
+
+// Properties can also be assigned this way:
+<time datetime={new Date().toLocaleDateString()}>Today</time>
+
+React.createElement("time", {
+  datetime: new Date().toLocaleDateString()
+}, "Today");
+#+end_src
+
+For classes, there is a shortcut to define state without a constructor and use
+"this" in event handlers without having to bind it explicitly (-> class
+properties):
+#+begin_src typescript
+class MyComponent extends React.Component {
+  state = { myArg: false };
+
+  handleClick = e => {
+    this.setState({ myArg: true });
+  };
+  render () { ... }
+}
+#+end_src
+
+* Styles
+Styling options:
+- external stylesheets with the name of the component
+- external package: styled components
+- direct CSS-in-JS
+
+** CSS-in-JS
+Can be used for dynamic styling.
+
+#+begin_src typescript
+// Define inline:
+return (
+  <h1 style={{ color: 'red', backgroundColor: 'black' }}>
+    Foo bar
+  </h1>
+)
+
+// or define elsewhere:
+const headingStyle = {
+  color: 'red', backgroundColor: 'black',
+}
+
+return (
+  <h1 style={ headingStyle }>
+    Foo bar
+  </h1>
+)
+#+end_src
+
+* Type-safety
+** at compile-time (using TypeScript)
+Adding TypeScript to React:
+- https://create-react-app.dev/docs/adding-typescript/
+
+Config file:
+- https://www.typescriptlang.org/docs/handbook/tsconfig-json.html
+
+Typescript in React Tutorial:
+- https://www.digitalocean.com/community/tutorials/react-typescript-with-react
+
+Usage:
+#+begin_src typescript
+interface Props {
+  value: string;
+  // …
+}
+interface State {
+  count: number;
+  // …
+}
+
+class MyComponent extends React.Component<Props, State> {
+  // …
+}
+#+end_src
+
+** at runtime
+Runtime type-safety without TypeScript:
+#+begin_src typescript
+import PropTypes from 'prop-types';
+
+MyComponent.propTypes = {
+  myArg: PropTypes.string.isRequired,
+}
+#+end_src
+
+* Libraries
+** Utilities
+*** uuid
+Generates unique Ids.
+: $ npm install uuid
+
+Usage:
+: import uuid from 'uuid/v4';
+: const id = uuid();
+
+** User Interface
+*** CSS-in-JS
+- [[https://stitches.dev][Stitches]]
+- [[https://styled-components.com][Styled Components]]
+
+*** UI libraries (headless)
+- [[https://www.radix-ui.com][Radix UI]]
+- [[https://headlessui.com][Headless UI]] (Tailwind)
+- [[https://react-spectrum.adobe.com/react-aria/index.html][React Aria]] (UI primitives, Adobe)
+
+*** UI libraries
+- [[https://ant.design][Ants Design]]
+- [[https://blueprintjs.com][Blueprint]]
+- [[https://react-bootstrap.github.io][React Bootstrap]]
+- [[https://react-spectrum.adobe.com/index.html][React Spectrum]] (Adobe)
+- [[https://chakra-ui.com][Chakra UI]] (Vercel)
+- [[https://nextui.org][NextUI]] (Vercel)
+- [[https://mui.com][Material UI]] (Google)
+- [[https://github.com/pmndrs/leva][Leva]] (control panels)
+
+*** Animation
+- [[https://www.framer.com/motion/][Framer Motion]]
+- [[https://www.react-spring.dev][react-spring]]
+- [[https://zurb.com/playground/motion-ui][Motion UI]] (Zurb)
+- [[https://greensock.com][GSAP]] (GreenSock)
+
+*** Interaction
+- [[https://github.com/react-dnd/react-dnd][react-dnd]] (drag-n-drop)
+
+*** Testing
+- [[https://storybook.js.org/][Storybook]]
+- [[https://jestjs.io][Jest]]
+- [[https://testing-library.com][Testing Library]]
+
+** Mobile apps
+- [[https://reactnative.dev][React Native]]
+
+** Full stack frameworks (SSR)
+- [[https://nextjs.org][Next.js]]
+- [[https://remix.run][Remix]]
+
+** Static site generators (SSG)
+- [[https://astro.build/][Astro]]
+- [[https://www.gatsbyjs.com][Gatsby]]
+
+** State management
+- [[https://xstate.js.org/docs/packages/xstate-react/][XState]]
+- [[https://redux.js.org][Redux]]

@@ -970,3 +970,22 @@ https://developer.mozilla.org/en-US/docs/Web/API/DocumentTimeline
 
 Represents animation timelines, including the default document timeline (via ~Document.timeline~).
 - ~.currentTime~ to get the time value in ms (or null if inactive)
+
+* Web APIs
+Canvas API
+- dynamic graphics & visualization
+
+GeoLocation
+- get a user’s location
+
+Speech API
+- speech recognition & synthesis
+
+Audio & Video API
+- audio/video controls and customization
+
+Web RTC
+- real-time communication with audio/video
+
+Local Storage
+- store data in the browser

@@ -64,6 +64,11 @@ To open a REPL for Node.js:
 
 ** Setup with shadow-cljs
 
+Setup Yarn:
+: $ yarn init
+: $ yarn set version berry
+: $ echo 'nodeLinker: node-modules' >> .yarnrc.yml
+
 Install Node dependency:
 : $ yarn add --dev shadow-cljs
 : $ yarn
@@ -105,9 +110,11 @@ installing npm deps.
 - https://github.com/thheller/shadow-cljs/issues/800#issuecomment-725716087
 
 
-** Dependencies
-
-See https://clojurescript.org/reference/dependencies
+** Dependencies / Imports
+See:
+- https://clojurescript.org/reference/dependencies
+- https://shadow-cljs.github.io/docs/UsersGuide.html#_using_npm_packages
+- https://www.digitalocean.com/community/tutorials/js-modules-es6
 
 * Google Closure Library
 
@@ -155,12 +162,20 @@ Define JS objects with ~js-obj~
 (def obj (js-obj "x" 1 "y" 2))
 obj ;=> #js {:x 1, :y 2}
 
+;; literal representation with reader macro:
+#js {:x 1 :y 2}
+
 ;; Member access:
-(aget obj "y") ;=> 2
+(aget ^js obj "y") ;=> 2
+(.-y ^js obj) ;=> 2
 
 ;; Set/create property (mutation):
-(aset obj "z" 3) ;=> 3
+(aset ^js obj "z" 3) ;=> 3
 obj  ;=> #js {:x 1, :y 2, :z 3}
+
+;; With reader macro:
+(.-foo #js {:foo "bar"}) ;=> "bar"
+(aget #js {:foo "bar"} "foo") ;=> "bar" (equivalent)
 #+end_src
 
 *** Arrays

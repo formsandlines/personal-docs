@@ -66,8 +66,9 @@ Guides:
 - https://clojure.org/guides/deps_and_cli
 - https://tomekw.com/clojure-deps-edn-a-basic-guide/
 
-Tutorials:
-- https://www.youtube.com/watch?v=8aCO_wNuScQ
+Tutorials (videos):
+- [[https://www.youtube.com/watch?v=8aCO_wNuScQ][Use Clojure CLI and deps.edn to Build and Run Clojure app. tools.deps explained]]
+- [[https://www.youtube.com/watch?v=OG_MYSGzSHo][How to create and use Clojure library. Publishing to git and Clojars.]]
 
 Note: use ~clj~ for REPL and ~clojure~ for everything else.
 
@@ -100,6 +101,10 @@ list all dependencies in project and system:
 
 find versions of a dependency using find-versions:
 : $ clojure -X:deps find-versions :lib clojure.java-time/clojure.java-time
+
+Maven dependencies can have ~"RELEASE"~ or ~"LATEST"~ version labels to get the
+latest release or latest snapshot:
+: $ clj -Sdeps '{:deps {org.clojure/clojure {:mvn/version "LATEST"}}}' -e '(clojure-version)'
 
 ** Tools
 
@@ -328,6 +333,28 @@ to start nrepl server (use jack-in instead if possible):
 : $ neil add build
 - adds tools.build =build.clj= file and :build alias
 - e.g. [[id:uberjar][to build an uberjar]]
+** Managing versions
+To get the current neil and project version:
+: neil version
+
+To set the current project version:
+: neil version set <version>
+- sets the ~:version~ key in =deps.edn=:
+  - ~:aliases {:neil {:project {:version "..."}}}~
+- *note:* creates a commit together with a version tag, which requires a clean
+  working directory (unless ~--force~ is provided as an option)
+
+To disable commit and tag creation use ~--no-tag~ option:
+: neil version set <version> --no-tag
+
+To increment the semantic version number:
+: neil version major|minor|patch
+- works like ~version set~
+
+To just create a commit and tag for the current project version:
+: neil version tag
+- *warning:* will create a commit with all staged files
+- requires that there are no unstaged files
 
 * Babashka
 

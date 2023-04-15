@@ -1,0 +1,660 @@
+#+title: Docs/Janet
+
+* General information
+
+- https://janet-lang.org
+- [[https://github.com/ahungry/awesome-janet][Awesome Janet]]
+- [[https://janetdocs.com/][JanetDocs]]
+
+Features:
+- implemented mostly in standard *C99*
+  - direct interop with C via /abstract types/ and C functions
+  - dynamically load C libraries
+- runs on /Windows/, /Linux/, /macOS/
+- easily /portable/ and /embeddable/
+- built-in /Parsing Expression Grammars/ (PEGs)
+- exports standalone executables with companion build tool *jpm*
+
+Use-cases:
+- system scripting
+- embedding into other programs
+- rapid prototyping
+- dynamic systems
+- text-wrangling (PEGs, etc.)
+
+* Installation & Usage
+
+Installation:
+: $ brew install janet
+
+Start REPL:
+: $ janet
+
+Load/run a Janet script:
+: $ janet myscript.janet
+- this will run the ~main~ function of the script, if there is any
+- ~main~ must be defined with variadic args, like ~[&]~
+
+Compilation to native code, using ~jpm~:
+: ?
+
+
+** Images
+
+To create an image from a script:
+: $ janet -c myscript.janet myscript.jimage
+
+To create an image from the REPL:
+: > (def image (make-image (curenv)))
+: > (spit "repl.jimage" image)
+
+This will create an image, which consists of a single marshalled value (in
+the form of a Janet table ~@{…}~), which is the input program’s environment.
+This env contains all top-level definitions with their symbols as keys and
+the corresponding marshalled values as well as some metadata.
+- [[https://janet.guide/compilation-and-imagination/][Source]]
+
+To inspect the contents of the image from the REPL:
+: > (load-image (slurp "myscript.jimage"))
+
+Load an image file into Janet:
+: $ janet -i myimage.jimage
+- deserializes the env table in the image, looks up a symbol ~main~ there and
+  (if found), executes that function
+
+* Packages
+
+To install a package:
+: $ sudo jpm install pkg-name
+
+Installation directory: =/opt/homebrew/Cellar/janet/<version>/lib=
+
+To list installed packages:
+: $ jpm list-installed
+
+To list available packages:
+: $ jpm list-pkgs [name]
+
+To update jpm:
+: $ sudo jpm install jpm
+
+* Editor support
+
+** (Neo)Vim
+
+Syntax support:
+- https://github.com/janet-lang/janet.vim
+
+Interactive evaluation with Conjure:
+- https://github.com/Olical/conjure/wiki/Quick-start:-Janet-(netrepl)
+
+Needs [[https://github.com/janet-lang/spork/#networked-repl][spork/netrepl]]:
+: $ jpm install spork
+To start the netrepl:
+: $ janet -e "(import spork/netrepl) (netrepl/server)"
+Then start Vim, it will automatically connect to Conjure.
+
+** Emacs
+
+~janet-mode~ Janet mode
+- https://github.com/ALSchwalm/janet-mode
+
+~ijanet-mode~ Interactive Janet mode
+- https://github.com/SerialDev/ijanet-mode
+
+~inf-janet~ Inferior lisp Janet mode
+- https://github.com/velkyel/inf-janet
+
+* Data types
+
+Janet has separate mutable and immutable data structures
+- no structural sharing in immutables like in Clojure
+- all are passed by reference internally (C pointer)
+
+| data type          | immutable                             | mutable  |
+|--------------------+---------------------------------------+----------|
+| atom               | number, keyword, symbol, nil, boolean |          |
+| closure            |                                       | function |
+| coroutine          |                                       | fiber    |
+| byte array         | string                                | buffer   |
+| random-access list | tuple                                 | array    |
+| hash table         | struct                                | table    |
+
+- [[https://janet.guide/values-and-references/][Source]]
+
+** Built-in types:
+#+begin_src C
+typedef enum JanetType {
+  JANET_NUMBER,
+  JANET_NIL,
+  JANET_BOOLEAN,
+  JANET_FIBER,
+  JANET_STRING,
+  JANET_SYMBOL,
+  JANET_KEYWORD,
+  JANET_ARRAY,
+  JANET_TUPLE,
+  JANET_TABLE,
+  JANET_STRUCT,
+  JANET_BUFFER,
+  JANET_FUNCTION,
+  JANET_CFUNCTION,
+  JANET_ABSTRACT,
+  JANET_POINTER
+} JanetType;
+#+end_src
+
+#+begin_src janet
+(type <expr>)  # to check the type of an expression
+
+(struct <item …>) = {…}
+(table <item …>) = @{…}
+
+(tuple <item …>) = […]
+(array <item …>) = @[…]
+
+(string <string …>) = "…"
+(buffer <string …>) = @"…"
+
+(keyword <string …>) = :…
+(symbol <string …>) = '…
+
+(fiber/new <fn>) = <fiber …>
+#+end_src
+
+Numeric literals:
+#+begin_src janet
+0
++0.0
+-10_000
+16r1234abcd
+0x23.23
+1e10
+1.6e-4
+7r343_111_266.6&+10 # a base 7 number in scientific notation.
+# evaluates to 1.72625e+13 in base 10
+#+end_src
+
+** Extended abstract types:
+- ~core/rng~ -> pseudorandom number generator
+- ~core/socket-address~
+- ~core/process~
+- ~core/parser~ -> parser used by Janet to parse Janet code
+- ~core/peg~ -> parsing expression grammar
+- ~core/stream~ and
+- ~core/channel~ -> concurrent communication primitives
+- ~core/lock~ and
+- ~core/rwlock~ -> multithreading stuff
+- ~core/ffi-signature~,
+- ~core/ffi-struct~ and
+- ~core/ffi-native~ -> parts of an experimental FFI module
+- ~core/s64~ and
+- ~core/u64~ -> boxed 64-bit integer types
+
+* Equality
+
+Reference semantics on mutable data structures.
+
+Value semantics on immutable data structures.
+
+* Syntax / Special Forms
+- https://janet-lang.org/docs/specials.html
+- https://janet-lang.org/docs/syntax.html
+
+** Bindings
+#+begin_src janet
+# Constant/immutable:
+(def <name> <?meta …> <?docstring> <value>)
+
+# Variable:
+(var <name> <?meta …> <?docstring> <value>)
+
+# update value (like an assignment):
+(set <var/ds+key> <value>)
+# can be used to set key-value pairs in mutables:
+(def tab @{})  # tab is @{}
+(set (tab :foo) "bar")  # tab is now @{:foo "bar"}
+(def arr @[])  # arr is @[]
+(set (arr 2) :foo)  # arr is now @[nil nil :foo]
+
+# set value in a mutable indexed collection
+(put <arr|table|buff> <key> <value>)
+(put @[1 2 3] 1 :a) #=> @[1 :a 3]
+# update value in a mutable indexed collection
+(update <arr|table|buff> <key> <fn> <?arg …>)
+(update @[1 2 3] 2 |(* $ 2)) #=> @[1 2 6]
+
+# update a numeric value
+(++ <var>)
+(-- <var>)
+
+# Let macro:
+(let [<<binding> <value> …>]
+  <form …>)
+# - equivalent to using `do` and (multiple) `def`s
+#+end_src
+
+** Functions
+#+begin_src janet
+# Anonymous function:
+(fn <?name> [<param …>] <body …>)
+
+# Function definition:
+(defn <name> <?docstring>
+  [<params …>]
+  <body …>)
+# just a macro that expands to:
+(def <name> (fn [<param …>] <body …>))
+
+# early return from a function:
+(break <?value>)
+
+(short-fn <body>)
+|<body>  # shorthand
+# same as:
+(fn [$] (<form …>))
+# use `$` for arguments:
+(|(* $ $) 3) #=> 9
+(|(* $0 $1) 3 4) #=> 12
+
+# For structs and tables, keys act as accessors (same as `in`):
+({:a 1 :b 2} :b) #=> 2
+(in {:a 1 :b 2} :b) #=> 2
+# For vectors and arrays, indices can be used:
+([:a :b :c] 2) #=> :c
+(in [:a :b :c] 2) #=> :c
+# `get` is like `in` but returns `nil` instead of throwing for out-of-range
+(get <seq> <idx>)
+#+end_src
+
+** Control structures
+#+begin_src janet
+(do
+  <form …>)
+# to prevent creating a new local scope in a do block:
+(upscope
+  <form …>)
+
+(if <condition>
+  <when-true>
+  <?when-false>)  # returns `nil` if false & else case is missing
+
+# macro for pattern matching
+(match <expr>
+  <<pattern> <when-matched>
+   …>
+  <default>)  # returns `nil` if false & no default is provided
+#+end_src
+
+** Loops
+#+begin_src janet
+(while <condition>
+  <form …>
+  (break))  # early exit (only innermost loop, avoid outside of macros)
+
+(for i <n-start> <n-end>
+  <form>)
+
+# loop over each item
+(each x <coll>
+  <form>)
+# loop over each key
+(eachk k <indexed coll>
+  <form>)
+
+# repeatedly evaluate a form
+(repeat <n> <form …>)
+#+end_src
+
+** Macros
+#+begin_src janet
+# Macro definition
+(defmacro <name> [<param …>]
+  <form …>)
+
+# Macro expansion:
+# once
+(macex1 '(my-macro …)
+# fully
+(macex '(my-macro …)
+#+end_src
+
+AST transformation:
+#+begin_src janet
+(quote <form>)
+'<form>  # shorthand
+
+(quasiquote <form>)
+~<form>  # shorthand
+
+(unquote <form>)  # must be used in quasiquote
+,<form>  # shorthand
+
+(splice <coll>)
+;<coll>  # shorthand
+,;<coll>  # unquote-splicing
+
+# can be used like a spreading operator in JS:
+[;(range 100)]  # returns a tuple instead of an array
+(+ ;(range 100))  # sums the first 100 nat. numbers
+#+end_src
+
+** Threading macros
+#+begin_src janet
+(->> <form …>) # thread last
+(-> <form …>)  # thread first
+
+# short-circuit threading
+# - will return `nil` if an intermediate value is `nil`
+(-?>> <form …>)
+(-?> <form …>)
+
+# threading with symbol position
+# - use the symbol in a `form` to indicate threading position
+(as-> <arg> <as-symbol>
+      <form …>)
+(as?-> <arg> <as-symbol>
+       <form …>)
+#+end_src
+
+** Arithmetic
+#+begin_src janet
+# Basic arithmetic operators:
+(+ <n …>)  (* <n …>)  (/ <n …>)  (- <n …>)
+# Remainder operator:
+(% <n> <m>)
+#+end_src
+- https://janet-lang.org/docs/numbers.html
+
+** Comparators
+#+begin_src janet
+# Comparators:
+(< <expr …>) (<= <expr …>) (= <expr …>) (>= <expr …>) (> <expr …>)
+
+# deep equality
+(deep= <expr …>)
+
+# Polymorphic comparison:
+(compare< …) (compare<= …) (compare= …) (compare>= …) (compare> …)
+#+end_src
+- https://janet-lang.org/docs/comparison.html
+
+
+* PEG (parsing expression grammar)
+
+- https://janet-lang.org/docs/peg.html
+- PEGs operate on /bytes/, not characters
+- PEGs can be compiled /ahead of time/ using ~peg/compile~
+
+** Grammars
+
+Multiple patterns can be wrapped in a grammar (a Janet /struct/) and named
+with keywords. The keywords can be referenced in all sub-patterns.
+- each grammar *must* have a ~:main~ rule, the pattern that defines it
+- PEG grammars can be mutually recursive
+  - very recursive grammars can lead to stack overflow
+  - some patterns may result in very slow loops if written poorly
+  - the compiler can turn some recursion into iteration (tail-call opt.)
+- nested grammars can access keys from outside
+
+Example grammar:
+#+begin_src janet
+(def my-grammar
+ '{:a (* "a" :b "a")
+   :b (* "b" (+ :a 0) "b")
+   :main (* "(" :b ")")})
+
+(peg/match my-grammar "(bb)") # -> @[]
+(peg/match my-grammar "(babbab)") # -> @[]
+(peg/match my-grammar "(baab)") # -> nil
+(peg/match my-grammar "(babaabab)") # -> nil
+#+end_src
+
+** API functions
+
+To compile a PEG ahead of time (for reuse):
+: (peg/compile <peg>)
+- https://janetdocs.com/peg%2fcompile
+- returns a compiled PEG object, which can also be used with ~peg/match~
+- throws an error on invalid PEG code
+- *call at the top level* to ensure execution during compilation
+
+To match a PEG on a string:
+: (peg/match <peg> <text>  <?start> <?args …>)
+- https://janetdocs.com/peg%2fmatch
+- on match, returns an array of captured data, else returns ~nil~
+- starts at first char unless an optional ~start~ index is provided
+
+To find (the first index / all indexes) where the PEG matches:
+: (peg/find <peg> <text>  <?start> <?args …>)
+: (peg/find-all …)
+- [[https://janetdocs.com/peg%2ffind]]
+- returns an integer of the index or ~nil~ if not found
+
+To replace (the first match / all matches) of a PEG:
+: (peg/replace <peg> <repl.> <text>  <?start> <?args …>)
+: (peg/replace-all …)
+- [[https://janetdocs.com/peg%2freplace]]
+- returns a new /buffer/ with the replaced match
+- if no matches found, returns the input ~text~ in a new buffer
+- the PEG does not need to make captures
+
+
+** Patterns
+
+- PEGs are always anchored to the beginning of the input (like ~^…~ in regex)
+- all pattern repetition is implicitly [[https://www.regular-expressions.info/possessive.html][possessive]]
+  - e.g. ~(any 1)~ is equivalent to ~^.*+~ in regex
+  - however, some combinators like ~choice~ do backtrack
+
+*Primitive patterns:*
+
+| PEG          | Matches                             | Advances |
+|--------------+-------------------------------------+----------|
+| ~"str"~        | a literal string                    | ?        |
+| ~n~            | an integer number n of chars        | n chars  |
+| ~-n~           | matches if not that many chars      | not      |
+| ~(range "AZ")~ | matches chars in a range            | 1 char   |
+| ~(range "09")~ |                                     |          |
+| ~(set "abcd")~ | matches any char in the arg. string | 1 char   |
+
+- ~n~ matches /n/ bytes
+- ~-n~ fails, if the match could be advanced /n/ characters
+  - e.g. ~-1~ asserts that there is no more input left (like ~…$~ in regex to
+    mark the end of a line)
+
+*Combining patterns:*
+
+| PEG                   | Meaning                                | RegEx   |
+|-----------------------+----------------------------------------+---------|
+| ~(sequence <ptn …>)~    | match all in this order                | ~x y~     |
+| / ~(* …)~               |                                        |         |
+| ~(choice <ptn …>)~      | match one of (in order)                | ~x \vbar y~   |
+| / ~(+ …)~               |                                        |         |
+|-----------------------+----------------------------------------+---------|
+| ~(any <ptn>)~           | match 0 or more rep. of                | ~x*~      |
+| ~(some <ptn>)~          | match 1 or more rep. of                | ~x+~      |
+| ~(between n m <ptn>)~   | match n ~ m rep. of (both incl.)       | ~x{n, m}~ |
+| ~(opt <ptn>)~           | match 0 or 1 rep. of                   | ~x?~      |
+| / ~(? …)~               |                                        |         |
+| ~(at-least n <ptn>)~    | match at least n rep. of               | ~{n,}~    |
+| ~(at-most n <ptn>)~     | match at most n rep. of                | ~{,m}~    |
+| ~(repeat n <ptn>)~      | match exactly n rep. of                | ~{n}~     |
+| / ~(n …)~               |                                        |         |
+|-----------------------+----------------------------------------+---------|
+| ~(not <ptn>)~           | match if not matches                   | ~[^x]~    |
+| / ~(! …)~               |                                        |         |
+| ~(if <cond> <ptn>)~     | match only if cond. matches            |         |
+| ~(if-not <cond> <ptn>)~ | match only if cond. not matches        |         |
+|-----------------------+----------------------------------------+---------|
+| ~(look <offset> <ptn>)~ |                                        |         |
+| / ~(> …)~               |                                        |         |
+| ~(to <ptn>)~            | match up to pattern (not including it) |         |
+| ~(thru <ptn>)~          |                                        |         |
+| ~(backmatch <?tag>)~    | if tag: match against tagged capture   |         |
+|                       | / else: match against last capture     |         |
+|                       | / (only if it is untagged)             |         |
+
+*Built-in patterns*
+
+See Docs:
+- https://janet-lang.org/docs/peg.html#Built-in-patterns
+
+: :s[+/*]  # ASCII whitespace char
+: :d[+/*]  # ASCII digit
+: :a[+/*]  # ASCII letter
+: :w[+/*]  # ASCII digit or letter (word char)
+
+** Captures
+
+| PEG                            | Meaning                                |
+|--------------------------------+----------------------------------------|
+| ~(capture <ptn> <?tag>)~         | capture all text if pattern matches    |
+| / ~(<- …)~                       |                                        |
+| ~(replace <ptn> <subst> <?tag>~) | replaces a capture from pattern        |
+| / ~(/ …)~                        | / with (f capture(s)) or a new value   |
+| ~(accumulate <ptn> <?tag>)~      | captures a string as the concatenation |
+| / ~(% …)~                        | / of all captures in pattern           |
+| ~(constant <const> <?tag>)~      | captures/returns a Janet constant      |
+|                                | / useful for parsing                   |
+| ~(group <ptn> <?tag>)~           | puts captures into an array            |
+| ~(position <?tag>)~              | capture the current index              |
+| / ~($ …)~                        |                                        |
+| ~(unref <ptn> <?tag>)~           | scope tagged captures                  |
+|                                | / e.g.to backmatch in nested patterns  |
+| ~(number <ptn> <?base> <?tag>)~  | capture a number parsed from match     |
+| ~(cmt <ptn> <fun> <?tag>)~       | invoke (fun capture(s)), expr fails    |
+|                                | / if fun returns false or nil          |
+| ~(backref <tag> <?tag>)~         | duplicate last capture with given tag  |
+| ~(-> …)~                         | / match fails if no capture exists     |
+
+- ~(quote …) / '…~ can be used instead of ~(capture …)~
+- ~cmt~ stands for “match-time capture” (see [[http://www.inf.puc-rio.br/~roberto/lpeg/][LPEG]] (Lua))
+- ~backref~ is especially useful when combined with ~cmt~ to re-capture a
+  capture from a tag to use as an argument for its function
+  - e.g. ~(cmt (* (-> :tag-name) …) ,my-fun)~ – the capture from ~:tag-name~ as
+    well as all other captures from ~*~ will be passed as args to ~my-fun~
+
+* Stdlib
+** Environment
+To inspect documentation on a symbol:
+: (doc <symbol>)
+
+** IO
+*** Imports
+To import a source file:
+: (use <filename>)  # without `.janet` extension!
+
+To import a library:
+: (import <libname>)
+
+*** Print/Logs
+Print:
+: (print <form>)
+: (prin <form>)  # without trailing newline
+: (print)        # just a newline
+
+Print formatted:
+: (printf "… %q …" <form>)
+
+Pretty-print:
+: (pp <form>)
+
+*** Files/resources
+To load a file:
+: (slurp "<filename>")
+
+To write to a file:
+: (spit "<new-filename>")
+
+Explicit file handling:
+: (file/open "<filename>")
+: (file/read <file> <opts …>)
+: (file/close <file>)
+
+** System
+Suspend program for /n/ seconds
+: (os/sleep <seconds>)
+
+** Booleans
+Checks for truthyness:
+: (truthy? <expr>)
+
+** Strings
+Check for a prefix in a string:
+: (string/has-prefix? <prefix-str> <string>)
+
+To create a formatted string:
+: (string/format <string> <value …>)
+- https://janetdocs.com/string%2fformat
+
+To upper-case:
+: (string/ascii-upper <string>)
+
+Examples:
+#+begin_src janet
+(string/format "Hello %s, you are %02d years old." "Peter" 35)
+#=> "Hello Peter, you are 35 years old."
+(string/format "This %q is an expression." [1 2 3])
+#=> "This (1 2 3) is an expression."
+#+end_src
+
+** Arrays/Tuples
+To select elements:
+: (first <seq>)
+: (last <seq>)
+
+To get number of elements:
+: (length <seq>)
+
+To insert an element to the end of an array (mutation):
+: (array/push <array> <elem>)
+- https://janetdocs.com/array%2fpush
+- returns the ~array~
+
+To take a sub-seq of an array/tuple from ~start~ (incl.) to ~end~ (excl.) index:
+: (tuple/slice <seq> <?start> <?end>)
+: (tuple/slice @[1 2 3])  # creates an immutable copy
+- https://janetdocs.com/tuple%2fslice
+
+Higher-order sequence functions (no mutation):
+: (map <fn> <seq …>)
+: (filter <pred> <seq>)
+: (reduce <fn> <init> <seq>) (reduce2 <fn> <seq>)
+: (partition <n> <seq>)
+
+Concatenate a variable number of elements/arrays/tuples into the first array:
+: (array/concat <arr> <x …>)
+- mutates ~arr~!
+
+Map & concat:
+: (mapcat <fn> <seq>)
+- uses ~array/concat~ to concatenate
+- returns a new array (mutable)
+
+Create a table from two arrays/tuples:
+: (zipcoll <keys> <vals>)
+- returns a new table (mutable)
+
+Create an array of numbers from ~start~ (incl.) to ~end~ (excl.):
+: (range <end>)
+: (range <start> <end> <?step>)
+
+** Arithmetic
+- https://janet-lang.org/api/math.html
+- from the C library ~<math.h>~
+
+To parse a number from a string:
+: (scan-number <string> <?base>)
+
+*** Bit-wise operaors
+- like in C or Java
+
+** Compilation
+To compile an /abstract syntax tree/ into a function (with no args):
+: (compile <ast> …)
+- https://janetdocs.com/compile
+- https://janet.guide/macros-and-metaprogramming/
+* Code Examples
+
+- [[https://github.com/saikyun/freja][freja]] (text editor)

@@ -32,6 +32,11 @@
   | C-c C-j         | jump to node                                       |
   | TAB             | cycle CURRENT: top-level -> first-sublevel         |
   | SHIFT TAB       | cycle ALL: top-level -> first-sublevel -> all -> … |
+  | z R             | ~+org/open-all-folds~                                |
+  | C-<n> Shift-TAB | show <n> headline levels                           |
+  | C-x n s / , s n | ~org-narrow-to-subtree~                              |
+  | C-x n w / , s N | ~widen~                                              |
+  | <none>          | ~org-toggle-narrow-to-subtree~                       |
 
 * Special characters / Entities
 
@@ -117,10 +122,17 @@ Escape characters:
   | C-c C-l / SPC m l l | Create/edit link / insert to selection |
   | C-c C-o / Enter     | Open link                              |
   | , l t               | toggle link display                    |
+  | , l l               | org-insert-link                        |
+  | SPC n l             | org-store-link                         |
 
 ** Internal Links
 
 See https://orgmode.org/manual/Internal-Links.html
+
+*** Across files
+[[file:clojure_zip.org][clojure.zip API]]
+
+[[file:clojure_zip.org::*Movement][Movement]]
 
 *** Using section names
 

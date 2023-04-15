@@ -33,6 +33,19 @@ Can also use Vim shortcuts.
 
 ** Break a command into multiple lines
 Use ~\~ at the end of each line.
+** Multi-line strings in shell
+Heredocs retain indentation and avoid having to escape quotation marks, etc.:
+#+begin_src shell
+var=$(cat <<EOF
+(let [x $foo]
+  (str x "bar"))
+EOF
+)
+echo $var
+#+end_src
+
+More infos:
+- https://dev.to/awwsmm/elegant-multi-line-shell-strings-2lja
 
 ** Fixes
 *** How to fix homebrew error: “invalid active developer path” after upgrade to
@@ -214,6 +227,17 @@ $ echo $second $first
 # > world hello
 #+end_src
 
+Wrapped in single quotes will not interpret variables in text:
+: $ cat <<'EOF'
+
+To write the heredoc into a file:
+: $ tee foo.txt <<EOF
+: $ tee -a foo.txt <<EOF           : to append instead
+: $ tee foo.txt <<EOF > /dev/null  : to prevent output display
+
+Alternative:
+: $ cat <<EOF > foo.txt
+
 More infos:
 - https://unix.stackexchange.com/questions/80362/what-does-mean
 
@@ -293,6 +317,7 @@ Change the shell for the user:
 | ~ctrl-c~   | cancel/delete input/command |
 
 * Scripting
+** shebang
 /shebang/ -> combination of bash ~#~ and bang ~!~ followed by the bash shell path
 : #! /bin/bash
 
@@ -304,10 +329,14 @@ runtime can be looked up in a script to be executed with that runtime:
 : #!/usr/bin/env bb
 : #!/usr/bin/env python
 
-Run scripts with
-: $ ./<myscript>.sh
+** Executing scripts
+Run scripts with:
+: $ ./<myscript.sh>
 or
-: $ bash <myscript>.sh
+: $ bash <myscript.sh>
+
+Script must have execution permissions
+: $ chmod +x <myscript.sh>
 
 The ~exit~ command can stop a script.
 
@@ -330,6 +359,13 @@ Other variables:
 - ~$_~ -> last argument of the previous command
   - can be used in the terminal prompt to reuse the argument of the last cmd
 - ~$$~ -> PID (process ID of the command that is running)
+
+Looping through arguments:
+#+begin_src bash
+for arg in "$@"; do
+  echo "$arg"
+done
+#+end_src
 
 ** Logical operators
 
@@ -370,6 +406,26 @@ Other variables:
   - inspired from Korn shell
   - list of differences: [[http://www.gnu.org/software/bash/manual/bashref.html#Conditional-Constructs][bash manual section on conditional constructs]]
   - also see: https://stackoverflow.com/a/13542854/1204047
+*** case statements
+: case <expression> in
+:   <pattern-1>)
+:     …
+:     ;;
+:   …
+:   <pattern-N>)
+:     …
+:     ;;
+:   *)
+:     …
+:     ;;
+: esac
+
+- only the statements in the matched clause are executed
+- the ~;;~ terminate a clause
+- the ~*~ denotes the default pattern
+
+More infos:
+- https://www.howtogeek.com/766978/how-to-use-case-statements-in-bash-scripts/
 
 *** *test* expressions
 : test <expression>
@@ -406,6 +462,9 @@ Other variables:
   | n1 ~-le~ n2 | integers      | algebr. less than or equal              |
 
 *** Examples:
+Can be used in a one-liner:
+: $ echo $(if [ 2 -gt 0 ]; then; echo 'yes'; else echo 'no'; fi)
+: > yes
 
 Counting from 1 to 5 with for:
 #+begin_src bash
@@ -480,9 +539,70 @@ mcd () {
 External tools:
 - [[shellcheck]]
 
+** Common operations
+*** Get string length
+Best way:
+: $ foo="abcde"
+: $ echo "Length is ${#foo}"
+: > Length is 5
+
+Alternatives:
+: $ echo 'abcde' | awk '{print length}'
+: > 5
+: $ echo -n 'abcde' | wc -c
+: >        5
+*** Parse options
+
+Simple solution through ~if~-statements and [[Variables]]:
+#+begin_src bash
+if [[ $1 = "-o" ]]; then
+  echo "Option -o turned on"
+else
+  echo "You did not use option -o"
+fi
+#+end_src
+
+Using the built-in ~getopts~:
+#+begin_src bash
+while getopts 'ab:c:' OPTION; do
+  case "$OPTION" in
+    a)
+      echo "Option a used"
+      ;;
+    b)
+      argB="$OPTARG"
+      echo "Option b used with: $argB"
+      ;;
+    c)
+      argC="$OPTARG"
+      echo "Option c used with: $argC"
+      ;;
+    ?)
+      echo "Usage: $(basename $0) [-a] [-b argument] [-c argument]"
+      exit 1
+      ;;
+  esac
+done
+#+end_src
+- to prevent errors on invalid options, prepend ~:~ on the options string
+  - e.g. ~':abc'~
+- to use option arguments, append ~:~ after the resp. option character
+  - e.g. ~'ab:c:'~ to have ~b~ and ~c~ receive arguments
+
+Using ~getopt~:
+
+More infos:
+- https://www.howtogeek.com/778410/how-to-use-getopts-to-parse-linux-shell-script-options/
+- https://wiki.bash-hackers.org/howto/getopts_tutorial
+- https://linux.die.net/man/1/getopt
+
 ** Guides:
 - https://www.freecodecamp.org/news/shell-scripting-crash-course-how-to-write-bash-scripts-in-linux/
 * Commands
+** echo
+Prints its args to stdout.
+: -n  # no trailing newline char
+
 ** Source / .
 : source <file> [args]
 : . <full path to file> [args]
@@ -623,6 +743,13 @@ Set options for terminal interface (?)
 : $ stty
 
 ** File system
+*** Paths
+To get the file part of a path:
+: $ basename <path>
+
+To get the directory part of a path:
+: $ dirname <path>
+
 *** Directories
 **** Working directory
 /print working/ (current) /directory/:
@@ -835,7 +962,7 @@ More infos:
 ?
 
 **** View file contents
-***** Whole file
+***** With a pager
 : $ less <file>  : view whole file with linewise navigation (like vim)
 : $ more <file>  : same?
 
@@ -843,23 +970,6 @@ More infos:
 - -c  # ???
 - +3 foo.txt  # erst ab Zeile 3 anzeigen lassen
 - +/Begriff foo.txt  # erst ab Begriff anzeigen lassen
-
-***** Selective
-: $ head <file>  : display first 10 lines of file
-: $ tail <file>  : display last  10 lines of file
-: -n x  : `x` number of lines (e.g. `head -n 1 foo.txt`)
-: -x    : ^ (-n can be omitted)
-: -c x  : `x` bytes (characters?)
-
-Examples:
-
-Show only the 4. line:
-: foo.txt | head -4 | tail -1
-
-? what is that:
-- -5
-- +5  # Ab Zeile 5 alle weiteren Zeilen (plus unsichtbare Zeichen wie Zeilenumbruch/Dateiende)
-- -3c  # letzte 3 Zeichen
 
 **** File stats
 View file status, creation date, last modification date, etc.:
@@ -890,6 +1000,9 @@ Recursively search for ~foobar~ in all files from the current directory:
 
 Search for ~'foo'~ in git log with colored matches + context:
 : $ git log | grep 'foo' -C 10 --color="always"
+
+Print any common files between directory ~'foo'~ and directory ~'bar'~:
+: $ grep -Ff <(ls -l 'foo' | tr '\t' '\n') <(ls -l 'bar' | tr '\t' '\n')
 
 External tools:
 - [[ripgrep]] searches directories for a regex pattern respecting =.gitignore=
@@ -1078,6 +1191,22 @@ More infos:
 ** Network
 
 *** File transfer
+**** scp
+
+For single files:
+: scp <file to upload> <username>@<hostname>:<destination path>
+- *Warning:* will replace existing file with the same name without asking!
+
+For directories:
+: scp -r <dir to upload> <username>@<hostname>:<destination path>
+- *Warning:* will replace existing dir with the same name without asking!
+- the ~dir~ will not replace the ~destination path~ directory but will be
+  uploaded inside of it
+
+More infos:
+- https://stackoverflow.com/a/1894479/1204047
+
+**** Curl
 Curl transfers data from and to servers, via one of the protocols: HTTP,
 HTTPS, FTP, FTPS, SCP, SFTP, TFTP, DICT, TELNET, LDAP or FILE
 - to transfer multiple files use ~wget~ or FTP
@@ -1178,7 +1307,8 @@ Count newlines, words and bytes of a file:
 : -l -w -c  : number of lines / words / chars
 
 To count chars in a string (stdin):
-: $ echo 'hallo welt' | wc
+: $ echo -n 'hallo welt' | wc
+- use ~-n~ option in ~echo~ to not count the trailing newline char
 
 *** Replace/trim chars
 ~tr~ replaces or trims chars from stdin.
@@ -1209,6 +1339,12 @@ Strip out non-printable characters:
 : $ echo 'n\na\tsa' | tr -cd "[:print:]"
 : > nasa%
 
+Split ~PATH~ into lines:
+: $ echo $PATH | tr ':' '\n'
+
+Split ~ls~ output into line:
+: $ ls . | tr '\t' '\n'
+
 *** Sort lines
 ~sort~ sorts lines from stdin
 : $ sort <text>
@@ -1238,6 +1374,23 @@ Examples:
 : > 2 hello
 :   3 world
 
+*** Filter n lines from head/tail
+: $ head <file>  : filter first 10 lines of file
+: $ tail <file>  : filter last  10 lines of file
+: -n x  : `x` number of lines (e.g. `head -n 1 foo.txt`)
+: -x    : ^ (-n can be omitted)
+: -c x  : `x` bytes (characters?)
+
+Examples:
+
+Show only the 4. line:
+: foo.txt | head -4 | tail -1
+
+? what is that:
+- -5
+- +5  # Ab Zeile 5 alle weiteren Zeilen (plus unsichtbare Zeichen wie Zeilenumbruch/Dateiende)
+- -3c  # letzte 3 Zeichen
+
 *** Cut out parts of text
 : $ cut -b <list> [-n] …  : byte positions
 : $ cut -c <list> …       : char positions
@@ -1245,6 +1398,9 @@ Examples:
 - ~list~: comma or whitespace separated set of numbers and/or ranges
 
 Examples:
+
+To extract a specific (whitespace-separated) column from a tabular text:
+: $ ls -l | cut -f <col-num> -w
 
 To extract whitespace/tab-separated parts of a string:
 : $ echo 'hallo welt' | cut -f 2 -w
@@ -1652,6 +1808,9 @@ Delete mails:
 : ? d <n> <m>  : delete mail [n] and [m]
 : ? d <n>-<m>  : delete mails from [n] to [n]
 : ? d *        : delete all mails
+** Music
+External tools:
+- [[coltrane]]
 
 * External applications
 ** tree
@@ -1819,6 +1978,22 @@ Examples:
 To fuzzy-search in =foo.txt=:
 : $ cat foo.txt | fzf
 
+Takes any list from stdin:
+: $ echo 'apple\nbanana\npeach\norange' | fzf
+
+Type ~ctrl-r~ to fuzz-search the command history.
+
+Type ~esc c~ (Mac) or ~alt-c~ to fuzzy-search and ~cd~ into directories.
+
+To fuzzy-search from current directory and open in editor:
+: $ nvim $(fzf)
+
+To search all recently (last 24h) created files:
+: $ find / -type f -ctime -1 -ls | fzf
+
+More infos:
+- https://andrew-quinn.me/fzf/
+
 ** shellcheck
 Used to debug shell scripts.
 - https://github.com/koalaman/shellcheck
@@ -1841,6 +2016,11 @@ Log analyzer on Linux.
 To encode and decode videos and (to some extend) images.
 ** convert
 Image manipulation
+** coltrane
+https://github.com/pedrozath/coltrane
+
+Utilities for music theory
+: $ gem install coltrane
 
 * Shell services
 ** Weather
