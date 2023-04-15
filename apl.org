@@ -1,0 +1,43 @@
+#+title: Docs/APL
+
+Infos:
+- [[https://www.jsoftware.com/papers/tot.htm][Notation as a Tool of Thought]] (Ken Iverson)
+
+* Dyalog implementation
+https://www.dyalog.com
+
+* J implementation
+https://www.jsoftware.com
+
+References:
+- [[https://code.jsoftware.com/wiki/NuVoc][The NuVoc Portal]] (J primitives)
+- [[https://www.jsoftware.com/help/dictionary/vocabul.htm][J vocabulary]]
+
+Getting started:
+- [[https://code.jsoftware.com/wiki/Vocabulary/HowNuVoc][Overview]]
+- [[https://olegykj.sourceforge.net/jbyeg/jbyeg.htm][J by example]]
+- [[https://code.jsoftware.com/wiki/Vocabulary/JayTaster][A taste of J]]
+- [[https://code.jsoftware.com/wiki/Vocabulary/ArrayProcessing][How do you process an array?]]
+
+Introductions:
+- [[https://www.jsoftware.com/help/primer/start_here.htm][J primer]]
+- [[http://www.jsoftware.com/help/learning/contents.htm][Learning J]]
+- [[http://www.jsoftware.com/help/jforc/contents.htm][J for C programmers]]
+
+** Installation
+Follow instructions on:
+- https://code.jsoftware.com/wiki/System/Installation/J9.4/Zips
+
+Run MacOS fix (Terminal needs permissions for app management):
+: ./macos-fix.command
+
+Install dependencies for ~jqt.app~ to work:
+: ./updatejqt.sh
+
+Now ~jqt~ and ~jcon~ can be used.
+
+** Usage
+Exit jconsole:
+: exit 0
+
+Exit JHS: ~ctrl+\~

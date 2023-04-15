@@ -1,0 +1,94 @@
+#+title: Docs/Carp
+
+A statically typed lisp, without a GC, for real-time applications.
+
+https://github.com/carp-lang/Carp
+
+Tutorials:
+- https://www.youtube.com/watch?v=GM9s_d4AkhI
+
+Docs:
+- https://github.com/carp-lang/Carp/blob/master/docs/LanguageGuide.md
+
+* Installation
+
+See https://github.com/carp-lang/Carp/blob/master/docs/Install.md
+
+Clone the carp repo (e.g. to home dir):
+: $ git clone https://github.com/carp-lang/Carp.git
+
+Install Haskell ~stack~ (if not available):
+: $ brew install haskell-stack
+
+Make sure Xcode is linked to the full App, not the CLI:
+: $ sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+In the cloned repo directory, run:
+: $ stack build --extra-include-dirs=/Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/ffi
+: $ stack install --extra-include-dirs=/Library/Developer/CommandLineTools/SDKs/MacOSX12.3.sdk/usr/include/ffi
+- or use whichever SDK is available
+- the ~extra-include-dirs~ option may not be needed in the future, but is
+  important to build Carp on Apple Silicon
+  - see https://github.com/carp-lang/Carp/issues/1356
+
+Make sure =~/.local/bin= (where Carps executables are) is on the PATH.
+
+Set ~CARP_DIR~ environment variable in shell config (if not already set):
+: export CARP_DIR="$HOME/Carp"
+
+Make sure ~clang~ is installed (preferably through Xcode incl. its developer tools).
+
+To handle UTF-8 in Carps REPL, make sure the ~LC_CTYPE~ environment variable is
+set to ~UTF-8~. If not, add this line to shell config:
+: export LC_CTYPE=C.UTF-8
+
+For graphics/sound/interaction, install these dependencies:
+: $ brew install sdl2 sdl2_image sdl2_ttf sdl2_mixer
+: $ brew install glfw
+
+Make sure ~pkg-config~ is installed to handle include paths and linking flags
+for those external libraries.
+* Tooling
+
+~carp-mode~ for Emacs:
+- https://github.com/carp-lang/carp-emacs
+
+** Doom Emacs config
+
+In =packages.el=:
+#+begin_src elisp
+(package! carp-mode :recipe (:host github :repo "carp-lang/carp-emacs"
+                             :files ("*.el")))
+#+end_src
+
+In =config.el=:
+#+begin_src elisp
+(use-package! carp-mode)
+
+(require 'carp-mode)
+(require 'inf-carp-mode)
+(require 'carp-flycheck)
+
+;; Use carp-mode for .carp files
+(add-to-list 'auto-mode-alist '("\\.carp\\'" . carp-mode))
+
+(add-hook 'carp-mode-hook (lambda () (flycheck-mode 1)))
+#+end_src
+
+* CLI
+Compile and run:
+: $ carp some_file.carp -x
+
+Build:
+: $ carp some_file.carp -b
+
+* REPL
+
+To start the REPL:
+: $ carp
+
+Running code from a file:
+: 鲤 (load "some_file.carp")
+: 鲤 :r  -- to reload
+: 鲤 :b  -- to build
+: 鲤 :x  -- to run

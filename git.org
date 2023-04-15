@@ -3,6 +3,9 @@
 Learning:
 - https://www.git-scm.com/book/en/v2
 
+Resources:
+- https://grep.app (search across git repos)
+
 Get help:
 : $ git help <verb>
 : $ git <verb> --help
@@ -642,6 +645,7 @@ https://git-scm.com/book/de/v1/Git-Tools-Stashen
 :   -a, --all        > auto-stage modified/deleted files, but NOT new ones
 :   --amend          > changes last commit
 :   --no-edit        > no change to commit message with --amend
+:   --allow-empty    > allow commit with the same tree as its parent commit
 
 Commit output on command line: ~[<branch> <SHA-1 checksum>]~
 
@@ -702,6 +706,7 @@ Moves ~HEAD~ pointer to specified branch and reverts the files in working
 directory back to the snapshot that this branch is pointing to.
 : $ git checkout <branch/commit-hash>
 : -f, --force  > discards local changes
+: --orphan     > creates orphan branch (no parent, history disconnected)
 - can also be given a /SHA1 hash/ of a specific commit instead of branch name
   -> needs only first 7 chars of the SHA
   -> this puts Git in /“detached HEAD” mode/.
@@ -912,6 +917,9 @@ Fetch data in remote branch and merge.
 
 Pull and merge ~<remote-branch>~ into the current branch:
 : $ git pull <remote> <remote-branch>
+** Worktree
+*** git worktree
+: git worktree add <path> <branch>
 
 * GitHub
 ** SSH Authentication
@@ -960,3 +968,34 @@ content:
 
 check, if key is added in agent:
 : $ ssh-add -l
+** GitHub pages
+
+*** Creating a separate branch for GitHub pages
+
+- [[https://github.com/babashka/fs/tree/f4c7394c91a273ca97fbd9014bc355703992025b#codox][Instructions (old)]]
+- [[https://github.com/weavejester/codox/wiki/Deploying-to-GitHub-Pages][Instructions on Codox Wiki]]
+- [[https://github.com/formsandlines/codox-test][My test repo (private)]]
+
+To add Codox documentation to a Clojure project:
+1. Copy script =codox.sh= and make it executable
+2. Add Codox task to =deps.edn=
+3. Follow instructions below to create an isolated branch
+4. Push Codox docs to ~gh-pages~ using the script
+
+Create an orphan branch named ~gh-pages~:
+: $ git checkout --orphan gh-pages
+Remove all files from staging:
+: $ git rm -rf .
+Create an empty commit so that you will be able to push on the branch:
+: $ git commit --allow-empty -m 'Init empty branch'
+Push branch ~gh-pages~:
+: $ git push origin gh-pages
+
+Switch back to ~main~ branch:
+: $ git switch main
+Create =gh-pages= directory:
+: $ mkdir gh-pages
+Add ~gh-pages/~ to =.gitignore=:
+: $ echo "gh-pages/" >> .gitignore
+Create a new worktree:
+: $ git worktree add gh-pages gh-pages

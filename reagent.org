@@ -328,7 +328,7 @@ see [[https://cljdoc.org/d/reagent/reagent/1.1.1/doc/tutorials/creating-reagent-
 
 - only =:reagent-render= is necessary
 - =this= can be used with =r/props=, =r/children=, and =r/argv= to obtain the
-  current props/arguments and =r/dom-node= to obtain the DOM node
+  current props/arguments and =d/dom-node= to obtain the DOM node
 - avoid overriding =:should-component-update= unless you know what you’re doing
 - always provide =:display-name= so Reagent/React can be helpful in debugging
 - see [[http://facebook.github.io/react/docs/component-specs.html#lifecycle-methods][React’s lifecycle methods]] for reference

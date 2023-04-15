@@ -270,7 +270,11 @@ Validates true if a collection of items satisfies ~pred~.
 - will exhaustively conform every value (unlike ~every~)
 - same options as ~every~
 - options:
-  - ~:gen-max~ can be used to restrict generation number in tests
+  - ~:gen-max~ -> can be used to restrict generation number in tests
+  - ~:kind~ -> predicate the collection type must satisfy
+  - ~:count~ -> collection must have exactly this count
+  - ~:min-count~, ~:max-count~ -> min/max count of elements required
+  - ~:distinct~ -> all elements are distinct (default ~nil~)
 
 Example:
 src_clojure{ (s/coll-of string? :gen-max 3) }
