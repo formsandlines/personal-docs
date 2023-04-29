@@ -1,0 +1,94 @@
+#+title: Docs/Befunge
+
+Two-dimensional stack-oriented (esoteric) programming language.
+
+Interpreter
+- https://amicloud.github.io/fungide/
+
+Tutorials
+- [[https://www.youtube.com/watch?v=Q8nTPwwCyI4][Befunge - The 2d programming language]]
+
+* Commands
+
+** Stack
+
+Pop to output
+: .
+
+Pop to output as ASCII
+: ,
+- e.g. from a char code
+
+Duplicate top of the stack
+: :
+
+String mode (literally put onto stack)
+: "
+- again to exit string mode
+
+Arithmetic operation on the last two numbers on the stack
+: + - * / %
+
+Negate -> sets top of stack to ~0~ if non-zero, ~1~ otherwise
+: !
+
+Greater-than -> ~1~ if number1 > number2, ~0~ otherwise
+: `
+
+** Movement/Flow
+
+Halt
+: @
+
+Skip next command
+: #
+
+Interpret in direction ← → ↓ ↑
+: < > v ^
+- loops back from the edges
+
+Move → if top of stack is ~0~, otherwise ←
+: _
+
+Move ↓ if top of stack is ~0~, otherwise ↑
+: |
+
+** Field
+
+The *field* is all the xy-coordinates of the code-input.
+Its origin is the first char at the top-left ~00~.
+
+The field operators ~g~ and ~p~ can be used to store data in a kind of secondary
+memory (besides the stack) by setting it aside on a point in the field
+untouched by movement.
+
+Get a number from the field
+: <field>g
+
+Put a character in the field
+: <char><field>p
+- in the Befunge interpreter, numbers will not show up in the code area, but
+  literals like ~"x"~ will show up
+
+* Examples
+
+Adds 6 + 6 to output from right to left:
+: <@.+66
+
+Simple 2D program:
+: >"tahw"v
+:    v,,,<
+:   ,<@
+
+Print “Hello world”:
+: <@,,,,,,,,,,,"Hello world"
+with control flow:
+: <>,#:_:@#"Hello world"
+in 2D:
+: <v"Hello world"
+:  >,v
+:  |:<
+:  @
+
+Read and print the character ~ä~:
+: "ä"10g,@

@@ -41,3 +41,5 @@ Exit jconsole:
 : exit 0
 
 Exit JHS: ~ctrl+\~
+
+* Q implementation

@@ -161,6 +161,7 @@ typedef enum JanetType {
 
 (fiber/new <fn>) = <fiber …>
 #+end_src
+- ~nil~ is not allowed as a key in tables or structs
 
 Numeric literals:
 #+begin_src janet
@@ -301,10 +302,28 @@ Value semantics on immutable data structures.
 # loop over each key
 (eachk k <indexed coll>
   <form>)
+# loop over key-value pairs
+(eachp [k v] <indexed coll>
+  <form>)
 
 # repeatedly evaluate a form
 (repeat <n> <form …>)
+
+(next <indexed coll>)  # returns the next index
+(in <indexed coll> <index>)  # returns the value, given an index
 #+end_src
+
+Iterable data structures are e.g. *tuples*, *arrays*, *structs*, *tables*, *strings*,
+*buffers*, *fibers*, *keywords* and *symbols*
+- fibers (generators) iterate over their generated values
+- strings iterate over the bytes of each character
+- keywords and symbols behave identically to strings
+
+Iteration is based on the function ~next~.
+- ~each~ uses ~next~ to compute the keys and then calls ~in~ to look up the values
+- ~eachk~ just iterates over the keys from ~next~
+- ~map~, ~reduce~, ~filter~, etc. also use ~next~ under the hood
+- custom ~JANET_ABSTRACT~ types can receive a custom implementation of ~next~
 
 ** Macros
 #+begin_src janet
@@ -535,6 +554,232 @@ See Docs:
   - e.g. ~(cmt (* (-> :tag-name) …) ,my-fun)~ – the capture from ~:tag-name~ as
     well as all other captures from ~*~ will be passed as args to ~my-fun~
 
+* Fibers
+
+/Fibers/ are *lightweight cooperatively scheduled threads* for *single-core
+*asynchronous* programming. They allow to stop (through ~yield~) and ~resume~
+execution of a process, enabling multiple returns.
+- fibers are *iterable* (like generators in JavaScript)
+- a fiber has its own environment and its own call stack
+
+Fibers can be used to implement /schedules/, /generators/, /iterators/,
+/live-debugging/ and /error handling/.
+
+Janets [[Event Loop]] and [[Error handling]] is built on top of fibers.
+
+The status signals of a fiber are ~:alive~, ~:dead~, ~:debug~, ~:new~, ~:pending~ and
+~:user0~ – ~:user9~.
+
+When ~resume~ is called on a fiber, it will only return when that fiber either
+/returns/, ~yield~'s, /throws/ an error, or otherwise emits a /signal/.
+- ~resume~ throws an error if the fiber is ~:dead~
+
+More infos:
+- https://janet-lang.org/docs/fibers/index.html
+
+** API
+
+To create a fiber:
+: (fiber/new <function> <?signalmask>)
+- the ~function~ argument must have zero arity
+- the optional ~signalmask~ is a collection of flags for checking what kinds of
+  signals to trap and return via ~resume~
+  - any un-trapped signals are propagated to the previous calling fiber
+  - use ~:e~ to “catch” exceptions from an ~error~
+
+To yield the next value of a fiber, optionally passing a value back to the
+~yield~ call:
+: (resume <fiber> <?x>)
+
+To inspect the status of a fiber:
+: (fiber/status <fiber>)
+
+To get the last value returned or signaled from a fiber:
+: (fiber/last-value <fiber>)
+
+To create a fiber to yield multiple values:
+: (coro <body …>)
+- this is the same as calling ~(fiber/new (fn [] <body …>) :yi)~
+- “coro” is short for [[*Coroutines][“coroutine”]]
+
+** Signals
+
+/Signals/ are used in fibers to differentiate different kinds of returns. They
+can be intercepted by parent fibers.
+
+Named signals:
+
+| Signal      | Description              |
+|-------------+--------------------------|
+| ~:yield~ / ~:y~ | For yielded values       |
+| ~:error~ / ~:e~ | For exceptions           |
+| ~:debug~ / ~:d~ | For interactive debugger |
+
+User signals:
+
+| Signal | Description                            | resumable? |
+|--------+----------------------------------------+------------|
+| ~:0~     | From “early return” macro              | no         |
+| ~:1~     |                                        | no         |
+| ~:2~     |                                        | no         |
+| ~:3~     |                                        | no         |
+| ~:4~     |                                        | no         |
+| ~:5~     |                                        | yes        |
+| ~:6~     |                                        | yes        |
+| ~:7~     |                                        | yes        |
+| ~:8~     | interrupt one fiber from another fiber | yes        |
+| ~:9~     | Something with async and event loop    | yes        |
+
+** Error handling
+
+Fibers are used internally by Janet for error handling
+- when an ~error~ is thrown, control is returned to the parent fiber
+- the ~try~ macro wraps its body in a new fiber, ~resume~'s the fiber and checks
+  if it results in an error, in which case the error clause is evaluated
+
+#+begin_src janet
+# evaluates to nil and prints "got error: 1"
+(try
+  (error 1)
+  ([err] (print "got error: " err)))
+
+# Evaluates to 6 - no error thrown
+(try
+  (+ 1 2 3)
+  ([err] (print "oops")))
+#+end_src
+
+** Generators
+A fiber can be used to make a generator by /yielding/ from it.
+
+Janet generators are similar to JS generators, but they don’t need a special
+~function*~ keyword and can ~yield~ from a call to any other normal function.
+- ~yield~ returns control from a /fiber/ instead of a /function/ (like in JS)
+
+Janet generators will throw an error if the resumed fiber has already returned
+(unlike JS generators, which return ~undefined~ on the ~.next()~ call).
+
+#+begin_src janet
+# generators can be normal (0-arity) functions that `yield` intermediate values
+(defn my-generator []
+  (yield <expr>))
+
+# creating a fiber from a generator
+(def my-fiber (fiber/new my-generator) <options>)
+
+# fibers are iterable
+(each value my-fiber
+  (print value))  # ignores the final return value
+
+#+end_src
+
+** Coroutines
+
+Use ~coro~ to create a /coroutine/, which is like a [[*Generators][generator]], but can receive a
+value back when ~yield~'ing.
+
+* Event Loop
+
+The /event loop/ is a powerful /concurrency model/ for Janet. It is a little
+*scheduler* in the background of the Janet runtime. All programs are wrapped in
+an implicit loop that will run until all tasks are complete.
+- most event loop functionality can be found in the [[https://janet-lang.org/api/ev.html][Event Module]] (~ev/~), but
+  other functions may also interact with the event loop
+- it is especially useful where there are many concurrent IO-bound tasks
+
+Functions that may take a long time to complete will “yield to the event
+loop”, meaning they’ll raise a /user signal 9/. Janet catches that signal at
+the top-level of its runtime where it performs the desired effect and
+resumes the fiber once it completes.
+
+More infos:
+- https://janet-lang.org/docs/event_loop.html
+- https://janet.guide/concurrency-and-coroutines/
+
+** API
+
+Use ~ev/call~ or ~ev/go~ (more general way) to create new tasks.
+
+To call a function asynchronously:
+: (ev/call <fn> <?args …>)
+- returns a fiber that is scheduled to run the function
+- the fiber will be resumed as soon as the main fiber yields to the event loop
+- implemented in terms of ~ev/go~
+
+To put a fiber on the event loop to be resumed later:
+: (ev/go <fib> <?val> <?supervisor>)
+- returns the fiber
+- functions are wrapped with ~fiber/new~ first
+- an optional ~val~ can be provided to resume with (default: ~nil~)
+- an optional ~core/channel~ can be provided as a ~supervisor~ (defaults to
+  inherit the current supervisor)
+
+To concisely run a series of forms in a new task:
+: (ev/spawn <?body …>)
+- macro for ~(ev/go (fn [] ;body))~
+
+To cancel a suspended fiber in the event loop:
+: (ev/cancel <fib> <err>)
+
+To get the currently executing task:
+: (fiber/root-fiber)
+
+To suspends the current fiber (without blocking the event loop):
+: (ev/sleep <sec>)
+
+[[Channels]]:
+
+To create a new channel:
+: (ev/chan <?capacity>)
+
+To read from a channel:
+: (ev/take <channel>)
+- suspends the current fiber if no value is available
+
+To write a value to a channel:
+: (ev/give <channel> <value>)
+- suspends the current fiber if the ~channel~ is full
+- returns the ~channel~ if write succeeds, ~nil~ otherwise
+
+
+** Tasks / root fibers
+
+Fibers on the event loop are called /root fibers/ or *tasks* in Janet. A root
+fiber will be automatically ~resume~'d when an event (or sequence of events)
+that it is waiting for occurs.
+- root fibers should generally not be resumed manually (which is only possible
+  with ~ev/go~)
+- a default Janet program has a single task that will run until complete
+
+[[*Channels][Channels]] and [[*Streams][Streams]] are Janets abstractions to /communicate/ between tasks.
+- both work as queues (FIFO), but operate on different kinds of data
+
+** Channels
+
+/Channels/ allow for communication between tasks by sending any Janet value as
+*messages*. They only work inside a /thread/, not between threads.
+- most useful for things like /internal queues/ and /between-task communication/
+  (prefer /streams/ for everything else)
+
+A channel is a /bounded queue/, that can be *read from* and *written to*
+/asynchronously/. Reads suspend execution until a value is available, and
+writes suspend execution if the queue is full, resuming once another fiber
+~take~'s a value off the queue.
+
+**** Supervisor channel
+See https://janet.guide/concurrency-and-coroutines/
+
+
+** Streams
+
+/Streams/ are wrappers around file descriptors and operate on *streams of
+bytes*. They can communicate *across threads*, processes and across the
+network.
+
+The /Stream API/ is an abstraction over *byte buffers* that can be read from or
+written to without blocking the program.
+- e.g. to read and write to files or TCP sockets
+
 * Stdlib
 ** Environment
 To inspect documentation on a symbol:
@@ -591,6 +836,12 @@ To create a formatted string:
 To upper-case:
 : (string/ascii-upper <string>)
 
+To convert bytes (e.g. from string iteration) to a string:
+: (string/from-bytes <byte-vals …>)
+
+Join an array of strings with optional separator string:
+: (string/join <str-array> <?sep>)
+
 Examples:
 #+begin_src janet
 (string/format "Hello %s, you are %02d years old." "Peter" 35)
@@ -607,25 +858,11 @@ To select elements:
 To get number of elements:
 : (length <seq>)
 
-To insert an element to the end of an array (mutation):
-: (array/push <array> <elem>)
-- https://janetdocs.com/array%2fpush
-- returns the ~array~
-
-To take a sub-seq of an array/tuple from ~start~ (incl.) to ~end~ (excl.) index:
-: (tuple/slice <seq> <?start> <?end>)
-: (tuple/slice @[1 2 3])  # creates an immutable copy
-- https://janetdocs.com/tuple%2fslice
-
 Higher-order sequence functions (no mutation):
 : (map <fn> <seq …>)
 : (filter <pred> <seq>)
 : (reduce <fn> <init> <seq>) (reduce2 <fn> <seq>)
 : (partition <n> <seq>)
-
-Concatenate a variable number of elements/arrays/tuples into the first array:
-: (array/concat <arr> <x …>)
-- mutates ~arr~!
 
 Map & concat:
 : (mapcat <fn> <seq>)
@@ -639,6 +876,43 @@ Create a table from two arrays/tuples:
 Create an array of numbers from ~start~ (incl.) to ~end~ (excl.):
 : (range <end>)
 : (range <start> <end> <?step>)
+
+Interleave collections (like in Clojure):
+: (interleave <coll …>)
+
+*** Tuple
+
+To take a sub-seq of an array/tuple from ~start~ (incl.) to ~end~ (excl.) index:
+: (tuple/slice <seq> <?start> <?end>)
+: (tuple/slice @[1 2 3])  # creates an immutable copy
+- https://janetdocs.com/tuple%2fslice
+
+*** Array
+
+To insert an element to the end of an array (mutation):
+: (array/push <array> <elem>)
+- https://janetdocs.com/array%2fpush
+- returns the ~array~
+
+Concatenate a variable number of elements/arrays/tuples into the first array:
+: (array/concat <arr> <x …>)
+- mutates ~arr~!
+
+Create a new ~array~ of ~count~ elements, all set to ~value~ (default: ~nil~)
+: (array/new-filled <count> <?val>)
+- returns a new ~array~
+
+** Exceptions
+To throw an exception
+: (error <string>)
+
+To catch an exception
+: (try <form> ([<binding …>] <catch-expr>))
+
+#+begin_src janet
+(try …
+  ([e] (print e)))
+#+end_src
 
 ** Arithmetic
 - https://janet-lang.org/api/math.html
