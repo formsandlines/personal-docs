@@ -732,6 +732,8 @@ function Form() {
   );
 }
 #+end_src
+** useMemo
+*** Usage examples
 
 * JSX
 Babel takes care of transpiling JSX syntax to JS

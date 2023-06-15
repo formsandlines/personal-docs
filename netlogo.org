@@ -1,0 +1,226 @@
+#+title: Docs/NetLogo
+
+NetLogo is an agent-based modelling language and development environment
+developed by Uri Wilensky.
+
+Resources:
+- [[https://ccl.northwestern.edu/netlogo/][NetLogo Homepage]]
+- [[https://ccl.northwestern.edu/netlogo/docs/][NetLogo User Manual]]
+- [[http://ccl.northwestern.edu/netlogo/docs/programming.html][Programming Guide]]
+
+Learning:
+- [[http://ccl.northwestern.edu/netlogo/bind/][The Beginner's Guide to NetLogo Programming]]
+- [[https://ccl.northwestern.edu/netlogo/docs/tutorial1.html][User Manual - Tutorial #1: Models]]
+- [[https://ccl.northwestern.edu/netlogo/docs/tutorial2.html][User Manual - Tutorial #2: Commands]]
+- [[https://ccl.northwestern.edu/netlogo/docs/tutorial3.html][User Manual - Tutorial #3: Procedures]]
+
+* Key differences to other Logos
+
+[[http://ccl.northwestern.edu/netlogo/docs/programming.html#compared-to-other-logos][Source]]
+
+Focus on *agent-based modelling*.
+
+*Lexical scoping* of local variables and inputs instead of /dynamic scoping/.
+
+*Anonymous procedures* are true /lexically-scoped closures/.
+
+NetLogo is a *Lisp 1* (only one namespace for procedures and other symbols).
+- contrary to classic [[file:logo.org][Logo]]
+
+No *word data type*, instead NetLogo uses /strings/ in most cases where words
+would be used in Logo.
+- e.g. ~"see spot run"~ or ~["see" "spot" "run"]~ instead of ~[see spot run]~
+
+Definition of *operations* (called /reporter procedures/ in NetLogo):
+- ~to-report~ with ~report~ instead of ~to~ with ~output~
+
+*Procedure inputs* are enclosed in square brackets.
+- e.g. ~to square [x]~
+
+No interactive definition of procedures.
+
+*Variables* are defined and used with just the name (no colons or quotes).
+- the special form ~set~ is used (which doesn’t evaluate its first input)
+  instead of a ~make~ command
+- as a result, /procedures/ and /variables/ occupy a single shared namespace
+
+*Infix math operators* have /lower precedence/ than reporters with names:
+- e.g. ~sin x + 1~ = ~(sin x) + 1~ instead of ~sin (x + 1)~ (other Logos)
+
+*Boolean reporters* ~and~ and ~or~ are /special forms/ and /short-circuit/.
+
+NetLogo’s ~run~ command works on /anonymous procedures/ and /strings/ instead of
+/lists/ and does not permit the (re)definition of procedures.
+
+*Control structures* (like ~if~ and ~while~) are /special forms/, not ordinary
+functions.
+
+* Development style
+
+- write the documentation alongside the model, to keep them in sync.
+- most models have a “setup” and a “go” button, but it is not required.
+- boolean variables should end in a question mark
+* Variables
+
+Define global variables:
+: globals [ <varname> … ]
+Define local variables:
+: turtles-own [ <varname> … ]
+
+Set value of a variable:
+: set <name> <value>
+
+* Procedures
+
+Define a /procedure/ (no return value):
+: to my-function [<param> …]
+:   <instruction>
+:   …
+: end
+
+Define a /reporter procedure/ (returns/reports a value):
+: to-report my-function [<param> …]
+:   <instruction>
+:   …
+:   report <return-value>
+: end
+
+* General commands
+
+Just like in UCBLogo:
+: print
+: se / sentence <str/list> <str/list>
+: word <str> <str>
+
+* Math
+
+: round <float>
+: precision <float> <dec-places>
+
+: random <int>
+
+* Iteration
+
+: repeat <n> [ <instruction> … ]
+* Control structures
+
+: ifelse <pred> [ <instruction> … ] [ <instruction> … ]
+
+* Agents
+** Observer
+
+*** Model
+
+Remove model:
+: ca / clear-all
+
+*** Ticks
+
+Reset counter:
+: reset-ticks
+
+Increment counter:
+: tick
+
+*** Populations
+
+Generate ~n~ turtles:
+: crt / create-turtles <n> ?[ <ask-instr> … ]
+- with optional ~ask~ instructions for generated turtles
+
+Count agentset:
+: count <agentset>
+- agentsets can be ~turtles~, ~patches~, etc.
+
+Apply instructions …
+… to all agents of a set:
+: ask <agentset> [ <instruction> … ]
+… to a specific agent:
+: ask <agent> ?<index> [ <instruction> … ]
+- right-click on agents in view area to lookup their index
+- e.g. ~ask turtle 1 …~ or ~ask patch -2 4 …~
+… to one random agent:
+: ask one-of <agentset> [ <instruction> … ]
+
+(?) Create dynamic agentset
+: let my-agentset turtles with [ … ]
+
+Inspect an agent (opens inspect window):
+: inspect <agent>
+
+** Turtles
+
+*** Lifecycle
+Remove turtles:
+: die
+
+*** Attributes
+Use with ~show~ or ~set~.
+
+Turtle (shape) color:
+: color   :: name/int
+- e.g. names like ~blue~ or integers like ~2~ (grayscale)
+
+Turtle (shape) size:
+: size   :: int
+
+Turtle shape:
+: shape   :: string
+- e.g. ~"person"~
+
+Turtle x/y-coordinates:
+: xcor : ycor   :: int
+- generate random coordinates with:
+  : random-xcor : random-ycor
+
+Turtle label:
+: label   :: string
+
+Examples:
+#+begin_src netlogo
+; labels with coordinates:
+ask turtles [
+  set label (word precision xcor 2 ", " precision ycor 2)
+]
+#+end_src
+
+*** Movement
+Forward/backward movement:
+: fd / forward <n>
+: back <n>
+
+Left/right rotation:
+: lt / left <degrees> : rt / right <degrees>
+
+Rotate to align heading with x/y-point:
+: facexy <x> <y>
+
+: create-link-with one-of other turtles
+: 	create-link-… ; einen Link erstellen…
+: 	/ create-links-… ; mehrere Links erstellen…
+: 		-with ... ; ungerichteter Link mit ...
+: 		-to ... ; gerichteter Link zu ...
+: 		-from ... ; gerichteter Link von ...
+
+Show/hide movement trace (turtle-only):
+: pu / pen-up
+: pd / pen-down
+Erase movement traces:
+: cd / clear-drawing
+
+** Patches
+
+*** Attributes
+
+Patch color:
+: pcolor   :: name/int
+
+Patch x/y-coordinates:
+: pxcor : pycor   :: int
+- generate random coordinates with:
+  : random-pxcor : random-pycor
+
+Patch label:
+: plabel   :: string
+
+** Links

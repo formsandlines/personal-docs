@@ -239,6 +239,26 @@ Example:
 (s/conform ::f (fn [a] a)) ;=> :clojure.spec.alpha/invalid
 #+end_src
 
+** : (s/multi-spec <multimethod> <retag>)
+Takes the name of a spec/predicate-returning multimethod and a tag-restoring
+keyword or function (~retag~). The returned spec will pass its data to the
+multimethod to get an appropriate spec.
+- each registered method must have one arg. that should be ignored
+
+Example:
+#+begin_src clojure
+(defmulti op-spec :type)
+(defmethod op-spec :add [_] #(s/valid? (s/every int?) (:args %)))
+(defmethod op-spec :join [_] #(s/valid? (s/every string?) (:args %)))
+
+(s/def ::op (s/multi-spec op-spec :type))
+
+(s/conform ::op {:type :add :args [1 2]})
+;=> {:type :add, :args [1 2]}
+(s/conform ::op {:type :join :args ["mi" "su"]})
+;=> {:type :join, :args ["mi" "su"]}
+#+end_src
+
 * Regex operations
 “When regex ops are combined, they describe a single sequence. If you need to
 spec a nested sequential collection, you must use an explicit call to spec to
