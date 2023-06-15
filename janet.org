@@ -192,6 +192,116 @@ Numeric literals:
 - ~core/s64~ and
 - ~core/u64~ -> boxed 64-bit integer types
 
+* Object-like tables
+
+Similar to objects in OOP, Tables can be “instantiated” from a *prototype*,
+invoke “methods” defined as entries on the prototype that may operate on
+“fields” which are (stateful) entries in the instantiated table.
+
+** Methods
+
+“methods” are just functions
+- they can have a ~self~ parameter, which is not special in any way
+- in invocation, ~self~ must be passed the table/struct itself
+#+begin_src janet
+# defining an “object”:
+(def obj @{:get-foo (fn [self] (self :_foo))
+           :_foo 123})
+
+# invocing its “method”:
+((obj :get-foo) obj) # 123
+# shortcut (equivalent):
+(:get-foo obj) # 123
+#+end_src
+
+** Prototypes
+
+*tables* and *structs* can have prototypes by inheriting entries from another
+table/struct.
+- only /single-inheritance/
+- unlike in JS, tables/struct have no /default prototype/
+
+To get the prototype of a table or struct:
+: (table/getproto <table>)
+: (struct/getproto <struct>)
+- returns ~nil~ if no prototype available
+
+*** Using prototypes for class-like constructs:
+#+begin_src janet
+# “class”
+(def my-prototype
+  @{:my-getter (fn [self] (self :_x))
+    :my-setter (fn [self new-x] (set (self :_x) new-x))})
+
+# “constructor”
+(defn construct-object [init]
+  (table/setproto @{:_x init} my-prototype))
+
+# “instantiate”
+(def my-object (construct-object "foo"))
+#+end_src
+
+More compact approach:
+#+begin_src janet
+(def My-class
+  (let [proto @{:my-getter (fn …)
+                :my-setter (fn …)}]
+    (fn [init] (table/setproto @{:_x init} proto))))
+
+(def my-object (My-class "foo"))
+#+end_src
+
+Explicit “first-class” class approach:
+#+begin_src janet
+(def My-class
+  {:proto @{:my-getter (fn …)
+            :my-setter (fn …)}
+   :new   (fn [self init]
+            (table/setproto @{:_x init} (self :proto)))})
+
+(def my-object (:new My-class "foo"))
+#+end_src
+
+* Polymorphism
+
+Tables and abstract types are the /only/ polymorphic values in Janet. [[Methods]]
+can be defined on tables to enable polymorphism.
+
+Some abstract types in Janet share the same methods and can therefore be
+processed (at runtime) in a polymorphic way by a function or macro.
+- e.g. ~core/file~ and ~core/stream~ are abstract types that both implement a
+  ~:close~ method, so they both work with the ~with~ macro
+
+Only a few functions in Janets standard library call methods. /Math/ and
+/bitwise operator/ functions as well as /polymorphic compare/ are the only
+built-in functions that can be overloaded with a method.
+- /abstract types/ can override the standard comparison functions, tables need
+  to use /polymorphic compare/ (see [[Comparators]])
+
+Overloading examples:
+#+begin_src janet
+# math & bitwise operators:
+(def addable @{:+ (fn [a b] (printf "adding %q %q" a b) 10)})
+(+ addable "foo") # adding @{:+ <function …>} "foo" => 10
+(bxor @{:^ (fn [a b] a)} nil) #=> @{:^ <function …>}
+
+# polymorphic compare:
+(def compare-on-value (fn [a b] (compare (a :_value) (b :_value))))
+(def box-value (fn [value] @{:_value value
+                             :compare compare-on-value}))
+
+(compare (box-value 1) (box-value 2)) #=> -1
+(compare (box-value 2) (box-value 2)) #=> 0
+(compare (box-value 3) (box-value 2)) #=> 1
+(compare= (box-value 2) (box-value 2)) #=> true
+
+# no polymorphic compare by default in `sort`, needs a comparator fn:
+(sort @[(box-value 1) (box-value 2)] compare<)
+#=> @[@{:_value 1 :compare <function …>}
+#     @{:_value 2 :compare <function …>}]
+#+end_src
+
+
 * Equality
 
 Reference semantics on mutable data structures.
@@ -270,41 +380,101 @@ Value semantics on immutable data structures.
 
 ** Control structures
 #+begin_src janet
+# like in Clojure:
 (do
   <form …>)
 # to prevent creating a new local scope in a do block:
 (upscope
   <form …>)
 
+# like in Clojure:
 (if <condition>
   <when-true>
   <?when-false>)  # returns `nil` if false & else case is missing
 
-# macro for pattern matching
-(match <expr>
-  <<pattern> <when-matched>
-   …>
-  <default>)  # returns `nil` if false & no default is provided
+(if-let …)
+(if-with …)
+
+# like in Clojure:
+(when <condition>
+  <when-true …>)  # returns `nil` if false & else case is missing
+
+(when-let …)
+(when-with …)
+
+# inversion of `when`:
+(unless <condition>
+  <when-false …>)  # returns `nil` if false & else case is missing
+
+# like in Clojure:
+(cond
+  <condition> <when-true>
+  …
+  <? default>)  # returns `nil` if false & no default is provided
+
+# Simple equality match:
+(case <expr>
+  <value> <when-expr=val>
+  …
+  <? default>)  # returns `nil` if false & no default is provided
 #+end_src
+
+*** Pattern matching
+#+begin_src janet
+(match <expr>
+  <pattern> <when-matched>
+  …
+  <? default>)  # returns `nil` if false & no default is provided
+#+end_src
+
+*features:*
+- simple values are matched by equality
+- identifiers match anything and bind their name to the matched value
+- the pattern ~_~ matches anything but /doesn’t/ create a binding of this name
+- use ~& rest~ to bind all remaining items to ~rest~
+- dynamic runtime values can be matched with ~(@ <identifier>)~
+- arbitrary conditions can be included with the pattern ~(<ptn> <cond>)~
+
+*gotchas:*
+- tuple patterns actually match /prefixes/ of sequential structures
+  - e.g. ~[_ _]~ matches a tuple length >= 2
+  - stack tuple/array patterns by descending length to avoid matching on
+    patterns with fewer elements
+  - use e.g. ~([_ _ & r] (empty? r))~ to fix tuple length
+- there is no distinction between tuples and arrays in patterns
+- the value ~nil~ in associative data structures (key or value) causes the
+  whole kv-pair to be removed and so matches depending on a particular
+  table/struct pattern will fail
+  - one solution is to use a different sentinel like ~@{}~ for an empty value
+    (needs to be a globally unique value)
+
+More infos:
+- https://janet.guide/control-flow/
 
 ** Loops
 #+begin_src janet
 (while <condition>
   <form …>
-  (break))  # early exit (only innermost loop, avoid outside of macros)
+  ?(break))  # early exit (only innermost loop, avoid outside of macros)
+
+# alias for (while true …):
+(forever <form …>)
 
 (for i <n-start> <n-end>
-  <form>)
+  <form …>)
+# variant where iteration variable `i` can be mutated in the loop:
+(forv i <n-start> <n-end>
+  <form …>)
 
 # loop over each item
 (each x <coll>
-  <form>)
+  <form …>)
 # loop over each key
 (eachk k <indexed coll>
-  <form>)
+  <form …>)
 # loop over key-value pairs
 (eachp [k v] <indexed coll>
-  <form>)
+  <form …>)
 
 # repeatedly evaluate a form
 (repeat <n> <form …>)
@@ -396,6 +566,9 @@ AST transformation:
 # Polymorphic comparison:
 (compare< …) (compare<= …) (compare= …) (compare>= …) (compare> …)
 #+end_src
+- see also [[Polymorphism]]
+- built-in functions that use polymorphic compare:
+  ~zero?~, ~pos?~, ~neg?~, ~one?~, ~even?~, ~odd?~
 - https://janet-lang.org/docs/comparison.html
 
 
@@ -565,7 +738,9 @@ execution of a process, enabling multiple returns.
 Fibers can be used to implement /schedules/, /generators/, /iterators/,
 /live-debugging/ and /error handling/.
 
-Janets [[Event Loop]] and [[Error handling]] is built on top of fibers.
+Janets [[Event Loop]] and [[Error handling]] is built on top of fibers. Every Janet
+program has a default fiber which contains the programs environment (see
+[[Dynamic Bindings]]).
 
 The status signals of a fiber are ~:alive~, ~:dead~, ~:debug~, ~:new~, ~:pending~ and
 ~:user0~ – ~:user9~.
@@ -602,10 +777,17 @@ To create a fiber to yield multiple values:
 - this is the same as calling ~(fiber/new (fn [] <body …>) :yi)~
 - “coro” is short for [[*Coroutines][“coroutine”]]
 
+To get the current environment table:
+: (curenv <?n>)
+- same as ~(fiber/getenv (fiber/current))~
+
 ** Signals
 
 /Signals/ are used in fibers to differentiate different kinds of returns. They
 can be intercepted by parent fibers.
+
+To raise a /signal/ with payload ~x~:
+: (signal <what> <x>)
 
 Named signals:
 
@@ -617,18 +799,19 @@ Named signals:
 
 User signals:
 
-| Signal | Description                            | resumable? |
-|--------+----------------------------------------+------------|
-| ~:0~     | From “early return” macro              | no         |
-| ~:1~     |                                        | no         |
-| ~:2~     |                                        | no         |
-| ~:3~     |                                        | no         |
-| ~:4~     |                                        | no         |
-| ~:5~     |                                        | yes        |
-| ~:6~     |                                        | yes        |
-| ~:7~     |                                        | yes        |
-| ~:8~     | interrupt one fiber from another fiber | yes        |
-| ~:9~     | Something with async and event loop    | yes        |
+| Signal           | Description                            | resumable? |
+|------------------+----------------------------------------+------------|
+| ~:0~               | From “early return” macro              | no         |
+| ~:1~               |                                        | no         |
+| ~:2~               |                                        | no         |
+| ~:3~               |                                        | no         |
+| ~:4~               |                                        | no         |
+| ~:5~               |                                        | yes        |
+| ~:6~               |                                        | yes        |
+| ~:7~               |                                        | yes        |
+| ~:8~ -> ~:interrupt~ | interrupt one fiber from another fiber | yes        |
+| ~:9~ -> ~:await~     | Something with async and event loop    | yes        |
+
 
 ** Error handling
 
@@ -677,6 +860,75 @@ Janet generators will throw an error if the resumed fiber has already returned
 
 Use ~coro~ to create a /coroutine/, which is like a [[*Generators][generator]], but can receive a
 value back when ~yield~'ing.
+
+** Early return
+
+Use the ~prompt~ or the ~label~ macro for early return in functions.
+
+To set up a checkpoint that can be returned to:
+: (prompt <tag> <?body …>)
+- ~tag~ should be a value used in ~return~, like a keyword
+- can be returned to in called functions
+
+To set a label point that is lexically scoped:
+: (label <name> <?body …>)
+- ~name~ should be a symbol that will be bound to the label
+- cannot be returned to in called functions
+
+Usage:
+#+begin_src janet
+(defn my-function []
+  (prompt :a
+          (print "before return")
+          (return :a 42)
+          (print "will not execute")))
+
+(defn my-function []
+  (label result
+         (print "before return")
+         (return result 42)
+         (print "will not execute")))
+#+end_src
+
+** Dynamic Bindings
+
+/Dynamic bindings/ are /fiber-local/ and available to all functions. They are
+set by pushing to a /stack of values/ corresponding to the stack of fibers
+that each have their own view of the current dynamic variables and pop off
+the stack when the fiber completes.
+
+| Binding | Description                                        |
+|---------+----------------------------------------------------|
+| ~*out*~   | default destination for functions like ~print~ & co. |
+| ~*args*~  | arguments passed to the program (e.g. via shell)   |
+
+To set some dynamic bindings to run in a new fiber:
+: (with-dyns [<dynvar> <new-value>] <?body …>)
+- the fiber will not mask errors or signals
+
+To set a dynamic binding:
+: (setdyn <dynvar> <value>)
+- returns the ~value~
+
+To get a dynamic binding:
+: (dyn <key> <?default>)
+- conventionally named by keyword (e.g. ~:out~ for ~*out*~)
+- if no binding found, returns the ~default~ value (or ~nil~)
+
+* Environment
+
+Environments in Janet are local to each fiber.
+
+Different flags can be provided to specify what kind of environment a new
+fiber should have:
+- none (default): no/empty environment
+- ~:i~ (inherit): the exact same environment as the code creating it
+- ~:p~ (prototype): a new environment table whose prototype is equal to the
+  parent environment
+
+During [[Images][compilation]], Janet produces an environment as a result of executing all
+the /top-level statements/ the a source file. It is a table of bindings and
+metadata to values.
 
 * Event Loop
 
@@ -778,21 +1030,75 @@ network.
 
 The /Stream API/ is an abstraction over *byte buffers* that can be read from or
 written to without blocking the program.
-- e.g. to read and write to files or TCP sockets
+- e.g. to asynchronously read and write to files or TCP sockets
+
+*** API
+
+To create a stream from a file:
+: (os/open <path> <?flags> <?mode>)
+- returns a new stream
+- creates new file if it doesn’t exist
+- see [[https://janetdocs.com/os%2fopen][docs]] for optional ~flags~ and ~mode~
+  - ~:r~ to open for reading
+  - ~:w~ to open for writing
+
+To read up to ~n~ bytes into a /buffer/ asynchronously from a ~stream~:
+: (ev/read <stream> <n> <?buffer> <?timeout>)
+- use ~:all~ for ~n~ to read until the end of stream
+
+To close a ~stream~:
+: (ev/close <stream>)
+
+* Modules
+Importing a module actually means importing the [[Environment][environment]] which is the
+result of executing all the top-level statements of the source file and
+contains names for all the bindings with corresponding values.
+- *private bindings* that are not exposed in the env. can be specified with ~def-~
+  , ~var-~ , ~defn-~ and ~defmacro-~ , similar to Clojure.
+- by default, modules will not re-import the imports of the modules they
+  import (because those bindings are automatically set to ~:private true~ in the
+  imported env) – this can be changed by setting ~:export~ to ~true~
+
+Modules are imported by providing a *path* argument without the ~.janet~
+extension.
+- if the file doesn’t exist, Janet will look for =<path>/init.janet=
+- ~.jimage~ files (for precompiled [[Images][images]]) and ~.so~ / ~.dll~ files (for precompiled
+  native libraries) will also be recognized from a path
+
+If a path is not provided, Janet will try to load from the *module load path*,
+which defaults to =/usr/local/lib/janet= and can be overridden with the
+~JANET_PATH~ environment variable.
+
+** API
+
+To import a source file (can use all public bindings):
+: (use <path>)
+
+To import a library (can use all public bindings with a prefix):
+: (import <path>)
+: (import <path> :as <alias>)
+: (import <path> :prefix <custom-prefix>)
+- e.g. for ~:as x~ , bindings look like: ~x/foo~
+- e.g. for ~:prefix "x--"~ , bindings look like: ~x--foo~
+
+Function versions to import at runtime:
+: (import* …)
+: (import* … :prefix "")  # like (use …)
+- pass ~:fresh true~ to bypass module cache (better for interactive dev.)
+
+To compute the module’s environment without creating names in the current env:
+: (require <path>)
 
 * Stdlib
 ** Environment
 To inspect documentation on a symbol:
 : (doc <symbol>)
 
+To exit from Janet with optional ~exit-code~:
+: (os/exit <?exit-code>)
+- can use bash exit codes like ~0~ and ~1~
+
 ** IO
-*** Imports
-To import a source file:
-: (use <filename>)  # without `.janet` extension!
-
-To import a library:
-: (import <libname>)
-
 *** Print/Logs
 Print:
 : (print <form>)
@@ -807,15 +1113,31 @@ Pretty-print:
 
 *** Files/resources
 To load a file:
-: (slurp "<filename>")
+: (slurp "<path>")
 
 To write to a file:
-: (spit "<new-filename>")
+: (spit "<path>")
+- may or may not exist
 
-Explicit file handling:
-: (file/open "<filename>")
-: (file/read <file> <opts …>)
+*Explicit file handling* (blocking)
+- see [[Streams]] for non-blocking/asynchronous file handling
+
+: (file/open "<path>" <?mode>)
+- returns a ~core/file~ abstract type
+- creates new file if it doesn’t exist
+- see [[https://janetdocs.com/os%2fopen][docs]] for optional ~flags~ and ~mode~
+  - ~:r~ to open for reading
+  - ~:w~ to open for writing
+
+: (file/read <file> <what> <?buffer>)
+
 : (file/close <file>)
+
+*** Network
+
+Open a connection to communicate with a server
+: (net/connect <host> <port>  <?type> <?bindhost> <?bindport>)
+- returns a ~core/stream~ abstract type
 
 ** System
 Suspend program for /n/ seconds

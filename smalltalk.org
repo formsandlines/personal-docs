@@ -1,0 +1,13 @@
+#+title: Docs/Smalltalk
+
+
+* Pharo
+
+~Cmd+Shift+Opt~ + Click -> shows menu to manipulate visual elements
+
+Inspector -> object to manipulate the properties of other objects
+
+Finder
+
+~Shift + Enter~ -> display Spotter
+- finds classes, methods or resources

@@ -1,0 +1,755 @@
+#+title: Docs/Logo
+
+Learning:
+- [[https://turtleacademy.com][Turtle Academy]]
+
+* Implementations
+** UCBLogo / Berkeley Logo
+Dialect of Logo which derived from Lisp, intended for being a “minimum Logo
+standard”. May be based on LCSI Logo, but with aspects of Terrapin?
+
+Source:
+- https://github.com/jrincayc/ucblogo-code
+- https://github.com/brianharvey/UCBLogo (contains logo-mode for Emacs)
+
+To load a file with optional command-line args:
+: $ ucblogo <filename>.lg - <args …>
+- ~ucblogo~ must be on the PATH
+
+Use args in a script with the predefined variable:
+: :command.line
+- value is a list of the args
+
+To see which kind of UCBLogo build this is:
+: SHOW :logoplatform
+
+*** Files
+
+To load a source file:
+: LOAD "/Users/<userdir>/…/<file>.lg
+- needs an absolute path
+
+To save the workspace to a source file:
+: SAVE "filename.lg
+- by default, saves to =Documents= folder (in MacOS)
+
+*** Editor
+
+To edit code in an editor using a temporary file:
+: ED / EDIT <contentslist>
+- defaults to built-in editor (for some implementations)
+
+: EDALL / EDIT CONTENTS
+
+Set different editor:
+: SETEDITOR "|open -a emacs|
+Reset to default editor:
+: SETEDITOR "
+- see [[https://github.com/jrincayc/ucblogo-code/wiki/using_external_editors][Using External Editors]]
+
+Set different font:
+: SETFONT "|Berkeley Mono|
+
+*** Workspaces
+
+*IMPORTANT:* ~SAVE~ will save the current workspace (procedure definitions,
+variables, etc.) from the temporary =/private/tmp/logo*= files into a
+permanent file, which will be used /in every subsequent/ click on ~Save Logo
+Session~ (or ~cmd+s~). This may result in accidental overwrites!
+- never carelessly load two different files in the same session
+- use the ~ERALL~ command only if you are sure that no important file is
+  currently loaded or if the new workspace will be saved right away
+- make sure to frequently hit ~cmd+s~ to prevent data loss in case of
+  accidentally closing the application or if a crash occurs
+
+*Note:* ~contentslist~ is either the name of a procedure (a /word/) or a /list of
+names/ of procedures
+
+Erase some/all procedure(s) from workspace:
+: ERASE <contentslist>
+: ERALL / ERASE CONTENTS
+
+Print the definitions of some/all /unburried/ procedures, variables and
+property lists:
+: PO / PRINTOUT <contentslist>
+: POALL / PO CONTENTS
+- /PO/ stands for “Print Out”
+- e.g. ~PO "myproc~ to print out the definition of ~myproc~
+
+Print out all unburried procedures:
+: POPS / PO PROCEDURES
+
+Print out only the title lines of some /unburried/ procedures or variable
+and property list definitions:
+: POT <contentslist>
+Print out only the title lines of all /unburried/ procedures:
+: POTS / POT PROCEDURES
+
+Print out names (and values) of some/all /unburried/ (global) variables:
+: PON <varname(list)> / PO NAMELIST <varname(list)>
+: PONS / PO NAMES
+
+Output the procedure as text in the form expected by ~DEFINE~:
+: TEXT <procedurename>
+- returns a list of lists (inputs & lines of the procedure’s body)
+
+Output the procedure as text with preserved formatting information:
+: FULLTEXT <procedurename>
+
+Output the arities of a procedure:
+: ARITY <procedurename>
+- returns a list of ~[min default max]~ number of arguments
+
+
+* Characteristics
+** inherited from Lisp
+- *late name binding* -> variables are bound dynamically at runtime
+- *applicative order* in evaluation
+- *eval & apply* available at runtime (for Macros, etc.)
+  - eval is called ~RUN~
+- *list* as a primary structure for data aggregation
+- *recursion* as the main control structure
+  - *tail call elimination*
+- *automatic memory management*
+- *case insensitive*
+
+** different from Lisp
+- *parentheses-free syntax* allowed
+  - making the grammar hard to parse and /not context-free/ like in normal Lisp
+- *dynamic scope* -> local variables are accessible from subprocedures
+- *words* as symbol- and string-like structures, *sentences* as lists of words
+- *command / operation* distinction
+- *control structures* like ~IF~ and ~WHILE~ are just procedures, only ~REPEAT~ is
+  primitive
+- *infix math operators* have /higher precedence/ than operations with names,
+  which is contrary to most other Lisps
+  - ~+ - * /~ are the tightest binding, then prefix operations, then infix ~< =
+    >~, and finally prefix commands
+- *programmatic definition* of procedures
+
+UCBLogo specific:
+- all procedures and macros except ~TO~ are *not special forms*
+  - procedures like ~IF~ and ~REPEAT~ take instruction lists for late evaluation
+  - this means that variables can be used to dynamically create such lists
+- *instruction & expression templates* (lists)
+  - for anonymous procedures (among other things)
+  - no first-class functions
+- infix-operators delimit tokens and are tokens themself
+  - e.g. ~2+3~ or ~4<6~ represent 3 tokens instead of 1
+
+** Logo is a Lisp 2
+Variable names and procedure names have different namespaces, so e.g. a
+formal parameter named ~word~ will not shadow the primitive procedure ~WORD~.
+
+Other than Lisp, Logos syntax allows for parantheses-free notation, so Logo
+can only distinguish between the two by using ~THING~ (e.g. ~THING "word~ or
+just ~:word~) when the value of the variable is meant and not the procedure.
+
+Note that [[file:netlogo.org][NetLogo]] is a Lisp 1.
+
+* Special syntax
+
+- ~; comment~ -> single-line comment
+- ~"x~ -> the [[Word]] ~x~ is evaluated /as itself/
+- ~:x~ -> /contents of/ ~x~ (a variable is just a place in memory)
+  - abbreviation for ~THING "x~
+- ~#~ -> can be used for ~REPCOUNT~ unless ~REPEAT~ is inside the template input to
+  a higher order procedure such as ~FOREACH~, where it has a different meaning
+- ~`~ -> /quasiquote/, together with ~,x~ to /unquote/
+
+In interactive mode, use ~~~ to enter multiple lines:
+: ? PRINT WORD "|I | ~
+: ~ WORD "|like | ~
+: ~ "Turtles
+: I like Turtles
+It also works in a file:
+: to foo
+: pr se [Good morning,] ~
+:   se [do you want] ~
+:   [some coffee?]
+: end
+Unclosed parantheses are always continued on the next line:
+: ? PRINT [I
+: ~ like
+: ~ Turtles]
+: I like Turtles
+
+* General commands
+
+Print documentation of a command:
+: HELP "<cmd>
+
+Print input:
+: PR / PRINT <thing> : (PR / PRINT <thing> …)
+- escape spaces, e.g. ~PRINT "Hello\ world!~
+To print and include sorrounding square brackets of lists:
+
+Print input without /newline/ char:
+: TYPE <thing> : (TYPE <thing> …)
+- no space is inserted in between for next print commands
+- will not actually be printed until either a /newline/ char is printed or Logo
+  tries to read from the keyboard
+
+: SHOW <thing> : (SHOW <thing> …)
+Use ~PRINT~ if the program wants to carry on a conversation with the user in
+English. Use ~SHOW~ if lists are used to represent some structure other than a
+sentence.
+
+Ignore input:
+: IGNORE <value>
+- use for side-effects where the return value is unimportant
+
+Exit Logo:
+: BYE
+
+* Data types
+** construct
+
+*** Abstractions
+
+A *number* is a special case of a [[Word]].
+- e.g. ~2 + 3~ <=> ~"2 + "3~
+
+*booleans* are just the [[Word]]s ~"true~ and ~"false~.
+
+[[Word]]s, [[List]]s or [[Array]]s are often referred to as *things*.
+
+*** Word
+
+Unquoted words are interpreted as identifiers:
+: a ; ERROR: I don’t know how to a
+
+Word syntax that quotes the word, so it only evaluates to itself:
+: "a : "|a|
+: "my/ word : "|my word|
+
+Empty word:
+: "  : "||
+
+Create a word formed by concatenation of input ~word~'s:
+: WORD <word1> <word2> : (WORD <word> …)
+: (WORD) = "
+
+*** List
+
+Unquoted lists are interpreted as expressions (Logo is a Lisp):
+: (a b c) ; ERROR: I don’t know how to a
+
+List syntax that quotes the list, so it only evaluates to itself:
+: [a b c]
+- because of the quotation, items do not need ~"~ prefix
+- the brackets just sorround the list, but are not themself part of it
+
+Empty list:
+: []
+
+Create a list:
+: LIST <thing1> <thing2> : (LIST <thing> …)
+: (LIST) = []
+
+A list of /words/ is called a *sentence* or /flat list/.
+
+Create a list from members (will merge with members of list arguments):
+: SE / SENTENCE <thing1> <thing2> : (SE / SENTENCE <thing> …)
+- can be used to add multiple items to a list or to concatenate lists
+- using a word as input to is equivalent to using a list with that word as
+  its single member
+
+Prepend/append an item to a list:
+: FPUT <thing> <list> : LPUT <thing> <list>
+- works with words too, if ~thing~ is a one-letter word
+
+Create a reversed list from ~list~:
+: REVERSE <list>
+
+Create an array from a ~list~:
+: LISTTOARRAY <list>
+
+*** Array
+
+Array syntax:
+: {a b c} : {a b c}@0
+- items do not need ~"~ prefix
+- ~@~ indicates the ~origin~
+
+Create an array of ~size~ (positive int) members:
+: ARRAY <size> : (ARRAY <size> <origin>)
+- each member is initially an empty list
+
+Create a list from an ~array~:
+: ARRAYTOLIST <array>
+
+*** Combinations
+
+Combine things:
+: COMBINE <thing1> <thing2>
+- uses ~WORD~ if ~thing2~ is a word
+- uses ~FPUT~ if ~thing2~ is a list
+
+** select
+
+Select first/last item:
+: FIRST <thing>
+: LAST <word-or-list>
+
+Select anything but first/last item:
+: BF / BUTFIRST <word-or-list>
+: BL / BUTLAST <word-or-list>
+
+Select a word/list/array member:
+: ITEM <index> <thing>
+- words, lists and (by default) arrays start at ~index~ 1
+- use ~origin~ to set a different starting index when creating arrays
+
+Select a random member (seems to work with any /thing/):
+: PICK <list>
+
+Generate a random number:
+: RANDOM <num> : (RANDOM <start> <end>)
+- with 1 input: positive integer < ~num~
+- with 2 inputs: ~start~ <= integer <= ~end~
+
+Make the result of ~RANDOM~ reproducible:
+: RERANDOM : (RERANDOM <seed>)
+- use before first invocation of ~RANDOM~
+- for more than one reproducible random number, use an integer ~seed~
+
+** mutate
+
+Set an array member:
+: SETITEM <index> <array> <value>
+
+*** List as a queue
+
+: QUEUE <queue-name> <thing>
+: DEQUEUE <queue-name>
+
+*** List as a stack
+
+: PUSH <stack-name> <thing>
+: POP <stack-name>
+
+** count
+
+Count a word/list/array:
+: COUNT <thing>
+
+Output a list of integers from ~from~ to ~to~ (both inclusive):
+: ISEQ <from> <to>
+
+???
+: RSEQ <from> <to> <count>
+
+** check
+
+Is a word?
+: WORD? / WORDP <thing>
+
+Is a list?
+: LIST? / LISTP <thing>
+
+Is an array?
+: ARRAY? / ARRAYP <thing>
+
+Is a number?
+: NUMBER? / NUMBERP <thing>
+
+Is word/list empty?
+: EMPTY? / EMPTYP <thing>
+
+Are equal? (identity or numerical value)
+: EQUAL? / EQUALP <thing1> <thing2>
+: <thing1> = <thing2>
+
+Is a member of?
+: MEMBER? / MEMBERP <member-thing> <from-thing>
+- if ~from-thing~ is a /list/, ~member-thing~ can be any input
+- if ~from-thing~ is a /word/, ~member-thing~ must be a one-character word
+
+Is a substring of?
+: SUBSTRING? / SUBSTRINGP <thing1> <thing2>
+
+*** Numeric predicates
+
+Is strictly less than?
+: LESS? / LESSP <n1> <n2>
+: <n1> < <n2>
+
+Is strictly greater than?
+: GREATER? / GREATERP <n1> <n2>
+: <n1> > <n2>
+
+Is less than or equal?
+: LESSEQUAL? / LESSEQUALP <n1> <n2>
+: <n1> <= <n2>
+
+Is greater than or equal?
+: GREATEREQUAL? / GREATEREQUALP <n1> <n2>
+: <n1> >= <n2>
+
+* Drawing
+
+** Window
+
+Enter window mode:
+: WINDOW
+Same?
+: SS / SPLITSCREEN
+Return to text screen:
+: TS / TEXTSCREEN
+
+Write text to graphics window:
+: LABEL <text>
+- ~text~ can also be a list of words, e.g. ~[Hello World]~
+
+Reset drawing/turtle:
+: CS / CLEARSCREEN
+Reset text screen:
+: CT / CLEARTEXT
+
+** Pen
+
+Lift up / put down the pen:
+: PU / PENUP : PD / PENDOWN
+
+Set pen color:
+: SETPC / SETPENCOLOR <colornumber-or-rgblist>
+- ~colornumber~ is a positive integer (see reference below)
+- ~rgblist~ -> list of rgb saturation percentages, e.g. ~[0 50 100]~
+
+First 16 colors:
+|----+--------+----+---------+----+--------+----+-------|
+| ~0~  | black  | ~1~  | blue    | ~2~  | green  | ~3~  | cyan  |
+| ~4~  | red    | ~5~  | magenta | ~6~  | yellow | ~7~  | white |
+| ~8~  | brown  | ~9~  | tan     | ~10~ | forest | ~11~ | aqua  |
+| ~12~ | salmon | ~13~ | purple  | ~14~ | orange | ~15~ | grey  |
+- pen color ~0~ can be useful to erase lines
+
+Assign new color:
+: PALETTE
+
+** Turtle appearance
+
+Hide / show the turtle:
+: HIDETURTLE : SHOWTURTLE
+
+Change shape of the turtle:
+: CSH / CHANGESHAPE <shape-id>
+- e.g. ~CSH 3~ / ~CSH "dog~
+
+** Turtle position
+
+Get turtle coordinates (both / just x/y):
+: POS : XCOR : YCOR
+- use like ~PRINT POS~
+
+Get turtle direction/heading:
+: HEADING
+
+Get absolute angle towards coordinates/?:
+: TOWARDS <e.g. LIST> <x> <y>
+
+** Turtle movement
+
+Move forward:
+: FD / FORWARD <points>
+Move backward:
+: BK / BACK <points>
+
+Move back to origin (0,0):
+: HOME
+- may draw a line
+
+Turn left/right:
+: LT / LEFT <degrees> : RT / RIGHT <degrees>
+
+Set position to x/y-coordinate:
+: SETX <x-coord> : SETY <y-coord>
+Both at the same time:
+: SETXY <x-coord> <y-coord>
+With a list instead of separate coordinates:
+: SETPOS <xy-coord-list>
+
+Set rotation to absolute angle (clockwise, from top):
+: SETH / SETHEADING <degrees>
+
+Draw an arc around the turtle:
+: ARC <angle> <radius>
+- ~radius~: distance from the turtle
+- ~angle~: degrees relative to turtles heading
+
+* Control structures
+
+If conditional:
+: IF <test> [ <when-true> ]
+- if ~test~ is false, ~IF~ does nothing
+
+If-else conditional:
+: IFELSE <test> [ <when-true> … ] [ <when-false> … ]
+- can be used as a /command/ or an /operation/ (e.g. in expressions)
+
+Memorize the boolean value of a test expression:
+: TEST <bool-expr>
+and use it as a test of one or more ~IFTRUE~ or ~IFFALSE~ commands:
+: IFT / IFTRUE [ <instruction> … ]
+: IFF / IFFALSE [ <instruction> … ]
+
+
+* Iteration
+
+Prefer to use *recursion*.
+
+Repeat a block of commands ~n~ times:
+: REPEAT <n> [ <instruction> … ]
+
+Repeat infinitely until a halting command is executed:
+: FOREVER [ <instruction> … ]
+- halt with e.g. ~throw~, ~stop~ or ~output~
+
+: WHILE <condition> [ <while-true> … ]
+
+: UNTIL <condition> [ <while-false> … ]
+
+Iterate on ~data~ (list, word or array):
+: FOREACH <data> <template> : (FOREACH <data> … <template>)
+Template symbols:
+- ~?~ represents the current item
+- ~?REST~ represents the rest of the items from (excluding) ~?~ to end
+  - for multiple ~data~, ~(?REST <n>)~ goes with ~?<n>~
+- ~#~ represents the position (index) of the ~?~ item
+
+* Variables
+
+Global variables can be created inside procedures as well, if they call ~MAKE~
+on an unknown variable name. These globals will then also appear on the top
+level of the Logo workspace.
+- use global variables only for constants to make the program safer and easier
+  to understand
+
+Local variables have dynamic scope, so subprocedures will be able to access or
+reassign local variables from their superprocedures.
+- declare local variables intended to be used in the whole program on the
+  /first line of the top-level procedure/ to have them all in one place
+
+If a variable gets reassigned from a subprocedure, the change will propagate
+to all superprocedures in their next lookups of that variable.
+
+Create and/or (re)assign a (global/local) variable:
+: MAKE "my.var <value>
+- if ~my.var~ is the name of a parameter or a local variable inside a procedure,
+  the variable gets /reassigned/, but will stay *local*.
+- if the ~my.var~ doesn’t exist, it will be created as a *global* variable
+
+Get its value:
+: THING "my.var : :my.var
+- “thing” is Logos name for a variable’s value
+
+Create a /local/ variable:
+: LOCAL "my.localvar : LOCAL <varnamelist> : (LOCAL <varname> …)
+- (re)assign a value with ~MAKE~
+- it is traditional to put ~LOCAL~ instructions at the beginning of a procedure
+
+Create and assign a /local/ variable:
+: LOCALMAKE <varname> <value>
+
+** Indirect assignment
+-> assigning a value to a variable whose name is computed by the program
+
+A variable can be passed by its name to a procedure that assignes that name
+a new value:
+: TO increment :variable
+: MAKE :variable (THING :variable)+1
+: END
+- here ~variable~ is a local parameter which gets the value of the /name/ of a
+  /global/ variable that is passed in (hence the ~:variable~ to resolve the name
+  and ~THING :variable~ to get the value of that name)
+
+* Procedures
+
+Logo distinguishes between two kinds of procedures:
+- *operations* return values (expressions)
+- *commands* have side-effects and don’t return anything
+
+A Logo *instruction* is always made up of a /command/ and as many /expressions/ as
+it needs. An /expression/ is either a /primitive value/ or an /operation/ together
+with other /expressions/ as input arguments.
+
+Logo has *dynamic scope*: a parameter defined in a procedure can be used in its
+subprocedure (and any subsequent subprocedure) if it is not shadowed by an
+equally named parameter of the subprocedure.
+- if a variable used by a procedure is not one of its parameters, Logo will
+  look for a variable of that name in its superprocedure
+
+Anatomy of a procedure definition:
+: <title line>
+: <instruction lines …>
+: <end line>
+
+Define a procedure:
+: TO <procname> :param … [:optparam :defaultval] … [:rest_param] <default-n>
+:   <instruction …>
+:   …
+: END
+- “to” is short for “here’s how to.”
+- ~TO~ does *not* evaluate its input, therefore ~procname~ need not be quoted
+
+Can take four kinds of parameters, in order:
+1. 0 or more *required* inputs (e.g. ~:FOO~)
+2. 0 or more *optional* inputs with default values (e.g. ~[:BAR 40+2]~)
+3. an optional *rest* parameter (e.g. ~[:MORE]~)
+4. an optional *default number of arguments*
+   - defaults to just the number of required args
+   - specifies how many args the procedure accepts if it is not called in
+     parentheses
+
+Output/return a value from a procedure (operation):
+: OP / OUTPUT <value>
+- can only be used in procedure definitions
+
+Use ~STOP~ to stop a procedure (command) without returning anything.
+
+* Expression templates (like anonymous functions)
+
+Expression templates can be used in higher-order functions, such as:
+- ~MAP~
+- ~FILTER~
+- ~REDUCE~
+
+Or can be run/evaluated on their own, using:
+: APPLY <template> <inputlist>
+: INVOKE <template> <input> : (INVOKE <template> <input> …)
+
+** explicit-slot form
+
+Define expr. templates in square brackets, using ~?~ for function arguments:
+: [<expression>]
+- ~?1~, ~?2~, etc. can be used for greater arities
+  - ~(? n)~ is equivalent to ~?n~
+- no need for ~OUTPUT~, since a /template/ is not an operation – it becomes a Logo
+  /expression/, when input values are provided
+
+Examples:
+- ~SHOW INVOKE [? * ?] 3~
+- ~SHOW MAP [? * ?] [1 2 3 4 5]~
+- ~SHOW (MAP [(WORD ?1 ?2 ?1)] [a b c] [d e f])~
+- ~APPLY [REPEAT 4 [fd ?1 rt ?2]] [100 90]~
+- ~APPLY [[base n] REPEAT :n [ FD :base RT (180 - (180*(n-2) / n)) ]] [100 7]~
+
+** named-procedure form
+
+Use the name (word) of a procedure.
+
+Examples:
+- ~SHOW (MAP "WORD [a b c] [d e f])~
+
+** named-slot form / lambda form
+
+Name the parameter used in the template as the first member of the list
+(similar to a lambda term).
+
+Examples:
+- ~SHOW MAP [[x] :x * :x] [1 2 3 4]~
+- ~PRINT (INVOKE [[x y] :x * :y] 2 3)~
+
+** procedure text form
+
+Write instructions in lists after the parameter list (similar to defined
+procedures).
+
+Examples
+- ~PRINT INVOKE [[x] [OUTPUT :x * :x]] 3~
+- ~APPLY [[] [FD 100] [RT 120] [FD 100] [RT 120] [FD 100]] []~
+
+* Debugging / Execution dynamics
+
+Run Logo instructions in the input list:
+: RUN <instructionlist>
+- outputs if the list contains an expression that outputs
+
+Delay execution for ~time~ / 60th of a second:
+: WAIT <time>
+- can be used for animations
+
+Pause a procedure at a specific point:
+: PAUSE
+- only works within procedures
+- type ~option+p~ to invoke ~PAUSE~ from UCBLogo
+- can be used to inspect local variables at the paused point
+
+Use ~option+p~ and type ~throw "toplevel~ to exit an infinite loop.
+
+Continue from ~PAUSE~:
+: CO / CONTINUE <?value>
+- can be given a ~value~ to resolve an issue when missing a value
+
+Stop a procedure from running:
+: STOP
+- type ~option+s~ to invoke ~STOP~ from UCBLogo
+- does not return a value
+- only works inside procedures
+
+A global variable ~erract~ can be set to /act/ with instructions on every /error/
+that occurs:
+: MAKE "erract […]
+- e.g. to make Logo ~PAUSE~ when an error occurs
+- use ~ERN "erract~ to undo
+
+* User input
+
+Read a line from /read stream/ (initially the keyboard):
+: RL / READLIST
+- returns a /list/ of the input words (separated by spaces)
+- use ~IGNORE RL~ to just accept input without processing
+
+Read a single char from the /read stream/:
+: RC / READCHAR
+- returns the character as a /word/
+* Math
+
+Usual precedence rules apply in /infix notation/:
+- multiplication/division before addition/subtraction
+- expressions in parentheses always evaluate first
+
+Return the *negative* of ~n~:
+: MINUS <n>
+- special cases in infix:
+  - ~MINUS 3 + 4~ means ~-(3+4)~
+  - ~- 3 + 4~ means ~(-3)+4~
+
+Calculate the *sum*:
+: SUM <n1> <n2> : (SUM <n> …)
+: <n1> + <n2> + …
+
+Calculate the *difference* (minus):
+: DIFFERENCE <n1> <n2>
+: <n1> - <n2> - …
+
+Calculate the *product*:
+: PRODUCT <n1> <n2> : (PRODUCT <n> …)
+: <n1> * <n2> * …
+
+Calculate the *quotient* (division):
+: QUOTIENT <n1> <n2> : (QUOTIENT <n>)
+: <n1> / <n2> / …
+- with single input (in parentheses), calculates the reciprocal (1 / ~n~)
+  - can be used to convert percentages to fractions of ~1~
+
+Calculate the *remainder* of ~n1~ ÷ ~n2~ (both must be integers):
+: REMAINDER <n1> <n2>
+- returns an integer with the /same sign/ as ~n1~
+
+Calculate the *remainder* of ~n1~ ÷ ~n2~ (both must be integers):
+: MODULO <n1> <n2>
+- returns an integer with the /same sign/ as ~n2~
+
+Calculate the *square root* of ~n~:
+: SQRT <n>
+
+Calculate the ~m~'th *power* of ~n~:
+: POWER <n> <m>
+
+Round to the nearest integer:
+: ROUND <n>
+
+Output ~n~ with fractional part removed (same sign):
+: INT <n>

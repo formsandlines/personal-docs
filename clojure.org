@@ -137,7 +137,10 @@ execute like:
 * Build and deploy
 
 Tutorials:
-- Create a library: https://www.youtube.com/watch?v=OG_MYSGzSHo
+- [[https://www.youtube.com/watch?v=OG_MYSGzSHo][How to create and use Clojure library. Publishing to git and Clojars.]]
+  (YT @VolodymyrKozieiev)
+- [[https://clojure-doc.org/articles/ecosystem/libraries_authoring/][Library Development and Distribution]]
+  (Clojure Guides)
 
 ** To build a JAR:
 
@@ -161,11 +164,11 @@ Default path for a local Maven repository:
 
 1. add function to build.clj that installs the JAR on local repo:
 #+begin_src clojure
-(defn install-locally [_] (b/install ...))
+(defn install [_] (b/install ...))
 #+end_src
 
 2. invoke install function:
-: $ clj -T:build install-locally
+: $ clj -T:build install
 
 ** To push a JAR to Clojars:
 

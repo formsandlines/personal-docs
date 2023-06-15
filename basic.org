@@ -1,0 +1,101 @@
+#+title: Docs/BASIC
+
+* Applesoft BASIC
+
+Emulators:
+- [[https://www.scullinsteel.com/apple2/][Apple IIjs]]
+- [[https://www.calormen.com/jsbasic/][Applesoft BASIC in JavaScript]]
+- [[https://paleotronic.com/software/microm8/][MicroM8]]
+
+References:
+- [[https://mirrors.apple2.org.za/Apple%20II%20Documentation%20Project/Software/Languages/Applesoft%20BASIC/Manuals/Applesoft%20II%20BASIC%20Programming%20Reference%20Manual.pdf][Basic Programming Reference Manual]] (in MIND)
+- [[https://archive.org/details/peeks-pokes-pointers][Peeks, Pokes and Pointers]] (in MIND)
+
+* Program
+
+ctrl-c to interrupt.
+
+Write an ~instruction~ to line ~n~:
+: <n> <instruction>
+
+Enter 2 lines in 1 by separation with colon ~:~.
+
+Run the program:
+: RUN
+
+Go to line ~n~:
+: GOTO <n>
+
+Comments (remarks):
+: REM …
+
+* Subroutines
+
+To go to the subroutine:
+: GOSUB <address>
+
+Write the subroutine instructions from that ~address~ on and then a ~RETURN~ line
+to return from the subroutine.
+
+To return to the calling line:
+: RETURN
+
+* Control structures
+
+: IF <condition> THEN <instruction>
+
+* Loops
+
+Use ~GOTO~ for loops.
+
+: FOR <index-var> = <from-int> TO <to-int>
+: <instruction>
+: …
+: NEXT <index-var>
+
+* Data structures
+
+Initialize an array:
+: DIM <name>(<size>)
+
+Access an array index:
+: <name>(<index>)
+
+* Output
+
+Clear the screen:
+: HOME
+
+Print the program:
+: LIST
+
+Print a string:
+: PRINT <string>
+- join string values with semicolon ~;~
+
+* Memory
+
+Access a memory address:
+: PEEK(<address>)
+
+Write to a memory address:
+: POKE(<address>) (?)
+
+* Variables
+
+: LET <varname> = <value>
+
+* Text
+
+Put a character horizontally/vertically on the screen:
+: HTAB <xpos> : VTAB <ypos>
+
+* Graphic mode
+
+Enter graphics mode:
+: GR
+Enter high-resolution graphics mode:
+: HGR
+
+Return to text mode:
+: TEXT

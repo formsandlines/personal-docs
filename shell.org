@@ -160,6 +160,8 @@ Symbols:
 - ~`>>`~ appends to the file instead of replacing its contents.
 - ~`<`~ reads the files content and takes it as the input stream.
 - ~`2>`~ redirects the standard error (stderr) to a file
+- ~`&>`~ redirects both standard output and standard error to a file or stream
+  - equivalent to ~`> <file> 2>&1`~
 
 Patterns:
 : <cmd>[stdout] >  <file(s)>  : write/replace in file(s)
@@ -1194,11 +1196,11 @@ More infos:
 **** scp
 
 For single files:
-: scp <file to upload> <username>@<hostname>:<destination path>
+: scp <files to upload …> <username>@<hostname>:<destination path>
 - *Warning:* will replace existing file with the same name without asking!
 
 For directories:
-: scp -r <dir to upload> <username>@<hostname>:<destination path>
+: scp -r <dirs to upload …> <username>@<hostname>:<destination path>
 - *Warning:* will replace existing dir with the same name without asking!
 - the ~dir~ will not replace the ~destination path~ directory but will be
   uploaded inside of it
@@ -1993,6 +1995,7 @@ To search all recently (last 24h) created files:
 
 More infos:
 - https://andrew-quinn.me/fzf/
+- https://thevaluable.dev/practical-guide-fzf-example/
 
 ** shellcheck
 Used to debug shell scripts.

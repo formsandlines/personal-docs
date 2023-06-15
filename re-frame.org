@@ -168,7 +168,7 @@ They are provided as descriptions by *event handlers*.
 
 *Effect handlers* act on those descriptions to produce the desired (side)effect.
 
-*** Effect handlers
+** Effect handlers
 :PROPERTIES:
 :CUSTOM_ID: effect_handling
 :END:
@@ -206,15 +206,58 @@ A *query function* “extracts” data from application state and then computes 
 #+begin_src clojurescript
 (rf/reg-sub ; Simple extractor
  :my-data
- (fn [db v] ; v is the query vector
+ (fn [db query-v] ; query-v is the query vector
    (:my-data db)))
 #+end_src
 
-If a *query function* returns a new value, any *view function* that /subscribed/
+If a query function returns a new value, any *view function* that /subscribed/
 to its query id will be called automatically (reactively).
 
 - always register each subscription /individually/
 - *query vectors* can be used to specify/filter the required data
+
+Query functions are used to realize *extractors* (layer 2, see above) and
+*materialized views* (layer 3, see below) in [[The Signal Graph]]:
+- as an extractor (only one function is provided), ~reg-sub~ provides a
+  default function for the input signal, which returns the app-db
+
+*** Materialized view
+
+Computes /derived data/ from other subscriptions and can be implemented by
+supplying two functions to ~rf/reg-sub~:
+#+begin_src clojurescript
+(rf/reg-sub
+  :my-data
+  ;; signals function
+  (fn [query-v]
+    [(subscribe [:a]) (subscribe [:b 2])]) ;; <- these inputs are provided to
+                                           ;; the computation function
+
+  ;; computation function
+  (fn [[a b] query-v]      ;; input values supplied in a vector
+    (calculate-it a b)))
+#+end_src
+- the *signals function* returns the input signals for the computation
+  function, either as a /single signal/, a /vector of signals/ or a /map where
+  the values are signals/
+- the *computation function* takes these input signals as first argument and
+  returns a new derived value
+
+Syntactic sugar for the input signals:
+#+begin_src clojurescript
+(rf/reg-sub
+  :my-data
+
+  ;; input signals
+  :<- [:a]    ;; means (subscribe [:a] is an input)
+  :<- [:b 2]  ;; means (subscribe [:b 2] is an input)
+
+  ;; computation function
+  (fn [[a b] query-v]
+    (calculate-it a b)))
+#+end_src
+- *gotcha:* if there is only one input signal, the first argument to the
+  computation function is just the value, not a vector
 
 ** Subscriptions
 :PROPERTIES:
@@ -266,26 +309,28 @@ There are 3 criteria to decide where state should go:
 *** Locality of state changes
 
 #+begin_quote
-“Bottom line: keep state as local as possible. If only one component is reading
-and writing it, make it component-local. If only one tab needs to see it, keep
-it in the Database (or a Reagent Atom if it’s updated frequently). If multiple
-tabs need to see it, it’s got to go to the server or third-party API.”
+“Bottom line: keep state as local as possible. If only one component is
+reading and writing it, make it component-local. If only one tab needs to
+see it, keep it in the Database (or a Reagent Atom if it’s updated
+frequently). If multiple tabs need to see it, it’s got to go to the server
+or third-party API.”
 #+end_quote
 
 *** Frequency of updates
 
 #+begin_quote
-“Bottom line: if your state changes very frequently, consider keeping it out of
-the Re-frame Database.”
+“Bottom line: if your state changes very frequently, consider keeping it
+out of the Re-frame Database.”
 #+end_quote
 
 *** Transience (how long to keep state)
 
 #+begin_quote
-“Bottom line: store state as transiently as possible. If you need it forever,
-definitely on the server. Just for the time between keystrokes? Definitely in
-the component. Somewhere in-between? Somewhere in the global scope of your
-application, either in the Database or in a global Reagent Atom.”
+“Bottom line: store state as transiently as possible. If you need it
+forever, definitely on the server. Just for the time between keystrokes?
+Definitely in the component. Somewhere in-between? Somewhere in the global
+scope of your application, either in the Database or in a global Reagent
+Atom.”
 #+end_quote
 
 ** Caching
@@ -293,14 +338,15 @@ application, either in the Database or in a global Reagent Atom.”
 See Eric Normand: [[https://ericnormand.me/guide/state-in-re-frame][Where to Store State in Re-frame?]]
 
 #+begin_quote
-“However, how do we react to data stored on the server? The answer is usually to
-cache the state store on the server either in a Database or a Reagent Atom. When
-the state on the server changes, you update the cache, and everything
-re-renders.”
+“However, how do we react to data stored on the server? The answer is
+usually to cache the state store on the server either in a Database or a
+Reagent Atom. When the state on the server changes, you update the cache,
+and everything re-renders.”
 #+end_quote
 
 Updates to the cache can be handled…
-- optimistically -> update cache immediately without waiting for server response
+- optimistically -> update cache immediately without waiting for server
+  response
   - immediate feedback in UI (improves UX)
   - risky (server update could fail)
 - pessimistically -> update cache after server response
