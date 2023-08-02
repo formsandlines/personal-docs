@@ -493,6 +493,75 @@ with ~{:some-arg (my-expr …) :m 42 …}~
            :task (tasks/my-fn {})}}}
 #+end_src
 
+* FlowStorm
+
+- ctrl+l -> clear all recordings
+
+| Command         | Description                               |
+|-----------------+-------------------------------------------|
+| :dbg            | start debugger                            |
+| :last           | go to last recording                      |
+| :ex             | jump before the last exception            |
+| :rec / :stop    | resume / pause tracing                    |
+| :inst / :noinst | enable / disable compiler instrumentation |
+|                 |                                           |
+- ~:noinst~ will not remove instrumentation from already loaded functions, they
+  will have to be re-evaluated
+
+** Config for Clojure (ClojureStorm)
+https://jpmonettas.github.io/flow-storm-debugger/user_guide.html#_clojurestorm
+
+In =deps.edn=:
+#+begin_src clojure
+{:classpath-overrides {org.clojure/clojure nil}
+ :extra-deps {com.github.jpmonettas/clojure {:mvn/version "LATEST-AVAILABLE-VERSION"}
+              com.github.jpmonettas/flow-storm-dbg {:mvn/version "LATEST-AVAILABLE-VERSION"}}
+ :jvm-opts ["-Dflowstorm.startRecording=true"
+            "-Dclojure.storm.instrumentEnable=true"
+            "-Dclojure.storm.instrumentOnlyPrefixes=YOUR-PROJECT-TOP-NS"]}
+#+end_src
+
+** Config for ClojureScript
+https://jpmonettas.github.io/flow-storm-debugger/user_guide.html#_clojurescript
+
+In =shadow-cljs=:
+#+begin_src clojure
+{:dependencies [[com.github.jpmonettas/flow-storm-inst "RELEASE"]]
+ :nrepl        {:port 9000}  ; optional
+ :builds       {:<build-id> {:devtools {:preloads [flow-storm.api]}}}}
+ #+end_src
+
+#+begin_src shell
+clj -Sforce -Sdeps '{:deps {com.github.jpmonettas/flow-storm-dbg {:mvn/version "RELEASE"}}}' -X flow-storm.debugger.main/start-debugger :port 9000 :repl-type :shadow :build-id :<build-id>
+#+end_src
+
+
+** Instrumentation
+
+Disabling instrumentation is useful when you want to measure performance or
+in any other situation where you don't want instrumentation. If you start
+ClojureStorm with disabled instrumentation it should be exactly the vanilla
+Clojure compiler.
+
+JVM opts
+- ~-Dclojure.storm.instrumentOnlyPrefixes~
+- ~-Dclojure.storm.instrumentSkipPrefixes~
+
+If you start the jvm with
+~-Dclojure.storm.instrumentOnlyPrefixes=my-project,lib1,lib2.core~ it means
+that all functions under ~my-project.*~, ~lib.*~ and ~lib2.core.*~ will get
+instrumented, everything else will be skipped and be compiled exactly like
+with the vanilla Clojure compiler.
+
+On the other side you have ~-Dclojure.storm.instrumentSkipPrefixes~ to specify
+what to skip instead of what to instrument, in case you want to instrument
+everything but certain libs.
+
+Everything under ~clojure.*~ will be un-instrumented by default, but if you
+set the right prefixes you can then re-eval the ~clojure.*~ functions you are
+interested in and instrument them.
+
+
 
 * Editor support
 

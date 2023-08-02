@@ -422,6 +422,7 @@ Initializes a repository.
 *** git clone
 : $ git clone https://github.com/...  > clone repository
 : $ git clone <url> <dirname>         > can choose a different dir name
+:  -b <branchname>  > clone a specific branch
 :  -o <name>  > choose a different remote name (default: “origin”)
 
 ** Check

@@ -1,0 +1,776 @@
+#+title: Docs/R
+
+
+Download from [[https://cloud.r-project.org][CRAN]] (comprehensive R archive network).
+- contains the *base package* which is required to run R
+- contains many *add-on packages*, listed [[https://cloud.r-project.org/doc/FAQ/R-FAQ.html#Add_002don-packages-in-R][here]]
+- should contain *recommended packages from CRAN*, listed [[https://cloud.r-project.org/doc/FAQ/R-FAQ.html#Add_002don-packages-from-CRAN][here]]
+
+Resources:
+- [[https://cloud.r-project.org/manuals.html][The R Manuals]] from /R Development Core Team/, including:
+  - [[https://cloud.r-project.org/doc/manuals/r-release/R-intro.pdf][An Introduction to R]]
+  - [[https://cloud.r-project.org/doc/manuals/r-release/R-data.pdf][R Data Import/Export]]
+  - [[https://cloud.r-project.org/doc/manuals/r-release/R-exts.pdf][Writing R Extensions]]
+  - [[https://cloud.r-project.org/doc/manuals/r-release/R-lang.pdf][The R language definition]] (draft)
+- [[https://r4ds.hadley.nz/][R for Data Science (2e)]]
+- Software for Data Analysis (Chambers, 2008)
+- Programming with Data (Chambers, 1998)
+- [[https://www.youtube.com/playlist?list=PLVext98k2evi8mDNRo4MwIgVgSmwM3cS8][Learn R Programming with Johns Hopkins University]] (Coursera)
+
+* General information
+
+R is a dialect of the language *S* from 1976 by John Chambers and others at Bell
+Labs.
+- [[https://cloud.r-project.org/doc/FAQ/R-FAQ.html#R-and-S][R and S]]
+
+Features of R:
+- dynamically typed
+- designed for interactive use, not production
+- lazy evaluation
+- slow (~ 100x slower than C)
+  - maybe interface with C++ to rewrite parts for performance
+- first-class functions, closures
+- objects
+  - /s3/ -> older system, more permissive/convenient, more popular
+  - /s4/ -> newer system, more rigorous, better interfacing with other langs
+- vector-oriented (everything is a vector)
+- pass by value
+- everything is nullable
+  - ~NA~ -> not available (the value is there, but we don’t know it)
+  - ~NULL~ -> does not exist
+- for-loops are inefficient in R
+
+** Editors
+
+- [[https://posit.co/products/open-source/rstudio/][RStudio]] -> IDE
+- [[https://ess.r-project.org][ess]] -> Emacs plugin
+
+* REPL
+
+Start R REPL:
+: $ R
+Or use the desktop application.
+
+REPL-specific commands:
+: demo()  -- some demos
+: q()     -- exit REPL
+
+Getting help:
+: help()         -- open R help systems
+: help.start()   -- open as HTML in browser
+: help(<topic>)  -- get help for a specific command
+:   ?<topic>
+: help.search(<topic>)  -- fuzzy/RegEx search
+:   ??<topic>
+: example(<topic>)  -- get examples for a help topic
+- some subjects (e.g. containing special characters) must be enclosed in
+  double quotes
+- try ~?help.search~ for details and more examples
+
+
+* RStudio
+
+IDE for R.
+- https://posit.co/download/rstudio-desktop/
+
+Resources:
+- [[https://docs.posit.co/ide/user/][RStudio IDE User Guide]]
+
+Keyboard shortcuts: ~opt + shift + k~ to open reference
+
+* Environment
+
+The *working directory* is set to the directory ~R~ was launched in, which is most
+often the /home/ directory.
+
+Working directory:
+: getwd()
+: setwd(<dir>)
+
+Use ~paste~ to create a path with ~getwd()~:
+: data <- read.csv(paste(getwd(),"myfile.csv",sep=""))
+
+** Workspace
+
+The *workspace* is the collection of [[*Objects][objects]] stored in an R session.
+- objects are created and stored by name
+
+List names of (most of) the objects stored in the R session:
+: objects() : ls()
+
+It can be stored permanently in a file (called ~.RData~) for future R sessions.
+- on ~q()~, R asks to save the workspace
+- it will be saved in the current working directory (-> ~$ pwd~)
+- R will also save a file ~.Rhistory~ which contains the command lines used in
+  the session
+
+To restore a workspace, change into directory where it was stored and launch ~R~.
+
+To remove objects from a workspace:
+: rm(<obj>, …)
+
+Save workspace:
+: save.image(?file = <path>, …)
+Read saved workspaces:
+: load(…)
+
+* Packages
+
+Install a package (from /CRAN/):
+: install.packages("packagename")
+- or via RStudio interface
+- use ~c("foo", "bar", …)~ to install multiple packages
+
+Load a package:
+: library(packagename)
+
+** tidyverse
+
+Opinionated collection of R packages designed for data science. All packages
+share an underlying design philosophy, grammar, and data structures.
+- [[https://www.tidyverse.org]]
+- [[https://github.com/matloff/TidyverseSkeptic][Issues with tidyverse]] & [[https://news.ycombinator.com/item?id=20362626][debate]]
+
+: install.packages("tidyverse")
+
+*Core packages* of ~tidyverse~ are:
+- [[https://ggplot2.tidyverse.org][ggplot2]]: system for declaratively creating graphics, based on The Grammar
+  of Graphics
+- [[https://dplyr.tidyverse.org][dplyr]]: provides a grammar of data manipulation, providing a consistent set
+  of verbs that solve the most common data manipulation challenges
+- [[https://tidyr.tidyverse.org][tidyr]]: provides a set of functions that help you get to tidy data
+- [[https://readr.tidyverse.org][readr]]: provides a fast and friendly way to read rectangular data (like
+  csv, tsv, and fwf)
+- [[https://purrr.tidyverse.org][purrr]]: enhances R’s functional programming (FP) toolkit by providing a
+  complete and consistent set of tools for working with functions and
+  vectors
+- [[https://tibble.tidyverse.org][tibble]]: a modern re-imagining of the data frame, keeping what time has
+  proven to be effective, and throwing out what it has not
+- [[https://stringr.tidyverse.org][stringr]]: provides a cohesive set of functions designed to make working
+  with strings as easy as possible
+- [[https://forcats.tidyverse.org][forcats]]: provides a suite of useful tools that solve common problems with
+  factors
+
+** other useful packages
+
+: arrow, babynames, curl, duckdb, gapminder, ggrepel, ggridges, ggthemes, hexbin, janitor, Lahman, leaflet, maps, nycflights13, openxlsx, palmerpenguins, repurrrsive, tidymodels, writexl
+
+* Comments
+
+: # comment
+
+* Variables
+
+Assignment in the current/local environment:
+: <name> <- <value>
+: <value> -> <name>
+: <name> = <value>
+: assign(<name>, <value>)
+- if declared inside a function, the variable is local to that function
+- brackets do not set a new scope (e.g. in variables declared in if-statements
+  are accessible from outside)
+
+Assignment in the global environment:
+: <name> <<- <value>
+- can be declared inside a function and used outside of it
+
+See [[https://stackoverflow.com/questions/10904124/global-and-local-variables-in-r][Global and local variables in R (Stack Overflow)]]
+
+
+* Data structures
+
+** Objects
+
+*Objects* are the entities that R creates and manipulates.
+- may be variables, arrays of numbers, character strings, functions, or more
+  general structures built from such components
+
+*6 atomic classes* of objects:
+- character
+- numeric (real numbers)
+- integer
+- complex
+- logical (boolean)
+- raw (?)
+
+~NULL~ is also considered /atomic/.
+
+[[*Vectors][Vectors]] are the *most basic object*, but not all atomic types are vectors
+
+All objects can have an attribute ~names~.
+- when providing values for objects, names can be given with ~myname = <val>~
+
+Get the /type/ of object ~x~:
+: typeof(<x>)
+
+Get the /class/ of object ~x~:
+: class(<x>)
+- not always the same as /type/, e.g. a number has class ~numeric~ but type
+  ~double~
+
+Get the ~names~ attribute of ~x~:
+: names(<x>)
+
+Check if object ~x~ is /atomic/ or /recursive/:
+: is.atomic(<x>)
+: is.recursive(<x>)
+
+Return the number of rows/columns in ~x~, a /vector/, /array/ or /data frame/:
+: nrow(<x>)
+: ncol(<x>)
+
+Return the first or last parts of a /vector/, /matrix/, /table/, /data frame/ or
+/function/:
+: head(<obj>)
+: tail(<obj>)
+- mostly used to see what the data looks like
+
+Get the number of items of ~obj~:
+: length(<obj>)
+
+Reverse ~obj~:
+: rev(<obj>)
+
+Get the ~TRUE~ indices of a logical object, allowing for array indices:
+: which(<logvec/arr>, …)
+
+*** Modes
+*** Attributes
+
+R objects can have attributes:
+- ~names~, ~dimnames~
+- ~dimensions~ (e.g. matrices, arrays)
+- ~class~
+- ~length~
+- other user-defined attributes/metadata
+
+Get attribute list of ~x~ (not all attr.):
+: attributes(<x>)
+- returns ~NULL~ if no attributes found
+
+** Primitives
+
+By default, *numbers* are created as /double precision real numbers/.
+
+To explicitly create an *integer number*, append suffix ~L~.
+
+To create a *complex number*, write e.g. ~2+4i~.
+
+Special Symbols:
+
+| Value | Explanation   | Type    |
+|-------+---------------+---------|
+| ~Inf~   | infinity      | ~numeric~ |
+| ~TRUE~  | logical true  | ~logical~ |
+| ~FALSE~ | logical false | ~logical~ |
+| ~NA~    | Not Available | ~logical~ |
+| ~NaN~   | Not a Number  | ~numeric~ |
+
+- ~NA~ values can have a /class/ like /numeric/, /logical/, etc.
+- ~NaN~ are considered also ~NA~ but the converse is not true
+- ~T~ and ~F~ are abbreviations for true/false, but just variables, which can be
+  overwritten by the user
+- ~logical~ values can also be used by numeric operators, which will coerce
+  them into ~0~ and ~1~
+- ~1 / 0~ = ~Inf~, ~0 / 0~ = ~NaN~, ~1 / Inf~ = ~0~
+
+Test if an object is ~NA~ / ~NaN~:
+: is.na(<obj>)
+- returns a logical vector of same size as ~obj~
+
+To only check for ~NaN~:
+: is.nan(<obj>)
+
+** Atomic objects
+*** Vectors
+
+Properties:
+- elements must have the same type/class
+- can be expanded indefinitely
+
+*Atomic vector modes* are:
+- ~logical~: booleans
+- ~numeric~: numbers (created as ~double~)
+- ~character~: strings
+- ~integer~ (also considered ~numeric~ ?)
+- ~complex~
+- ~raw~
+
+*Other vector modes*:
+- ~list~
+- ~expression~
+- ~any~
+
+*Primitives are vectors* of length 1.
+- e.g. numbers, strings, booleans
+- arithmetic operators work on vectors mixed with vector or scalar arguments
+- functions that take numeric args can also take vector args
+
+Create a “simple” vector (no attributes):
+: vector(mode = "<mode>", length = <length>)
+- use ~vector()~ for empty vectors (type is ~logical~)
+- initializes the vector with /default/ values (e.g. ~0~ for numeric v.)
+
+Create a new vector from ~x~, but with mode ~mode~ instead:
+: as.vector(<x>, mode = "<mode>")
+
+Check if object ~x~ is a vector of specified ~mode~:
+: is.vector(<x>, mode = "<mode>")
+- should have no attributes other than ~names~
+
+Create/concatenate a vector from elements:
+: c(<el1>, <el2>, …)
+- coerces numbers to strings, if strings are elements
+- coerces booleans to numbers (~0~ or ~1~), if numbers are elements
+- merges vector elements to a single flat vector
+
+Append to a vector:
+: append(<vec>, <el>)
+- same as ~c(<vec>, <el>)~
+
+Construct a range of numbers (vector mode is ~integer~):
+: <from>:<to>
+- can be int, float and negative numbers
+
+Map names/keys to vector values:
+: names(<vec>) <- c(<name1>, <name2>, …)
+- must have same length as ~vec~ (or less?)
+- enables key-based referencing: ~myvec["mykey"]~
+
+Coerce vectors into different types:
+: as.numeric(<vec>)
+: as.logical(<vec>)
+: as.character(<vec>)
+: as.complex(<vec>)
+- elements that are not coerceable are returned as ~NA~
+- complex numbers from real numbers get a 0 imaginary part
+
+Sort (or order) a vector or factor (partially) into /ascending/ or
+/descending/ order:
+: sort(<vec/fac>, ?decreasing=<bool>, …)
+
+**** Index Vector
+
+An /index vector/ ~[…]~ can select subsets of a vector.
+- not only for variable names but for any expression that evaluates as a
+  vector
+- indices effectively start at ~1~; index ~0~ is the vector type
+
+Types:
+- *numerical vector*
+  - e.g. ~x[2]~, ~x[c(3,5,7)]~, ~x[3:6]~
+- *logical vector*
+  - e.g. ~x[!is.na(x)]~, ~x[x < 5]~, ~x[c(T,F,T)]~, ~x[x$a > 3 & x$b < 5]~
+  - ~TRUE~ values are selected, ~FALSE~ values omitted
+- *character string vector*
+  - e.g. ~x[c("apple", "orange")]~
+  - only applies if ~x~ has a ~names~ attribute to identify its components
+- *sorted* (?)
+  - e.g. ~x[order(x$foo),]~ sorts all rows of ~x~ by values of column ~foo~ if
+    it is a data frame
+    - ~x[rev(order(x$foo)),]~ to sort in /descending/ order
+
+*** Factors
+
+Provide compact ways to handle /categorical data/. A factor can be thought
+of as an *integer vector* where each integer has a /label/ (/self-describing/).
+- can be *unordered* or *ordered* (e.g. ranked categories)
+- labels can be accessed just like in a vector
+- treated specially by /modelling functions/ like ~lm()~ and ~glm()~
+
+The *levels* of a factor describe the categories, they can be /ordered/ in
+different ways or remain /unordered/ (?).
+
+Calling ~unclass(<fac>)~ will return an integer vector with the integers
+corresponding to the order of categories in ~levels~.
+
+Create a factor from a vector:
+: factor(?x=<charvec>, ?levels=<charvec>, ?ordered=<bool>)
+- an optional ~levels~ vector can be provided to explicitly specify the
+  order of levels
+- other vector types are coerced to a character vector
+- default for ~ordered~ is ~is.ordered(<vec>)~
+
+Get a vector of the levels from a factor:
+: levels(<fac>)
+
+Build a table of the frequency count for each factor level:
+: table(<fac>, …)
+
+Examples:
+#+begin_src R
+fac <- factor(c("low","high","mid","mid","high","low","mid"))
+# fac:
+# [1] low  high mid  mid  high low  mid
+# Levels: high low mid
+table(fac)
+# :
+# fac
+# high  low  mid
+#    2    2    3
+#+end_src
+
+*** Arrays / Matrices
+
+/Multi-dimensional generalizations/ of vectors. Vector that has a
+*dimensional vector* for its ~dim~ attribute.
+- dimensional vectors are vectors of length /k/ (for a /k/-dimensional vector)
+  that contain only /non-negative integers/
+  - arrays can be one-dimensional (might cause confusion)
+- values can be accessed by 2 or more indices (e.g. ~x[3,4,2]~)
+  - (?) indices are in /column major order/, with the first subscript moving
+    fastest and the last subscript slowest
+  - lower dimensional *slices* can be made by omitting indices in the index
+    vector, while keeping the comma-separation (e.g. ~x[4,,2,]~)
+
+To create an array from a vector:
+: dim(<vec>) <- <dimvec>
+
+: array(?data=<vec>, ?dim=<dimvec>, ?dimnames=<list>)
+- ~dim~ default: ~length(vec)~
+- if ~data~ is not provided, fills entries with ~NA~
+- ~array()~ => ~[1] NA~
+
+In matrices, *names for dimensions* can be provided by the ~dimnames~
+attribute, which takes a list of two vectors (/row names/ and /column names/).
+- e.g. ~dimnames(m) <- list(c("a, "b"), c("c", "d"))~ for rows ~a~ and ~b~ and
+  columns ~c~ and ~d~
+
+: matrix(?data=<vec>, nrow=<int>, ncol=<int>, ?byrow=<bool>, ?dimnames=<list>)
+- ~byrow~ -> if ~FALSE~ (default), matrix is filled by columns, otherwise rows
+- if ~data~ is not provided, fills entries with ~NA~
+- ~matrix()~ => ~[,1] [1,] NA~
+
+Construct a matrix column-wise/row-wise:
+: cbind(<col1>, <col2>, …)
+: rbind(<row1>, <row2>, …)
+- rows/cols can also be named with ~name=<val>~ syntax
+
+Examples:
+#+begin_src R
+x <- 1:12
+dim(x) <- c(3,4)  # creates a 3×4 array/matrix from x
+# x:
+#      [,1] [,2] [,3] [,4]
+# [1,]    1    4    7   10
+# [2,]    2    5    8   11
+# [3,]    3    6    9   12
+
+x <- 1:1500
+dim(x) <- c(3,5,100)  # 3×5×100 array
+
+array(1:20, dim=c(4,5))
+# :
+#      [,1] [,2] [,3] [,4] [,5]
+# [1,]    1    5    9   13   17
+# [2,]    2    6   10   14   18
+# [3,]    3    7   11   15   19
+# [4,]    4    8   12   16   20
+
+cbind(1:3, 11:13, 21:23)
+# :
+#      [,1] [,2] [,3]
+# [1,]    1   11   21
+# [2,]    2   12   22
+# [3,]    3   13   23
+
+rbind(1:3, 11:13, 21:23)
+# :
+#      [,1] [,2] [,3]
+# [1,]    1    2    3
+# [2,]   11   12   13
+# [3,]   21   22   23
+#+end_src
+
+** Recursive objects
+*** Lists
+
+General form of vector where elements types can be different.
+- convenient way to return the results of a statistical computation
+- lists are *recursive types* and can also contain other lists
+- the elements of lists are always *singleton vectors*, hence the double
+  brackets
+- components can be *accessed by index* using double brackets, e.g. ~Lst[[2]]~
+- list components *may also be named* and accessed like ~Lst$item.name~ or
+  ~Lst[["item.name"]]~ (works also with variables for names)
+
+Create a list:
+: list(<item1>, <item2>, …)
+- list components can be specified with a name like ~my.name=<value>~
+- the components used to form the list are /copied/ for the new list
+
+*** Data Frames
+
+/Matrix-like/ structure, in which the /columns can be of different types/.
+- used to store *tabular data*
+- often returned by ~read.table()~ or ~read.csv()~ functions
+- many experiments are best described by data frames: the treatments are
+  categorical but the response is numeric
+
+A /data frame/ is a *list* with class ~data.frame~, where every element /must
+have the same length/.
+- the components must be /vectors/ (numeric, character or logical), /factors/,
+  /numeric matrices/, /lists/ or other /data frames/
+- /vectors/ in the data frame must all have the /same length/ while /matrices/
+  must all have the /same number of rows/
+- matrices, lists and data frames provide /as many variables/ to the new
+  data frame as they have columns, elements or variables, respectively
+
+Get *column/row names*:
+: names(<dframe>)
+: row.names(<dframe>)
+
+Select a specific *column* with ~<dframe>$colname~ or by index:
+- ~<dframe>[2]~ or ~<dframe>["foo"]~ returns a *data frame* of one column
+  (/column 2 or "foo"/ of the original data frame)
+- ~<dframe>[,2]~, ~<dframe>[[2]]~, ~<drame>$foo~ and ~<dframe>[["foo"]]~ all
+  return a *vector* of the entries of /column 2 or "foo"/
+
+Select a specific *row* by index:
+- ~<dframe>[2,]~ returns a *vector* of the entries of /row 2/
+
+Select a *subset* of the data frame as another data frame:
+- see [[*Index Vector][Index Vector]]
+
+*Sort* a data frame by a specific column:
+- see [[*Index Vector][Index Vector]]
+
+
+Count number of rows/columns:
+: nrow(<dframe>)
+: ncol(<dframe>)
+
+Create a data frame:
+: data.frame(<col1>, <col2>, …, ?row.names=<int/str | int-/charvec>, …)
+- columns can be named (just like with lists)
+- ~row.names~ can be a single /integer or character string/ specifying a
+  column to be used as row names, or a /character or integer vector/
+- all columns must have the same number of elements/lines
+
+Coerce a list to a data frame (if it conforms to the restrictions):
+: as.data.frame(<list>)
+
+Convert to a matrix:
+: data.matrix()
+- values of different types are coerced to match a single type
+
+Examples:
+#+begin_src R
+data.frame(id=c("a","b","c"), name=c("George","Mary","Bob"), age=c(42,28,19),
+           signed=c(T,F,T))
+# :
+#   id   name age signed
+# 1  a George  42   TRUE
+# 2  b   Mary  28  FALSE
+# 3  c    Bob  19   TRUE
+#+end_src
+
+*** Expressions
+
+*** Functions
+
+Functions are objects themselves in R.
+
+** Environments
+
+Evaluate an R expression in an /environment/ constructed from (possibly a
+modified copy of) ~data~:
+: with(<data>, <expr>, …)
+- e.g. ~with(df, foo)~ allows to just refer to column ~foo~ from data frame ~df~
+  without having to write ~df$foo~
+* Control structures
+
+If expression:
+: if(<cond>) <expr>
+: if(<cond>) <cons.expr> else <alt.expr>
+- returns the evaluated clause value or ~NULL~ (invisibly) if there is no ~else~
+- use curly brackets for multi-line expressions
+
+Iterative loop constructs for side-effects:
+: for(<var> in <seq>) <expr>
+: while(<cond>) <expr>
+: repeat <expr>
+- return ~NULL~ (invisibly)
+- ~repeat~ repeats ~expr~ forever (or until ~break~ is called)
+
+Break out of a ~for~, ~while~ or ~repeat~ loop:
+: break
+
+Halt processing of the current iteration and advance the /looping index/:
+: next
+
+* Basic math functions
+
+Round number:
+: floor(<x>) : ceiling(<n>)
+: trunc(<x>, …)
+: round(<x>, digits=<int>)
+: signif(<x>, digits=<int>)
+
+Sum over one or more vectors:
+: sum(<vec> …, ?na.rm=<bool>)
+- ~na.rm~ => should missing values (incl. ~NaN~) be removed?
+
+* Statistical functions
+
+Calculate the (trimmed) arithmetic mean:
+: mean(<numvec>)
+Calculate the median:
+: median(<numvec>)
+
+Apply a function ~f~ (e.g. ~mean~) to each group of the components from ~vec~,
+defined by the levels of ~fac~:
+: tapply(<vec>, <fac>, <f>)
+- returns a structure of the same length as the levels attr. of ~fac~
+- contrary to ~aggregate~, will fill in missing combinations with ~NA~
+
+Split ~x~ into subsets, compute summary statistics for each, and return the
+result in a convenient form:
+: aggregate(<x>, by=<list>, FUN=<function>)
+- ~x~ is usually a data frame
+- ~by~ -> list of grouping elements, each as long as the variables in data frame
+  ~x~, or a formula
+  - the elements are coerced to factors
+
+Calculate various summary statistics for ~x~ depending on its /class/:
+: summary(<x>, …)
+- numeric vec.: min/max, median, mean, 1st./3rd. quartile
+- logical vec.: count of ~TRUE~ and ~FALSE~
+- other vec.: count of elements
+- factor: count for each level
+- data frame: summary for each variable
+
+
+Custom functions:
+
+Calculate the standard errors of means of ~x~:
+: stdError <- function(x) sqrt(var(x)/length(x))
+
+
+Examples:
+#+begin_src R
+tapply(c("A","B","C","D","E","F"),
+       list(c("x","x","z","y","y","z"), c(1,2,1,1,2,2)), paste)
+#   1   2
+# x "A" "B"
+# y "D" "E"
+# z "C" "F"
+#+end_src
+
+
+* Logical operators
+
+Exact equality:
+: < : <= : > : >= : ==
+Inequality:
+: !=
+
+Intersection (“and”):
+: x & y
+
+Union (“or”):
+: x | y
+
+* String manipulation
+
+Create with double or single quotes (always printed ~"…"~).
+
+Escape with C-style escape sequences (~\~ as escape character).
+- ~\\~ => ~\~, ~\"~ => ~"~
+- ~\n~ => newline, ~\t~ => tab, ~\b~ => backspace
+- for a full list, see: ~?Quotes~
+
+Count number of characters:
+: nchar(<str>)
+
+Concatenate strings or vector(s) of strings:
+: paste(<obj1>, <obj2>, …, ?sep=<str>, ?collapse=<str>)
+- default separator is a /space/
+- coerces numbers into character strings
+
+Examples:
+: paste(c('a','b','c'), c(1,2), collapse=' | ', sep='.')
+: => [1] "a.1 | b.2 | c.1"
+
+* Reading/writing data
+
+Read a file in table format and create a data frame from it:
+: read.table(↓)
+:   file <path> ::string
+- : can be absolute or relative to the working directory
+:   ?header = FALSE ::bool
+- : does the file have a header line?
+:   ?sep = "" ::string
+- : column-seperator in the input (e.g. ~","~ or ~";"~)
+:   ?colClasses = NA ::charvec
+- : class of each column in the dataset (e.g. numeric, logical, etc.)
+:   ?nrows = -1 ::int
+- : number of rows in the dataset
+:   ?comment.char = "#" ::string
+- : comment character
+:   ?skip = 0 ::int
+- : number of lines to skip from the beginning
+:   ?stringsAsFactors = FALSE ::bool
+- : should character variables be coded as factors?
+without specialization, R will automatically:
+- figure out how many rows there are
+- figure out what type of variable is in each column
+- however, it will run faster if specified up front
+Specialized functions:
+: read.csv(…, header = TRUE, sep = ",", quote = "\"",
+:             dec = ".", fill = TRUE, comment.char = "")
+
+Set ~colnames~ attribute after import to create more readable column names.
+
+Read/write tabular data:
+: read.table(…)
+: write.table(…)
+
+Read/write lines of a text file:
+: readLines(…)
+- returns a character vector
+: writeLines(…)
+
+Read/write R code files:
+: source(…)
+: dump(…)
+
+Read/write R code files:
+: dget(…)
+: dput(…)
+
+Read/write a single R objects in binary form:
+: unserialize(…)
+: serialize(…)
+
+* Plots / Graphs
+
+Default scatterplot function:
+: plot(x, y, ?main=<str>, ?xlab=<str>, ?ylab=<str>, …)
+
+Change the title of a plot:
+: title(main = <str>)
+
+Save a plot image:
+: quartz.save(<filepath>, …)
+
+Make a grid for plots:
+: par(mfrow = c(<rows>, <cols>))
+
+
+Histogram:
+: hist(x, …)
+
+Conditioning plot:
+: coplot(formula, …)
+
+Barplot:
+: barplot(formula, …)
+
+
+** Hmisc package
+
+Plot error bars from a mean variable:
+: errbar(x, y, yplus, yminus, ?xlab=<str>, ?ylab=<str>, …)
+- e.g. ~yplus = y + sd, yminus = y - sd~ (where ~y~ is the mean and ~sd~ is the
+  standard deviation or standard error)

@@ -1,0 +1,317 @@
+#+title: Docs/Scala
+
+- [[https://scala-lang.org][https://scala-lang.org]]
+- [[https://docs.scala-lang.org/scala3/reference/index.html][Scala 3 Reference]]
+- [[https://www.scala-sbt.org/1.x/docs/index.html][sbt documentation]]
+- [[https://index.scala-lang.org][Scaladex]] (searchable index for Scala libs)
+- [[https://github.com/lauris/awesome-scala][Awesome Scala]]
+
+Learn
+- [[https://users.scala-lang.org][Scala Users]] (forum)
+- [[https://docs.scala-lang.org/scala3/book/introduction.html][Scala 3 Book]] (with sbt)
+- [[https://scastie.scala-lang.org/][browser-based playground]]
+
+* Install
+
+According to https://scala-lang.org/download/ :
+: brew install coursier/formulas/coursier && cs setup
+
+** Editor integration
+
+*Metals*: Scala language server with rich IDE features
+- https://scalameta.org/metals/
+- for VS Code, [[https://github.com/scalameta/nvim-metals][Neovim]], Emacs, Sublime Text
+
+* Develop
+
+Compiler:
+: scalac
+- like ~javac~, will create several =.class= files (as Java bytecode)
+
+REPL and script runner:
+: scala
+To run a compiled =.class= file:
+: scala <classname>
+
+[[https://scala-cli.virtuslab.org/][Scala CLI]], interactive toolkit for Scala:
+: scala-cli
+
+** sbg build tool
+- https://www.scala-sbt.org
+
+: sbt  : sbtn
+
+** Worksheets
+
+
+* Features
+
+- *functional* /and/ *object-oriented*
+  - “functions for the logic, objects for the modularity”
+- scalable (Scala -> /scalable language/)
+- statically typed
+- pattern matching
+- runs on the JVM, but can also compile to:
+  - JS: [[https://www.scala-js.org][Scala.js]]
+  - LLVM (native)
+- native executables with [[https://github.com/scala-native/scala-native][Scala Native]] and *GraalVM*
+- concurrent and parallel programming (-> Actor model, Akka framework)
+- regularity (?)
+- metaprogramming
+
+[[https://docs.scala-lang.org/scala3/book/scala-features.html#a-functional-programming-language][FP features]], e.g.
+- first-class functions
+- higher-order functions
+- lambdas
+- immutable collections in stdlib
+
+[[https://docs.scala-lang.org/scala3/book/scala-features.html#an-object-oriented-language][OOP features]], e.g.
+- every value is an instance of a class
+- every “operator” is a method
+- all types inherit from top-level ~Any~, whose immediate children are:
+  - ~AnyVal~ -> /value types/ like ~Int~, ~Boolean~
+  - ~AnyRef~ -> /reference types/ as in Java
+  - therefore no Java distinction between primiitive and boxed types (e.g. ~int~
+    vs. ~Integer~)
+- classes, traits, inheritance
+- optional /mutable state/ through mutable variables and data structures
+
+[[https://docs.scala-lang.org/scala3/book/scala-features.html#expressive-type-system][Type system features]], e.g.
+- type inference
+- type classes
+- ADTs (with enums)
+- intersection & union types
+- type lambdas
+  that has the type
+  - see also [[https://docs.scala-lang.org/scala3/reference/contextual/][Contextual Abstractions]]
+
+/Implicits/
+- see [[https://docs.scala-lang.org/scala3/book/why-scala-3.html#4-implicits-simplified][Implicits, simplified]]
+- [[https://docs.scala-lang.org/scala3/book/scala-features.html#term-inference-made-clearer][term inference]] -> given a type, the compiler synthesizes a “canonical” term
+
+Java interop
+- Java classes and libs can be used in Scala
+- Scala code can be used in Java apps
+- projects with mixed Scala and Java code are possible
+
+* Types
+
+** Numeric
+
+| Type       | Range | Shorthand | Example |
+|------------+-------+-----------+---------|
+| Byte       |       |           |         |
+| Int        |       |           |         |
+| Long       |       | 1_000L    |         |
+| Short      |       |           |         |
+| Double     |       | 2.2D      |         |
+| Float      |       | 3.3F      |         |
+
+- type inference defaults: e.g. ~1~ -> ~Int~, ~1.0~ -> ~Double~
+
+For very large numbers, use ~BigInt~ or ~BigDecimal~, e.g.:
+: BigInt(1_234_567_890_987_654_321L)
+: BigDecimal(123_456.789)
+
+** Other
+
+| Type   | Example |
+|--------+---------|
+| String | "Foo"   |
+| Char   | 'f'     |
+
+* Functions / Methods
+
+Method definition:
+: def <name>(<argname>: <argtype> = <default-val>, …): <returntype> =
+:   <body>
+- parentheses for args can be omitted if none taken
+- return type annotation can be omitted for type inference
+- ~body~ can be written in the same line as the ~=~ sign
+- can be called with named-params, like ~answer(x = 42)~
+- put ~@main~ before definition for the main method
+
+Extensions methods for types:
+: extension (<var>: <type>)
+:   def …
+
+
+Examples:
+#+begin_src scala
+extension (s: String)
+  def makeInt(radix: Int): Int = Integer.parseInt(s, radix)
+
+"1".makeInt(2)      // Int = 1
+"10".makeInt(2)     // Int = 2
+"100".makeInt(2)    // Int = 4
+#+end_src
+
+
+* Control structures
+
+If-expression:
+: if <cond> then
+:  <expr>
+: else if <cond> then
+:  <expr>
+: else
+:  <expr>
+
+Match-expression:
+: <expr> match
+:   case <pattern> => <body>
+:   case <pattern> if <condition on pattern-var> => <body>
+:   …
+:   case _ => <fallthrough>
+- can be used similar to Java ~switch~ statement
+- not all types support pattern matching
+
+try/catch/finally:
+#+begin_src scala
+try
+  writeTextToFile(text)
+catch
+  case ioe: IOException => println("Got an IOException.")
+  case nfe: NumberFormatException => println("Got a NumberFormatException.")
+finally
+  println("Clean up your resources here.")
+#+end_src
+
+
+Examples:
+
+Match can be used with types:
+#+begin_src scala
+val p = Person("Fred")
+
+// later in the code
+p match
+  case Person(name) if name == "Fred" =>
+    println(s"$name says, Yubba dubba doo")
+
+  case Person(name) if name == "Bam Bam" =>
+    println(s"$name says, Bam bam!")
+
+  case _ => println("Watch the Flintstones!")
+#+end_src
+
+Match can be used as the body of a function:
+#+begin_src scala
+// getClassAsString is a method that takes a single argument of any type.
+def getClassAsString(x: Matchable): String = x match
+  case s: String => s"'$s' is a String"
+  case i: Int => "Int"
+  case d: Double => "Double"
+  case l: List[?] => "List"
+  case _ => "Unknown"
+
+// examples
+getClassAsString(1)               // Int
+getClassAsString("hello")         // 'hello' is a String
+getClassAsString(List(1, 2, 3))   // List
+#+end_src
+
+
+* Loops
+
+Clojure-like *for loop*:
+: for
+with generator(s):
+:   <name> <- <coll>  …
+with guard(s):
+:   if <pred>  …
+body as a statement:
+:   do <instr>
+body as an expression (returns a ~List~):
+:   yield <expr>
+
+*while loop*:
+: while <cond> do <body>
+
+
+Examples:
+#+begin_src scala
+for
+  i <- 1 to 3
+  j <- 'a' to 'c'
+  if i == 2
+  if j == 'b'
+do
+  println(s"i = $i, j = $j")   // prints: "i = 2, j = b"
+#+end_src
+
+* Strings
+
+Multiline strings:
+#+begin_src scala
+val quote = """The essence of Scala:
+               Fusion of functional and object-oriented
+               programming in a typed setting."""
+#+end_src
+
+String interpolation:
+#+begin_src scala
+// With variables:
+val firstName = "John"
+val lastName = "Doe"
+println(s"Name: $firstName $lastName")   // "Name: John Doe"
+
+// With expressions:
+val x = -1
+println(s"x.abs = ${x.abs}")   // prints "x.abs = 1"
+#+end_src
+- interpolators other than ~s~ can be used, custom ones can be defined
+
+** Methods
+
+: s.capitalize
+
+
+* Known
+
+Constant/immutable variable:
+: val <name>: <type> = <value>
+Mutable variable:
+: var <name>: <type> = <value>
+- omit type annotation for type inference
+
+Immutable collections:
+: List(<item1>, <item2>, …)
+: Map(<key1> -> <val1>, <key2> -> <val2>, …)
+
+Pattern matching:
+: <expr> match
+:   case <some-val> | <alt-val> => <expr>
+:   case _ => <default-expr>
+- can be used as the body of a method (Haskell-style)
+
+* Unknown
+
+~trait~
+
+~def~ -> type definition?
+
+
+~Unit~ type
+
+* IO
+
+Readline for user input:
+: import scala.io.StdIn.readLine
+: val input = readLine()
+
+Print:
+: println(<str>)
+
+
+* Java interop
+
+Import Java libraries, e.g.:
+: import java.io.*
+
+Convert Java collections to Scala collections, e.g.:
+#+begin_src scala
+import scala.jdk.CollectionConverters.*
+val scalaList: Seq[Integer] = JavaClass.getJavaList().asScala.toSeq
+#+end_src
+
