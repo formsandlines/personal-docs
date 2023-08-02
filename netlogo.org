@@ -7,12 +7,22 @@ Resources:
 - [[https://ccl.northwestern.edu/netlogo/][NetLogo Homepage]]
 - [[https://ccl.northwestern.edu/netlogo/docs/][NetLogo User Manual]]
 - [[http://ccl.northwestern.edu/netlogo/docs/programming.html][Programming Guide]]
+- [[https://ccl.northwestern.edu/netlogo/docs/dictionary.html][NetLogo Dictionary]] (reference)
 
 Learning:
 - [[http://ccl.northwestern.edu/netlogo/bind/][The Beginner's Guide to NetLogo Programming]]
 - [[https://ccl.northwestern.edu/netlogo/docs/tutorial1.html][User Manual - Tutorial #1: Models]]
 - [[https://ccl.northwestern.edu/netlogo/docs/tutorial2.html][User Manual - Tutorial #2: Commands]]
 - [[https://ccl.northwestern.edu/netlogo/docs/tutorial3.html][User Manual - Tutorial #3: Procedures]]
+
+* General infos
+
+NetLogo bundles a Java Runtime
+- see [[http://ccl.northwestern.edu/netlogo/docs/faq.html#why-does-netlogo-bundle-java][Why does NetLogo bundle Java?]]
+- location: =NetLogo X.X.X/runtime/=
+- Java 17.0.4 (for NetLogo 6.3)
+- to use a different runtime, open =NetLogo.cfg= and set ~app.runtime~ property to
+  its path (at own risk)
 
 * Key differences to other Logos
 
@@ -57,14 +67,39 @@ functions.
 
 * Development style
 
-- write the documentation alongside the model, to keep them in sync.
-- most models have a “setup” and a “go” button, but it is not required.
+Names
+- most models have a “setup” and a “go” button, but it is not required
 - boolean variables should end in a question mark
+
+Documentation
+- write the *documentation* alongside the model, to keep them in sync
+- write *pseudocode* for each main procedure in the documentation (e.g. under
+  “how it works”) to help non-programmers understand how the model works
+
+Reproducability
+- use ~random-seed~ to be able to *reproduce* a particular behavior that results
+  from calls to various ~random~ procedures
+- store interesting results in *preset configurations* which a user can load
+  by clicking a corresponding button and then ~go~
+  - see library model “Heroes and Cowards” for an example
+- see [[https://ccl.northwestern.edu/netlogo/docs/programming.html#random-numbers][Random numbers (docs)]]
+
+#+begin_src netlogo
+to preset [ seed ]
+  ;; set constant model parameters
+  set … …
+  ;; set the seed of the pseudo-random number generator
+  random-seed seed
+  setup
+end
+#+end_src
+
 * Variables
 
-Define global variables:
+Define *global variables* (first code line):
 : globals [ <varname> … ]
-Define local variables:
+
+Define *local variables* for an /agentset/ to add custom properties to agents:
 : turtles-own [ <varname> … ]
 
 Set value of a variable:
@@ -85,6 +120,18 @@ Define a /reporter procedure/ (returns/reports a value):
 :   report <return-value>
 : end
 
+Common procedures that most models define are ~setup~ and ~go~. ~setup~ initializes
+the model and ~go~ creates its next state.
+- write ~clear-all~ as a first instruction in ~setup~ to reset the model
+
+~startup~ is a special routine that runs when the model loads, before ~setup~.
+- can be useful to load data from files
+
+: to startup
+:   …
+:   setup
+: end
+
 * General commands
 
 Just like in UCBLogo:
@@ -94,35 +141,195 @@ Just like in UCBLogo:
 
 * Math
 
+: max <list>
+: min <list>
+
+Report statistical mean of numbers in given ~list~:
+: mean <list>
+- ignores non-numeric items
+- same as ~sum <list> / count <list>~
+
 : round <float>
 : precision <float> <dec-places>
 
-: random <int>
+* Randomness
+
+Set the seed of the pseudo-random number generator:
+: random-seed <int>
+Generate/report a new seed for use with ~random-seed~:
+: new-seed
+
+Pick a random number up to ~n~:
+: random <int n>
+: random-float <float n>
+
+Report a number from a random /normal distribution/:
+: random-normal <mean> <std-deviation>
+
+Report a number from a random /exponential distribution/:
+: random-exponential <mean>
 
 * Iteration
 
 : repeat <n> [ <instruction> … ]
+
+Run ~command~ for each item of the ~list~:
+: foreach <list> <command>
+: (foreach <list1> … <command>)
+- ~command~ -> name of a command or an anonymous command created with ~->~
+  - in previous NetLogo versions, the symbol ~?~ in ~command~ refers to the
+    current iterated item, now it needs to be ~[? -> …]~
+- with multiple ~list~'s, runs ~command~ for each group of items from each list
+  - all lists must be the same length
+
 * Control structures
 
-: ifelse <pred> [ <instruction> … ] [ <instruction> … ]
+Run the instructions from the first /true/ condition:
+: ifelse <cond> [ <instruction> … ] [ <else-instruction> … ]
+Can be used like a ~switch~ statement:
+: (ifelse
+:   <cond1> [ <instruction> … ]
+:   <cond2> [ <instruction> … ]
+:   [ <else-instruction> … ])
 
-* Agents
-** Observer
+Report the value reported from the first /true/ condition:
+: ifelse-value <cond> [ <reporter> ] [ <else-reporter> ]
+Can be used like a ~cond~ statement:
+: (ifelse-value
+:   <cond1> [ <reporter1> ]
+:   <cond2> [ <reporter2> ]
+:   [ <else-reporter> ])
 
-*** Model
 
-Remove model:
+* Data structures
+
+** Strings
+
+** Lists
+
+Like Logo:
+: length <list>
+: first <list>
+: last <list>
+: but-first <list>
+: but-last <list>
+: item <index> <list>
+
+Report a list of length ~size~ containing values according to ~reporter~:
+: n-values <size> <reporter>
+- ~reporter~ -> anonymous reporter or the name of a reporter
+  - may accept an input, the 0-based index of the current item
+- fractional ~size~ will be rounded down to nearest int
+
+Pick a random member of ~list~:
+: one-of <list>
+
+Check if /x/ is a member of /y/:
+: member? <value> <list>
+: member? <string1> <string2>
+: member? <agent> <agentset>
+
+Report a section of ~list~ defined ~from~ (incl.) index ~to~ (excl.) index:
+: sublist <list> <from> <to>
+- indexes start at 0
+- fractional indexes are rounded down to nearest int
+
+Report a new list with ~item~ prepended to ~list~:
+: fput <item> <list>
+
+** Agentsets
+
+*Note:* the /special Agentsets/ (~turtles~, ~links~ and the “breed” agentsets) /grow
+automatically/ as new agents are being added. This doesn’t apply to other
+agentsets like those created with ~with~ or the ~turtle-set~ and ~link-set~
+primitives.
+- the content of normal agentsets will only change if the agents that they
+  contain /die/
+
+*** Built-in
+- ~patches~, ~turtles~, ~links~
+- ~no-turtles~ (empty agentset)
+- ~turtles-here~, ~in-link-neighbors~
+
+*** Breeds
+
+: breed [ <breeds-name> <breed-name> ]
+
+Example:
+: breed [ mice mouse ]
+: ask one-of turtles [ set breed mice ]
+: ask mice [ set color white ]
+
+*** Create from
+
+Report an agentset containing all turtles in the input(s):
+: turtle-set <value>
+: (turtle-set <value> …)
+- inputs may be individual turtles, turtle agentsets, nobody, or lists (or
+  nested lists) containing any of the above
+- can be used to combine multiple agentsets (like a union)
+
+*** Select
+
+If a single agent was not found, a reporter reports ~nobody~ as a special
+value.
+
+all:
+: <agentset>
+one specific member:
+: <agent id>
+one random member:
+: one-of <agentset>
+/n/ random members:
+: n-of <size> <agentset>
+up to /n/ random members:
+: up-to-n-of <size> <agentset>
+excluding self:
+: other <agentset>
+
+filtered by condition:
+: <agentset> with [<condition>]
+exclude a specific agent:
+: <agentset> with [not (self = <agent id>)]
+
+all turtles on given patch(es) or on same patch as given turtle(s):
+: turtles-on <agent / agentset>
+: <breeds>-on <agent / agentset>
+
+*** Sort
+Report a list of agents, sorted according to each agent’s value for
+~reporter~:
+: sort-on [ <reporter> ] <agentset>
+- e.g. ~sort-on [ size ] turtles~
+
+*** Report
+
+Report a specific property:
+: [<property>] of <agentset>
+
+: member? …
+
+
+** Agents
+
+*** Observer
+
+**** Model
+
+Remove model (agents and their state):
 : ca / clear-all
 
-*** Ticks
+**** Ticks
 
 Reset counter:
 : reset-ticks
+- typically used in ~setup~ procedure as last instruction
 
 Increment counter:
 : tick
+- typically used in ~run~ procedure as last instruction
 
-*** Populations
+**** Populations
 
 Generate ~n~ turtles:
 : crt / create-turtles <n> ?[ <ask-instr> … ]
@@ -142,20 +349,28 @@ Apply instructions …
 … to one random agent:
 : ask one-of <agentset> [ <instruction> … ]
 
-(?) Create dynamic agentset
-: let my-agentset turtles with [ … ]
+Create dynamic agentset:
+: let my-agentset turtles with [ … ] <?instruction>
 
 Inspect an agent (opens inspect window):
 : inspect <agent>
 
-** Turtles
+*** Turtles
 
-*** Lifecycle
+**** Lifecycle
 Remove turtles:
 : die
 
-*** Attributes
+Clone a turtle ~n~ times with optional ~instructions~:
+: hatch <n> [ <instruction> … ]
+: hatch-<breeds> <n> [ <instruction> … ]
+
+**** Properties
 Use with ~show~ or ~set~.
+
+Turtle id:
+: who  :: int
+- starts from 0
 
 Turtle (shape) color:
 : color   :: name/int
@@ -168,13 +383,34 @@ Turtle shape:
 : shape   :: string
 - e.g. ~"person"~
 
+: set-default-shape <agentset> <shape>
+
 Turtle x/y-coordinates:
 : xcor : ycor   :: int
 - generate random coordinates with:
   : random-xcor : random-ycor
+- set both coordinates at the same time:
+  : setxy <xpos> <ypos>
+
+Turtle heading:
+: heading   :: int
 
 Turtle label:
 : label   :: string
+
+Turtle visibility:
+: hidden?  :: boolean
+
+Patch where turtle is located:
+: patch-here   :: Patch
+
+Visibility of trace (“pen”) left behind:
+: pen-mode  :: "up" | "down" | "erase"
+- influenced by ~pen-up~, ~pen-down~ and ~pen-erase~
+
+Stroke weight of trace left behind:
+: pen-size  :: int
+
 
 Examples:
 #+begin_src netlogo
@@ -184,7 +420,7 @@ ask turtles [
 ]
 #+end_src
 
-*** Movement
+**** Movement
 Forward/backward movement:
 : fd / forward <n>
 : back <n>
@@ -192,25 +428,64 @@ Forward/backward movement:
 Left/right rotation:
 : lt / left <degrees> : rt / right <degrees>
 
-Rotate to align heading with x/y-point:
+Set x/y coordinates to the same as the given ~agent~:
+: move-to <agent>
+- if ~agent~ is a patch, moves to its center
+- heading is unaltered
+
+Rotate to align heading with an x/y-point:
 : facexy <x> <y>
 
-: create-link-with one-of other turtles
-: 	create-link-… ; einen Link erstellen…
-: 	/ create-links-… ; mehrere Links erstellen…
-: 		-with ... ; ungerichteter Link mit ...
-: 		-to ... ; gerichteter Link zu ...
-: 		-from ... ; gerichteter Link von ...
+Align heading with another ~agent~:
+: face <agent>
 
-Show/hide movement trace (turtle-only):
+Report heading from this agent towards an x/y-point:
+: towardsxy <x> <y>
+
+Report heading from this agent towards another ~agent~:
+: towards <agent>
+- *Note:* ~set heading towards <agent>~ may /not/ be the same as ~face <agent>~ as
+  mentioned in the [[https://ccl.northwestern.edu/netlogo/docs/dictionary.html#towards][docs]]
+
+Report distance from this agent to another ~agent~:
+: distance <agent>
+
+Show/hide/erase movement trace (turtle-only):
 : pu / pen-up
 : pd / pen-down
+: pe / pen-erase
 Erase movement traces:
 : cd / clear-drawing
 
-** Patches
+**** Links
 
-*** Attributes
+Create a single/multiple link(s):
+: create-link… : create-links…
+- ~-with …~ -> undirected link with …
+- ~-to …~ -> directed link to …
+- ~-from …~ -> directed link from …
+
+Examples:
+: create-link-with one-of other turtles
+- ~one-of~ -> select one random agent
+- ~other~ -> remove myself from the set
+
+
+Report the /agentset/ of all turtles on the other end of any links
+connected to this turtle:
+: link-neighbors
+
+
+*** Patches
+
+Share (~n~ × 100) percent of the value from a ~patch-variable~ equally to all
+8 neighbors of the patch (“diffuse” it):
+: diffuse <patch-variable> <n>
+- ~n~ must be between 0 and 1
+- observer command, not a patch command!
+- use ~diffuse4~ if there are only four neighbors
+
+**** Properties
 
 Patch color:
 : pcolor   :: name/int
@@ -223,4 +498,221 @@ Patch x/y-coordinates:
 Patch label:
 : plabel   :: string
 
-** Links
+*** Links
+
+**** Properties
+
+Connected agents:
+: end1 : end2   :: agent
+- for /directed links/, ~end1~ is the *“root agent”* and ~end2~ the *“leaf agent”*
+
+Link shape:
+: shape   :: string
+
+Link thickness:
+: thickness   :: float
+- use values < 1.0
+
+How the link ties its agents together:
+: tie-mode   :: "fixed" | "none" | "free"
+- set to ~"fixed"~ with ~tie~ command
+- set to ~"none"~ with ~untie~ command
+- set to ~"free"~ with ~set tie-mode "free"~
+
+~"fixed"~ / ~"free"~ : ~end1~ and ~end2~ are tied together
+- for /undirected links/, if one of them moves, the other will be dragged
+  along with same distance and direction
+- for /directed links/, only when ~end1~ (root agent) moves, ~end2~ (leaf
+  agent) will also move along
+- the only difference between ~"fixed"~ and ~"free"~ is that with ~"free"~ the
+  heading of the /leaf turtle/ remains unchanged if the /root turtle/
+  changes its heading
+
+**** Creation
+
+Tie ~end1~ and ~end2~ of the link together:
+: tie
+- sets ~tie-mode~ to ~"fixed"~
+- can be used to create *Meta-Agents*
+
+Untie the ~tie~'d link:
+: untie
+- sets ~tie-mode~ to ~"none"~
+
+
+Examples:
+: ask link 0 1 [ tie ]
+: ask turtle 0 [ create-link-to turtle 1 [ tie ] ]
+
+* Plotting
+
+To be used in a *monitor* UI component.
+
+Clear all the plots:
+: clear-all-plots
+
+Increment ~x~-value of the plot pen by ~plot-pen-interval~, then plot a point at
+the updated ~x~-value and the given ~y~-value:
+: plot <y>
+- initially, ~x~ is set to 0
+
+Move the current plot pen to point ~x~ ~y~:
+: plotxy <x> <y>
+- if the pen is down, a line, bar or point will be drawn (depending on the
+  pen’s mode)
+
+Report the min/max value of the x or y axis of the current plot:
+: plot-x-min : plot-x-max
+: plot-y-min : plot-y-max
+
+* Timer
+
+~timer~ is a global variable that measures the time since execution.
+- can be used to measure performance (turn off ~view updates~ for more accurate
+  results)
+
+Reset the ~timer~:
+: reset-timer
+
+* unsorted
+
+: myself
+: nobody
+: turtles-at <x> <y>
+
+Report a shade of ~color~ proportional to the value of ~number~:
+: scale-color <color> <number> <range1> <range2>
+- if ~range1 <= range2~, scale is /darker -> lighter/ (greater ~number~)
+- if ~range1 > range2~, scale is inverted /darker <- lighter/ (smaller ~number~)
+
+Use “Color Swatches” to see all available colors and scales.
+: show n-values 11 [i -> list i scale-color blue i 0 10]
+* Layouts
+
+: layout-circle <agentset> <radius>
+: layout-circle <list-of-turtles> <radius>
+
+: layout-radial <turtle-set> <link-set> <root-agent>
+
+: layout-spring <turtle-set> <link-set> <spring-constant> <spring-length> <repulsion-constant>
+
+: layout-tutte <turtle-set> <link-set> <radius>
+
+Examples:
+: layout-radial turtles links one-of turtles
+: repeat 200 [ layout-spring turtles links 0.2 5 1 ]
+
+* Extensions
+** Network extension [nw]
+
+- [[https://ccl.northwestern.edu/netlogo/docs/nw.html][Documentation]]
+- https://github.com/NetLogo/NW-Extension
+
+: nw:set-context <agentset> <links>
+
+*** Network structures
+
+: nw:generate-preferential-attachment …
+
+: nw:generate-random …
+
+: nw:generate-watts-strogatz …
+
+: nw:generate-small-world …
+** BehaviorSpace
+
+- open from ~Menubar -> Tools -> BehaviorSpace~
+- create a new experiment
+- run the experiment
+
+Runs a model multiple times with specified parameters and records the
+results in various output formats (tables, etc.) to be analyzed by other
+tools such as /R/.
+** R extension
+
+Related: [[file:r-lang.org][Docs/r-lang]]
+
+Pre-installed with NetLogo
+- [[https://github.com/NetLogo/R-Extension]]
+
+Doesn’t seem to work right now:
+- see https://github.com/NetLogo/R-Extension/issues/27
+- use the [[Simple R extension]] instead
+
+*** Simple R extension
+
+Needs to be installed via Extensions tool
+- [[https://github.com/NetLogo/SimpleR-Extension]]
+
+: extensions [ sr ]
+
+Create an *R session* that the extension will use to execute code:
+: sr:setup
+- must be run before running any other R extension primitive:
+
+
+*NOTE:* select ~Pop-out interpreter~ from the ~Simple RExtension~ menu to just
+type R commands interactively. Use the ~print(…)~ command to pretty-print
+output in the NetLogo console (as it would appear in R).
+
+
+*Run* an ~R-statement~ in the current session:
+: sr:run "<R-statement>"
+: (… "<R-statement1>" "<R-statement2>" …)
+- multiple strings will be interpreted as seperate R code lines
+- can be used to create internal R variables or print stuff
+
+*Evaluate* an ~R-expression~ and report the result:
+: sr:runresult "<R=expression>"
+- attempts to convert R data types to NetLogo data types
+  - see https://github.com/NetLogo/SimpleR-Extension#srrunresult for
+    conversion infos
+
+Set a *variable* ~r-varname~ in the R session to given ~NetLogo value~:
+: sr:set "<rvarname>" <NetLogo value>
+- NetLogo objects will be converted to R objects as expected
+  - see [[https://github.com/NetLogo/SimpleR-Extension#srset]] for conversion
+    infos
+
+
+Create a new *named list* in R with given ~r-varname~ to represent a single
+*agent/agentset* with given properties:
+: sr:set-agent "<r-varname>" <agent-or-agentset> <agent-varname>
+: (… <agent-varname1> <agent-varname2> …)
+
+Create a new *data frame* in R with given ~r-varname~ to represent an *agentset*
+with given properties:
+: sr:set-agent-data-frame "<r-varname>" <agents> <agent-varname>
+: (… <agent-varname1> <agent-varname2> …)
+- /columns/ are names of agent properties
+- /rows/ represent each agent in the set
+
+Create a new *data frame* in R with given ~r-varname~:
+: sr:set-data-frame "<r-varname>" "<colname>" <list-or-anything>
+: (… "<colname1>" <list-or-anything1>  "<colname2>" <list-or-anything2> …)
+
+Create a new *list* in R with given ~r-varname~:
+: sr:set-list "<r-varname>" <anything>
+: (… <anything1> <anything2> …)
+
+Create a new *named list* in R with given ~r-varname~:
+: sr:set-named-list "<r-varname>" "<colname>" <list-or-anything>
+: (… "<colname1>" <list-or-anything1>  "<colname2>" <list-or-anything2>)
+
+
+Activate the *visual plot device* for R:
+: sr:set-plot-device
+- opens a window if not already open
+* Recipes
+
+Drawing a circle:
+
+#+begin_src netlogo
+to draw-circle [origin radius]
+  ask patches [
+    if distance origin <= radius [
+      set pcolor red
+    ]
+  ]
+end
+#+end_src

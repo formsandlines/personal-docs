@@ -778,6 +778,9 @@ External tools:
 : $ mkdir <path/name …>
 - ~-p~ (/parent/ directories) creates folders in between (if needed)
 - can create multiple at once
+**** Copy directory
+See [[Copy files]], use like:
+: $ cp -r <source-dir> <target-dir>
 
 **** Remove directory
 : $ rmdir <dir>
@@ -902,8 +905,10 @@ Create 100 files named ~"file-001.txt"~, etc.:
 : $ cp <source> <target>
 : -i  : (interactive) ask before overwriting
 : -r  : recursive (copies directories and subdirectories)
+: -f  : force? (not needed for copying)
 : -p  : keep user permissions
 - write ~/*~ in source to copy only the content, but not the directory itself
+- if with ~-r~ the destination exists, the directory is copied inside it
 
 **** Move/rename files
 : $ mv <source> <target/renamed>
@@ -1813,6 +1818,22 @@ Delete mails:
 ** Music
 External tools:
 - [[coltrane]]
+** Java
+*** jar archives
+
+Show the contents of a =.jar=:
+: jar tf <filename>.jar
+
+Extract the contents of a =.jar= in the current directory:
+: jar xf <filename>.jar
+
+*** Java class files
+
+Disassemble a =.class= file and print contents to stdout:
+: javap <filename>.class
+: -c             : prints disassembled code
+: -p / -private  : show all classes and members
+: -public        : show only public classes and members
 
 * External applications
 ** tree
@@ -2024,6 +2045,11 @@ https://github.com/pedrozath/coltrane
 
 Utilities for music theory
 : $ gem install coltrane
+
+** pkgutil
+
+Check the signature of a downloaded package (Apple only):
+: pkgutil --check-signature <some-package>.pkg
 
 * Shell services
 ** Weather
