@@ -1,0 +1,863 @@
+#+title: Docs/Java
+
+Referenz:
+- [[https://docs.oracle.com/javase/specs/jls/se17/html/index.html][The Java® Language Specification]]
+- [[https://docs.oracle.com/en/java/javase/17/docs/][API Specification (Java SE 17 & JDK 17)]]
+
+Learn:
+- [[https://docs.oracle.com/javase/tutorial/index.html][The Java Tutorials]] (Oracle)
+- [[https://www.ibm.com/blog/jvm-vs-jre-vs-jdk/][JVM vs. JRE vs. JDK: What’s the Difference?]]
+- [[https://cscircles.cemc.uwaterloo.ca/java_visualize/][Java Visualizer]]
+
+* Installation
+
+Install JDK:
+: $ brew install java
+
+Install Maven:
+: $ brew install maven
+- see also: https://mkyong.com/maven/install-maven-on-mac-osx/
+
+(?) Symlink for system Java wrappers to find JDK:
+: $ sudo ln -sfn /usr/local/opt/openjdk/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk.jdk
+
+To get list of all installed JDKs:
+: $ /usr/libexec/java_home -V
+
+To install GraalVM:
+- https://www.graalvm.org/22.0/docs/getting-started/macos/
+- https://www.graalvm.org/22.0/reference-manual/native-image/
+
+** Editor support
+
+IntelliJ IDEA CE
+
+VS Code via Microsoft and Red Hat plugins
+
+Neovim, e.g. via ~coc-java~
+- https://github.com/neoclide/coc-java
+- to solve lang. server connection issues:
+  https://github.com/neoclide/coc-java/issues/243#issuecomment-1555274940
+
+* Environment
+** Resources
+*** Java Development Kit (JDK)
+Required by the programmer to develop Java applications.
+
+Includes:
+- *Java standard library*
+- *Java compiler* (source -> Java bytecode)
+
+*** Java Runtime Environment (JRE)
+Required by the user to run a Java application.
+- often bundled with the app
+- system-dependent
+
+Includes:
+- *Java standard library*
+- *Java interpreter*
+
+** Runtime
+
+To run a *class from source*:
+: $ java MyClass
+: -cp  : specify a different classpath (default is '.')
+- if one of the class files depends on a =.jar= file, its path must be added to
+  the [[Classpath]]
+
+To run an *application packaged as a JAR*:
+: $ java -jar <filename>.jar
+- requires the ~Main-class~ manifest header
+** Interactive Shell
+: jshell
+
+** Classpath
+
+List of directories and [[JAR files]], where the ~ClassLoader~ will try to look for
+[[Class files]] at runtime.
+- seperated by colons ~:~ (Unix) or semicolons ~;~ (Windows).
+
+Examples:
+- ~..:.~ -> current and parent dir
+** Package
+The package is defined in the first line of a =.java= file:
+: package <pkgname>;
+
+To import a class from a package:
+: import <pkgname>.<classname>;
+- naming convention:
+  ~<org.name>.<appname>.<pkgname>.<inner-pkgname>.<classname>~
+To import everything from a package:
+: import <pkgname>.*
+
+Source files that belong to the same package should be in the same directory
+that must have the name of the package.
+
+Compilation and execution must be from root directory:
+: javac <pkgname>/<filename>.java
+: java <pkgname>/<filename>
+
+** Class files
+
+To *compile* a source file to Java bytecode:
+: $ javac <filename>.java
+: -cp  : specify a different classpath (default is '.')
+- all source files that ~filename.java~ depends on will also be compiled
+- if the source depends on a class packaged in a JAR, the path of that =.jar=
+  file must be added to the [[Classpath]]
+
+To *disassemble* a =.class= file and print contents to stdout:
+: $ javap <filename>.class
+: -c             : prints disassembled code
+: -p / -private  : show all classes and members
+: -public        : show only public classes and members
+
+** Manifest files
+
+Contains /meta-information/ about a JAR.
+- must be encoded in /UTF-8/
+- pathname is always =META-INF/MANIFEST.MF=
+
+*Attributes*, e.g.:
+- ~Manifest-Version~: ?
+- ~Created-By~: ?
+- ~ClassPath~: the classpath
+- ~Main-Class: <classname>~ -> application entry point
+  - class has method with signature ~public static void main(String[] args)~
+- ~Built-By~: ?
+- ~Build-Jdk~: ?
+- ~Build-Jdk-Spec~: ?
+
+To *extract* the manifest file from a =.jar=:
+: $ jar xf <filename>.jar META-INF/MANIFEST.MF
+- e.g. to look for a ~ClassPath~ attribute
+
+To *add to* the manifest file:
+: $ jar cfm <filename>.jar <additions-file> <input-file(s) …>
+- ~additions-file~ is a text file containing the manifest additions
+  - /must/ end with a newline
+- see [[https://docs.oracle.com/javase/tutorial/deployment/jar/modman.html][Modifying a Manifest File]] (Oracle)
+
+** JAR files
+
+Java Archive Tool: ~jar~
+- [[https://docs.oracle.com/javase/tutorial/deployment/jar/index.html][Lesson: Packaging Programs in JAR Files]] (Oracle)
+
+Flags:
+: c  : create archive
+: f  : specify archive file name
+: t  : list the table of contents of the JAR
+: x  : extract files from the JAR
+: e  : specify entry point
+: v  : print verbose output
+
+To *create* a =.jar= file:
+: $ jar cf <filename>.jar <input-file(s) …>
+- ~input-file(s)~: files to be added to the JAR
+
+To create a =.jar= with an /entry point/:
+: $ jar cfe <filename>.jar <main-class> <input-file(s) …>
+- sets the ~Main-Class~ attribute of the manifest
+
+To *view* the contents of a =.jar=:
+: $ jar tf <filename>.jar
+
+To *extract* the contents of a =.jar= in the current directory:
+: $ jar xf <filename>.jar
+- to extract only specific files:
+  : $ jar xf <filename>.jar <archived-file(s) …>
+
+See [[Runtime]] on how to execute a JAR file.
+
+* Maven
+Maven is the most widely used package manager for Java.
+- https://maven.apache.org
+- [[https://central.sonatype.com][Maven Central Repository]]
+
+Learn:
+- https://maven.apache.org/guides/getting-started/maven-in-five-minutes.html
+- https://mkyong.com/tutorials/maven-tutorials/
+
+** Archetypes
+
+To create an example archetype:
+: $ mvn archetype:generate -DgroupId=com.mycompany.app -DartifactId=my-app -DarchetypeArtifactId=maven-archetype-quickstart -DarchetypeVersion=1.4 -DinteractiveMode=false
+- This executes the Maven goal ~archetype:generate~
+  - ~archetype~ is the plugin that provides the goal
+  - *plugin* -> collection of goals with general common purpose
+- ~groupId~: defines the folder structure of source
+- ~artifactId~: defines the name of the project folder
+- The fully qualified artifact name of a project is:
+  ~<groupId>:<artifactId>:<version>~
+
+** Build
+
+Build a =.jar= package:
+: $ mvn package
+
+(! check) Test the executable like this:
+: $ java -cp target/my-app-1.0-SNAPSHOT.jar com.mycompany.app.App
+
+** POM
+POM -> Project Object Model
+- https://maven.apache.org/guides/introduction/introduction-to-the-pom.html
+
+* Language
+** Keywords
+
+Visibility modifier:
+- ~public~: can be accessed from outside of the class/method or package
+- (~default~): “package-private” -> ?
+- ~private~: ?
+- ~protected~: ?
+
+- ~static~: ?
+- ~abstract~: ?
+
+- ~final~: ?
+
+Declare a constant (immutable) with ~static final~.
+- convention is to use all-caps for the variable name
+
+** Classes
+
+Classes without a constructor automatically get a default constructor on
+compilation.
+
+It is common to have *getter* and *setter* methods in classes.
+- e.g. ~getField~ and ~setField~
+
+To create an *anonymous inner class* for one-time use:
+: new <classname>() { … }
+- e.g. in method arguments
+
+*** Nested class
+Classes can be nested inside other classes.
+- can be made ~public~ or ~private~
+- make ~static~ if nested class shouldn’t be able to access members of the
+  outer class
+- convention is to put inner classes on the top before other members
+
+Example:
+#+begin_src java
+class MyClass {
+	private class MyNestedClass {
+		// …
+	}
+
+	private MyNestedClass o;
+
+	public MyClass() {
+		this.o = new MyNestedClass();
+	}
+}
+#+end_src
+
+*** Generic class
+Classes can declare generic type variables to be used inside the class.
+- can be used e.g. for generic data structures
+
+Example:
+#+begin_src java
+class MyClass<T> { // generic type variable
+    private T x;
+
+    public MyClass(T x) {
+        this.x = x
+    }
+
+    public static void main(String[] args) {
+        // to instantiate:
+        MyClass<String> hello = new MyClass<>("Hello generic world");
+        MyClass<Integer> answer = new MyClass<>(42);
+    }
+}
+#+end_src
+
+*** Inheritance
+
+~@Override~ before a method declaration tells the compiler, that the
+corresponding method from base class will be overwritten.
+
+*** Examples:
+#+begin_src java
+public class Point {
+    public int x;
+    public int y;
+    public Point(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+    public Point() {
+        this(0, 0);
+    }
+    public double distanceTo(Point other) {
+        return Math.sqrt(
+            Math.pow(this.x - other.x, 2) +
+            Math.pow(this.y - other.y, 2)
+        )
+    }
+    public void translate(int dx, int dy) {
+        this.x += dx;
+        this.y += dy;
+    }
+}
+
+// Usage like:
+Point p1 = new Point(5, 9);
+Point p2 = new Point(-3, 3);
+System.out.println("Point 1: ( " + p1.x + ", " + p1.y + ")");
+System.out.println("Distance: " + p1.distanceTo(p2));
+p1.translate(2, 2);
+System.out.println("Point 1: ( " + p1.x + ", " + p1.y + ")");
+#+end_src
+** Interfaces
+
+#+begin_src java
+public interface Subject {
+    public int getAge();
+    public String getName();
+}
+#+end_src
+
+** Methods
+Declare *varargs* (variable argument number) using ~<type>...~
+- example: ~myMethod(String arg, int... varargsArray) { … }~
+  - call like ~myMethod("foo", 1, 2, 3)~ or with an array (?)
+- all other variables must precede varargs
+
+** Primitive Types
+
+| Type    | Memory | Range                      | Example           |
+|---------+--------+----------------------------+-------------------|
+| ~byte~    | 8 bit  | -128 → 127                 | ~byte b = 65;~      |
+| ~short~   | 16 bit | -2^15 → 2^15 - 1           | ~short s = 65;~     |
+| ~int~     | 32 bit | -2^31 → 2^31 - 1           | ~int i = 65;~       |
+| ~long~    | 64 bit | -2^63 → 2^63 - 1           | ~long l = 65L;~     |
+|---------+--------+----------------------------+-------------------|
+| ~float~   | 32 bit | 2^-149 → (2-2^-23)·2^127   | ~float f = 65f;~    |
+| ~double~  | 64 bit | 2^-1074 → (2-2^-52)·2^1023 | ~double d = 65.55;~ |
+|---------+--------+----------------------------+-------------------|
+| ~boolean~ | -      | -                          | ~boolean b = true;~ |
+|---------+--------+----------------------------+-------------------|
+| ~char~    | 16 bit | 0 → 2^16 - 1 (all Unicode) | ~char c = 'A';~     |
+|         |        | U+0000 … U+FFFF            | ~char c = 65;~      |
+
+: Integer.MIN_VALUE : Integer.MAX_VALUE
+
+Base prefixes:
+- ~0x~: hexadecimal (base 6) (e.g. ~long color = 0x00FF00~)
+- ~0~: octal (base 8)
+
+Other primitives:
+- ~null~
+- ~undefined~
+- ~void~
+
+More infos:
+- https://docs.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html
+- https://en.wikibooks.org/wiki/Java_Programming/Primitive_Types
+
+** Reference Types
+Each [[*Primitive Types][primitive type]] (lowercase) has a corresponding *reference type* (capital
+letter).
+- it is easy to convert between primitive types and their reference types
+: boolean -> Boolean
+: int     -> Integer (not Int!)
+: double  -> Double
+: long    -> Long
+: char    -> Character
+
+*** Object
+- root of the class hierarchy
+- every class has ~Object~ as a superclass
+- all objects, including arrays, implement the methods of this class
+
+*** Array
+
+All values will initially take on their “default value”.
+- e.g. ~0~ for ~int~, ~null~ for reference types
+
+*Note:* Array indices can be determined at runtime, contrary to property
+names of class instances which must be determined at compile time.
+- /reflection/ can be used as an escape hatch for property names
+
+Declaration:
+: T[] x;
+Instantiation:
+: new T[<size>]
+Shorthand syntax:
+: new T[]{a, b, …}
+or (only with variable declaration):
+: T[] x = {a, b, …};
+
+/n/-dimensional arrays (-> array of array references):
+: T[][]… x;
+: new T[<size>][]…
+or to instantiate all inner arrays with size ~m~:
+: new T[<n>][<m>]…
+with shorthand syntax, use nested curly braces:
+: {{… {a, b, …}}, …}
+
+Member access:
+: x[<index>] = <value>;
+
+Array size:
+: x.length
+
+Copy ~n~ positions from (starting at) index ~i~ of ~fromArray~ to (starting at)
+index ~j~ of ~toArray~:
+: System.arraycopy(<fromArray>, <i>, <toArray>, <j>, <n>);
+- faster than a loop, particularly for large arrays
+
+**** java.util.Arrays
+
+To pretty-print an Array:
+: Arrays.toString(<array>);
+
+To fill an array with the same value:
+: Arrays.fill(<array>, <value>);
+
+**** Examples:
+#+begin_src java
+// Iteration:
+int[] nums = {42, 666, 69, 0};
+for (int n : nums) {
+    System.out.println(n);
+}
+
+// 2-dimensional array:
+double[][] coords = new double[5][2];
+coords[0] = new double[]{12.4, 17.8};
+coords[1] = new double[]{-2.3, 3.5};
+coords[2] = new double[]{-15.2, -3.1};
+coords[3] = new double[]{4.5, -42.0};
+coords[4] = new double[]{0.0, 3.14};
+
+for (double[] c : coords) {
+    int quadrantN = quadrant(c[0], c[1]);
+    System.out.println("Quadrant: " + quadrantN);
+}
+#+end_src
+*** String
+- Strings are *reference types*: ~String s = "hello"~
+- Strings are *not directly iterable* (use ~for~ loop).
+- Strings are *immutable*
+
+To create a String from a ~char~ array:
+: new String(<char-array>)
+
+Concatenation:
+: s += " world";
+
+Length:
+: s.length();
+
+Substring:
+: s.substring(<from-int>);
+: s.substring(<from-int>, <to-int>);
+- ~from~ incl., ~to~ excl.
+(?) To lookup the starting position of a substring of ~s~:
+: s.indexOf(<str>)
+
+Char at index:
+: s.charAt(<index>)
+All chars as an array:
+: s.toCharArray()
+
+To compare strings (don’t use ~==~ !):
+: s.equals(<str>)
+: s.equalsIgnoreCase(<str>)
+
+
+Examples:
+#+begin_src java
+if (s.indexOf("hello") != -1) {
+  System.out.println("\"hello\" in s");
+}
+
+// Iterate over chars using a for loop:
+for (int i = 0; i < s.length(); i++) {
+    char c = s.charAt(i);
+}
+
+
+// To create a new string with the same letter repeated:
+char[] chars = new char[5];
+Arrays.fill(chars, 'a');
+String s = new String(chars);
+
+// Simpler, but requires Java 11+:
+(""+c).repeat(n)
+
+#+end_src
+*** Enum
+
+Examples:
+#+begin_src java
+enum Fruits { Apple, Banana };
+
+private String fruitsToString(Fruits fruit) {
+	switch (fruit) {
+		case Fruits.Banana:
+			return "Banana";
+		case Fruits.Apple:
+			return "Apple";
+	}
+	return a == Fruits.Banana ? "Banana" : "Apple";
+}
+#+end_src
+
+*** Abstract Data Types
+**** List
+
+Implementations:
+- ~ArrayList~
+- ~LinkedList~
+
+Declaration:
+: List<T> l;
+- ~<T>~ for type not necessary, but will be (any) ~Object~ if omitted
+
+Return an unmodifiable/immutable list containing /n/ elements:
+: List.of(x1, …, xn);
+(?) or:
+: Arrays.asList(x1, …, xn);
+- elements cannot be added or removed later
+
+Adding items:
+: l.add(<obj>);
+Setting item on index:
+: l.set(<index>, <obj>);
+Removing items:
+: l.remove(<index>);
+
+Member access:
+: l.get(<index>);
+
+#+begin_src java
+import java.util.ArrayList;
+import java.util.List;
+
+public class Foo {
+    public static void main(String[] args) {
+        List<String> l = new ArrayList();
+        l.add("a");
+        l.add("b");
+        l.add("c");
+        String s = l.get(0);
+    }
+}
+
+// Iteration using for-each:
+for (String x : list) {
+    …
+}
+
+// Or using an iterator:
+ListIterator<String> listIterator = list.listIterator();
+while (listIterator.hasNext()) {
+	String x = listIterator.next();
+}
+
+// To create a mutable List and add elements to it in the same statement:
+List<String> L = new ArrayList<>(List.of("foo", "bar"));
+#+end_src
+
+**** Map
+
+Main implementations:
+- ~TreeMap~: keeps its keys sorted and is fast
+- ~HashMap~: has no defined order and is (usually) very fast
+
+Declaration:
+: Map<keyT, valT> map;
+
+Map size:
+: map.size();
+
+Putting items:
+: map.put(<key>, <obj>);
+Removing items:
+: map.remove(<key>);
+
+Member access:
+: map.get(<key>);
+
+Query contents (returns boolean):
+: map.containsKey(<key>)
+
+Get the set of keys (e.g. for iteration):
+: map.keySet();
+
+#+begin_src java
+// Cannot use `int` type, use `Integer` instead:
+Map<String, Integer> m = new TreeMap<>();
+m.put("one", 1);
+m.put("two", 2);
+
+// To iterate over a map, use its set of keys:
+for (String k : m.keySet()) {
+    int v = m.get(k);
+    System.out.println(k + ": " + v);
+}
+
+// Or use an iterator:
+Set<String> keys = m.keySet();
+Iterator<String> iterator = keys.iterator();
+while (iterator.hasNext()) {
+	String k = iterator.next();
+    int v = m.get(k);
+}
+#+end_src
+
+**** Set
+
+Main implementations:
+- ~TreeSet~: keeps its elements in “sorted” order, and is “fast”
+- ~HashSet~: does not have a defined “order”, but is (usually) very “fast”
+
+Cannot contain a duplicate item.
+
+Declaration:
+: Set<T> set;
+
+Set size:
+: set.size();
+
+Adding items:
+: set.add(<obj>);
+
+Removing items:
+: set.remove(<obj>);
+
+Query contents (returns boolean):
+: set.contains(<obj>);
+
+Examples:
+#+begin_src java
+// To iterate over a set:
+for (String x : set) {
+    …
+}
+
+// Or use an iterator:
+Iterator<String> iterator = set.iterator();
+while (iterator.hasNext()) {
+	String x = iterator.next();
+}
+#+end_src
+
+** Control structures
+
+*if* conditional:
+: if (<condition>) {
+:   <statement(s) …>
+: } else if (<else-cond>) {
+:   <statement(s) …>
+: } else {
+:   <statement(s) …>
+: }
+- multiple ~else if~ allowed
+
+*Ternary operator*:
+: <condition> ? <return-if-true> : <return-if-false>
+
+*while* loop:
+: while (<condition>) {
+:   <statement(s) …>
+: }
+- statements only execute when ~condition~ is ~true~
+*do-while* loop:
+: do {
+:   <statement(s) …>
+: } while (<condition>);
+- statements also execute once before ~condition~ is checked
+
+*for* loop:
+: for (<initialization>; <termination>; <increment>) {
+:   <statement(s) …>
+: }
+- ~initialization~ instruction executes once before beginning
+- if ~termination~ condition is ~false~, loop terminates
+- ~increment~ instruction is invoked after each iteration
+*for each* loop:
+: for (<declaration> : <collection>) {
+:   <statement(s) …>
+: }
+- strings are not iterable!
+
+to leave a loop:
+: break;
+to jump to the next iteration:
+: continue;
+
+*switch* statement:
+: switch (<var>) {
+:   case <value1>:
+:     <expr>;
+:   case <value2>:
+:   case <value3>:
+:     <expr>; break;
+:   default:
+:     <expr>;
+: }
+
+*switch expressions*:
+- see [[*Switch expressions (since Java 12-14)][Switch expressions (since Java 12-14)]]
+
+Examples:
+
+#+begin_src java
+// infinite loop
+while (true) {
+    // …
+}
+
+// iterating 10 steps:
+for (int i = 0; i < 10; i ++) {
+    // …
+}
+
+// equivalent while loop:
+int i = 0;
+while (i < 10) {
+    // …
+    i++;
+}
+
+// labeled break/continue:
+first:
+for (int i = 0; i < 4; ++i)
+{
+    second:
+    for (int j = 0; j < 4; ++j)
+    {
+        third:
+        for (int k = 0; k < 4; ++k)
+        {
+            System.out.println ("inner start: i+j+k " + (i + j + k));
+            if (i + j + k == 5)
+                continue third;
+            if (i + j + k == 7)
+                continue second;
+            if (i + j + k == 8)
+                break second;
+            if (i + j + k == 9)
+                break first;
+            System.out.println ("inner stop:  i+j+k " + (i + j + k));
+        }
+    }
+}
+#+end_src
+
+** Boolean operators
+
+: !x
+: x && y
+: x || y
+: x == y
+: x != y
+: x ^ y  // XOR
+
+** Math
+
+: Math.pow(n, exp)
+
+** System
+
+To print to console:
+: System.out.println(<str|obj>);
+- calls the ~.toString~ method of the object
+
+(?) To end a program:
+: System.exit(0);
+
+** Exceptions
+
+: try {
+:   …
+: } catch (<exception class> <name>) {
+:   …
+: }
+- use ~Exception~ class for a generic exception
+- use ~RuntimeException~ class to throw exceptions that need not be caught
+
+If a method may produce errors, it can be defined to throw an exception,
+which is to be handled by the caller (in a try-catch block):
+: … myMethod()
+:   throws Exception {
+:     …
+:   }
+
+#+begin_src java
+try {
+    if (arr.length == 0) {
+        throw new Exception("There are no elements in the array!");
+    }
+} catch (Exception e) {
+    System.err.println("Caught Exception: " + e.getMessage());
+    // or:
+    e.printStackTrace();
+}
+#+end_src
+** Newer features
+
+*** Local variable type inference (since Java 10)
+
+Java infers the type of the variable:
+: var x = <value>
+
+*** Switch expressions (since Java 12-14)
+
+: <var> = switch (<var>) {
+:   case <value1>           -> <expr>;
+:   case <value2>, <value3> -> <expr>;
+: };
+
+* Minimal example app
+
+1. Create =Foo.java=:
+#+begin_src java
+public class Foo {
+  public static void main(String[] args) {
+    System.out.println("Hello Java!");
+    Bar.coffee();
+  }
+}
+#+end_src
+- does not need a package name
+- does not need an import statement if both classes are in the same package,
+  but they must be in the same directory
+
+2. Create =Bar.java=:
+#+begin_src java
+public class Bar {
+  public static void coffee() {
+    System.out.println("Sipping coffee…");
+  }
+}
+#+end_src
+
+3. Compile =Foo.java=:
+: $ javac Foo.java
+4. Run it:
+: $ java Foo
+
+** Create a JAR:
+1. Generate the JAR, using all class files, with ~Foo~ as the ~Main-Class~:
+: $ jar cfe app.jar Foo Foo.class Bar.class
+2. Execute the JAR:
+: $ java -jar app.jar
+: > Hello Java!
+: > Sipping coffee…
+
+*** From a separate manifest file:
+1. Create a text file for manifest additions, e.g. with the entry point:
+: $ echo 'Main-Class: Foo\n' >> Manifest.txt
+2. Generate the JAR, using the additions:
+: $ jar cfm app.jar Manifest.txt Foo.class Bar.class
+* Testing
+
+Testing framework *JUnit*:
+- https://junit.org

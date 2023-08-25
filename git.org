@@ -599,6 +599,7 @@ Add new or modified files to the staging area to be commited.
 *** git rm
 Removes files from the working tree and from the index.
 : $ git rm <filename>
+: -r           < recursive removal (for directories)
 : -f, --force  < forces removal
 
 To just remove a file from the staging area:
@@ -624,7 +625,8 @@ This is equivalent to something like this:
 *** git restore
 Discards changes in working directory (for specified files).
 : $ git restore <file/dir>
-:   --staged  < to unstage staged files
+:   --staged                    > to unstage staged files
+:   --source=<tag / commit id>  > restore to a specific point in history
 
 - *WARNING*: unstaged changes may be lost forever!
 - ~git restore <file>~ may be equivalent to ~git checkout -- <file>~ ?

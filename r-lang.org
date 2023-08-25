@@ -601,6 +601,9 @@ Halt processing of the current iteration and advance the /looping index/:
 
 * Basic math functions
 
+Modulo operator:
+: <x> %% <y>
+
 Round number:
 : floor(<x>) : ceiling(<n>)
 : trunc(<x>, …)
@@ -613,32 +616,35 @@ Sum over one or more vectors:
 
 * Statistical functions
 
-Calculate the (trimmed) arithmetic mean:
+Calculate the (trimmed) *arithmetic mean*:
 : mean(<numvec>)
-Calculate the median:
+Calculate the *median*:
 : median(<numvec>)
 
-Apply a function ~f~ (e.g. ~mean~) to each group of the components from ~vec~,
+*Apply* a function ~f~ (e.g. ~mean~) to each group of the components from ~vec~,
 defined by the levels of ~fac~:
 : tapply(<vec>, <fac>, <f>)
 - returns a structure of the same length as the levels attr. of ~fac~
 - contrary to ~aggregate~, will fill in missing combinations with ~NA~
 
 Split ~x~ into subsets, compute summary statistics for each, and return the
-result in a convenient form:
+*aggregate* result in a convenient form:
 : aggregate(<x>, by=<list>, FUN=<function>)
 - ~x~ is usually a data frame
 - ~by~ -> list of grouping elements, each as long as the variables in data frame
   ~x~, or a formula
   - the elements are coerced to factors
 
-Calculate various summary statistics for ~x~ depending on its /class/:
+Calculate various *summary statistics* for ~x~ depending on its /class/:
 : summary(<x>, …)
 - numeric vec.: min/max, median, mean, 1st./3rd. quartile
 - logical vec.: count of ~TRUE~ and ~FALSE~
 - other vec.: count of elements
 - factor: count for each level
 - data frame: summary for each variable
+
+Calculate the *variance* in a variable ~y~:
+: var(<y>)
 
 
 Custom functions:
@@ -743,10 +749,41 @@ Read/write a single R objects in binary form:
 : unserialize(…)
 : serialize(…)
 
+* Graphical parameters
+
+Colors for lines and points:
+: col
+Background colors for open plot symbols:
+: bg  ::vec
+Plotting characters or symbols:
+: pch  ::vec
+
 * Plots / Graphs
 
 Default scatterplot function:
-: plot(x, y, ?main=<str>, ?xlab=<str>, ?ylab=<str>, …)
+: plot(x, y, …)
+limit x/y axis:
+:   xlim = NULL  ::vec
+:   ylim = NULL  ::vec
+set plot type:
+:   type = "p"  ::string [ p | l | b | c | o | s/S | h | n ]
+set plot title:
+:   main = NULL  ::string
+set axis label:
+:   xlab = NULL  ::string
+:   ylab = NULL  ::string
+
+Plot types:
+| Type  | Description                   |
+|-------+-------------------------------|
+| ~p~     | points                        |
+| ~l~     | lines                         |
+| ~b~     | both (points & lines)         |
+| ~c~     | empty points joined by lines  |
+| ~o~     | overplotted points and lines  |
+| ~s~ / ~S~ | stair steps                   |
+| ~h~     | histogram-like vertical lines |
+| ~n~     | no points or lines            |
 
 Change the title of a plot:
 : title(main = <str>)
@@ -757,6 +794,8 @@ Save a plot image:
 Make a grid for plots:
 : par(mfrow = c(<rows>, <cols>))
 
+Plot a horizontal/vertical line:
+: abline(h = <horiz. coord>, …)
 
 Histogram:
 : hist(x, …)
@@ -774,3 +813,12 @@ Plot error bars from a mean variable:
 : errbar(x, y, yplus, yminus, ?xlab=<str>, ?ylab=<str>, …)
 - e.g. ~yplus = y + sd, yminus = y - sd~ (where ~y~ is the mean and ~sd~ is the
   standard deviation or standard error)
+
+** Recipes
+
+Plot lines for deviations from mean:
+#+begin_src r
+plot(y)
+abline(h = mean(y), col = "green")
+for(i in 1:length(y)) lines(c(i,i), c(mean(y), y[i]), col = "red")
+#+end_src

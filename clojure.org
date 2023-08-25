@@ -1,6 +1,7 @@
 #+title: Docs/Clojure
 
 - [[https://github.com/clojure/clojure/tree/master/src/jvm/clojure/lang][Clojure Source]]
+- [[https://github.com/clojure/clojure/tree/master/src/jvm/clojure/lang][clojure.lang Java Source]]
 - [[https://clojure.org/api/cheatsheet][Cheatsheet]]
 
 Resources:
@@ -258,7 +259,8 @@ after creating the uberjar, compile to native image like this:
 : $GRAALVM_17_HOME/bin/native-image -jar target/my-project-standalone.jar --no-fallback --initialize-at-build-time=clojure,my-project my-project
 
 -> compiles Java class files to machine code
-
+** GraalVM native binary
+See [[file:java.org][Docs/Java]] and [[https://github.com/clj-easy/graalvm-clojure/blob/master/doc/clojure-graalvm-native-binary.md][How to build a native binary for your Clojure projects with GraalVM]]
 
 * Tests
 
@@ -609,3 +611,90 @@ print dependency tree for the project:
 
 large annotated example to look for settings:
 - https://github.com/technomancy/leiningen/blob/master/sample.project.clj
+
+* Clojure & Java interop
+
+** Calling Clojure from Java
+
+Interop package: [[http://clojure.github.io/clojure/javadoc/clojure/java/api/package-summary.html][clojure.java.api]]
+- public Java API for Clojure, which consists of the classes/interfaces:
+  - ~clojure.java.api.Clojure~
+  - ~clojure.lang.IFn~
+- see https://stackoverflow.com/a/23555959/1204047
+
+*** In pure Java:
+
+In =pom.xml=:
+#+begin_src xml
+<project …>
+    <!-- ... -->
+    <repositories>
+        <repository>
+            <id>clojars.org</id>
+            <url>https://repo.clojars.org</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <!-- ... -->
+        <dependency>
+            <groupId>org.clojure</groupId>
+            <artifactId>clojure</artifactId>
+            <version>1.12.0-alpha4</version>
+        </dependency>
+        <dependency>
+            <groupId>some.clojarslib</groupId>
+            <artifactId>lib-name</artifactId>
+            <version>0.1.0</version>
+        </dependency>
+    </dependencies>
+#+end_src
+
+In =.java= files:
+#+begin_src java
+import clojure.java.api.Clojure;
+import clojure.lang.IFn;
+
+// Locate a var from a Clojure namespace, return its `IFn` interface:
+IFn cl_println = Clojure.var("clojure.core", "println");
+IFn cl_require = Clojure.var("clojure.core", "require");
+IFn cl_deref = Clojure.var("clojure.core", "deref");
+
+// Call a Clojure function using its `invoke` method:
+IFn plus = Clojure.var("clojure.core", "+");
+plus.invoke(2,3);
+
+// Read arbitrary Clojure syntax using Clojure’s EDN reader:
+Clojure.read("{:foo 1 :bar 2}");
+
+// Vars that are non-function values must be deref’d:
+IFn printLength = Clojure.var("clojure.core", "*print-length*");
+cl_deref.invoke(printLength);
+
+// Use Clojures `require` to import libraries (must be on the classpath):
+cl_require.invoke(Clojure.read("clojure.set"));
+IFn union = Clojure.var("clojure.set", "union");
+Object s = union.invoke(Clojure.read("#{:a :b}"), Clojure.read("#{:c :b}"));
+// Use Clojures `println` to print Clojure values:
+System.out.println(cl_println.invoke(s));
+
+// `IFn`s can be passed to higher order functions:
+IFn map = Clojure.var("clojure.core", "map");
+IFn inc = Clojure.var("clojure.core", "inc");
+map.invoke(inc, Clojure.read("[1 2 3]"));
+#+end_src
+
+*** In Scala:
+
+? ~clojure~ package is already on the classpath
+
+For libraries from *Clojars*, specify in =build.sbt=:
+#+begin_src sbt
+resolvers += "clojars.org" at "https://repo.clojars.org"
+libraryDependencies += "some.clojarslib" % "lib-name" % "0.1.0"
+#+end_src
+
+In =.scala= files, everything similar to [[In pure Java:]], except:
+- ~Clojure.`var`(…)~ (~var~ must be in backticks)
+- no need to specify ~IFn~ and ~Object~ types
+- no need to invoke Clojures ~println~, just use the one from Scala

@@ -8,6 +8,10 @@
   - Tutorials included
 - Intro/Tutorial: https://reagent-project.github.io
 
+Reactive deref issue:
+- https://github.com/reagent-project/reagent/issues/18
+> “Lazy transformation can cause the issue with reactive deref in lazy-seqs in Reagent, which almost all ClojureScript front-end dev I worked with (myself included) had to face at some point in their career. The lesson learned here is that you always want to eagerly evaluate the lazy-seqs in the Reagent component's rendering function.” - [[https://dawranliou.com/blog/default-transducers/][Source]]
+
 
 * Getting started
 

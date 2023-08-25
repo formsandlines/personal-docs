@@ -1818,22 +1818,8 @@ Delete mails:
 ** Music
 External tools:
 - [[coltrane]]
-** Java
-*** jar archives
-
-Show the contents of a =.jar=:
-: jar tf <filename>.jar
-
-Extract the contents of a =.jar= in the current directory:
-: jar xf <filename>.jar
-
-*** Java class files
-
-Disassemble a =.class= file and print contents to stdout:
-: javap <filename>.class
-: -c             : prints disassembled code
-: -p / -private  : show all classes and members
-: -public        : show only public classes and members
+** Java / jar files
+See [[file:java.org][Docs/Java]]
 
 * External applications
 ** tree

@@ -1,0 +1,10 @@
+#+title: Docs/Stitches
+
+https://stitches.dev
+- [[https://github.com/stitchesjs/stitches/discussions/1149][Discussion about the future of Stitches]]
+
+Example config:
+- https://github.com/radix-ui/design-system/blob/master/stitches.config.ts
+Example components:
+- https://github.com/radix-ui/design-system/tree/master/components
+- https://github.com/stitchesjs/stitches-site/tree/master/components
