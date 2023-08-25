@@ -8,6 +8,7 @@ Resources:
 - [[https://ccl.northwestern.edu/netlogo/docs/][NetLogo User Manual]]
 - [[http://ccl.northwestern.edu/netlogo/docs/programming.html][Programming Guide]]
 - [[https://ccl.northwestern.edu/netlogo/docs/dictionary.html][NetLogo Dictionary]] (reference)
+- [[https://groups.google.com/g/netlogo-users][netlogo-users]] (Google group)
 
 Learning:
 - [[http://ccl.northwestern.edu/netlogo/bind/][The Beginner's Guide to NetLogo Programming]]
@@ -603,6 +604,9 @@ Examples:
 : repeat 200 [ layout-spring turtles links 0.2 5 1 ]
 
 * Extensions
+
+- [[https://github.com/NetLogo/NetLogo-Libraries][NetLogo Libraries (central repository)]]
+
 ** Network extension [nw]
 
 - [[https://ccl.northwestern.edu/netlogo/docs/nw.html][Documentation]]
@@ -703,6 +707,20 @@ Create a new *named list* in R with given ~r-varname~:
 Activate the *visual plot device* for R:
 : sr:set-plot-device
 - opens a window if not already open
+* Writing own extensions
+
+- [[https://github.com/NetLogo/NetLogo/wiki/Extensions][Extensions]]
+- [[http://ccl.northwestern.edu/netlogo/docs/extension-authoring.html][Extension Authoring Introduction]]
+- [[https://github.com/NetLogo/NetLogo/wiki/Extensions-API][Extensions API]]
+- [[https://github.com/NetLogo/NetLogo-Extension-Plugin/tree/main][NetLogo Extension Plugin]]
+  - [[https://cloudsmith.io/~netlogo/repos/netlogo-extension-plugin/packages/detail/maven/netlogo-extension-plugin/6.1.0/a=noarch;xg=org.nlogo;xs=1.0;xl=2.12/][Repository on cloudsmith]]
+- [[https://ccl.northwestern.edu/netlogo/docs/scaladoc/org/nlogo/index.html][org.nlogo]] (NetLogo API)
+- [[https://groups.google.com/g/netlogo-devel][netlogo-devel]] (Google group)
+
+Like ~sbt package~, but creates a bundled =.zip= file to be unpacked in the
+NetLogo =extensions= directory:
+: sbt packageZip
+
 * Recipes
 
 Drawing a circle:

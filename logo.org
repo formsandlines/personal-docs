@@ -494,7 +494,6 @@ and use it as a test of one or more ~IFTRUE~ or ~IFFALSE~ commands:
 : IFT / IFTRUE [ <instruction> … ]
 : IFF / IFFALSE [ <instruction> … ]
 
-
 * Iteration
 
 Prefer to use *recursion*.
