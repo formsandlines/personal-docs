@@ -196,6 +196,7 @@ Then click/ENTER to toggle image display or use the shortcut.
 #+NAME: fig1
 #+ATTR_HTML: :width 100%
 [[./_res/orgMode/example.jpg]]
+- [[https://en.wikipedia.org/wiki/Popigai_impact_structure][Source]]
 
 * Export to other formats
 
