@@ -261,9 +261,14 @@ Example:
 #+begin_src java
 class MyClass<T> { // generic type variable
     private T x;
+    private T[] arr;
 
     public MyClass(T x) {
-        this.x = x
+        this.x = x;
+        // Java does not allow to create arrays of generic objects
+        // so we need to instantiate them with Object and cast to generic
+        // (the compiler warning can be ignored)
+        this.arr = (T[]) new Object[3];
     }
 
     public static void main(String[] args) {
@@ -465,9 +470,15 @@ Char at index:
 All chars as an array:
 : s.toCharArray()
 
-To compare strings (don’t use ~==~ !):
-: s.equals(<str>)
-: s.equalsIgnoreCase(<str>)
+To (lexicographically) compare two strings:
+: strA.compareTo(<strB>)
+- returns a *negative number* if ~strA~ < ~strB~
+- returns a *positive number* if ~strA~ > ~strB~
+- returns *zero* if ~strA~ == ~strB~
+
+To check equality (don’t use ~==~ !):
+: strA.equals(<strB>)
+: strA.equalsIgnoreCase(<strB>)
 
 
 Examples:
@@ -803,17 +814,87 @@ try {
 #+end_src
 ** Newer features
 
+See [[https://www.youtube.com/watch?v=NccnidiRknA]["(Modern) Java for Clojure Programmers" by James Henderson]] (YouTube)
+
 *** Local variable type inference (since Java 10)
 
 Java infers the type of the variable:
 : var x = <value>
 
-*** Switch expressions (since Java 12-14)
+*** ~switch~ expressions (since Java 12-14)
 
 : <var> = switch (<var>) {
 :   case <value1>           -> <expr>;
 :   case <value2>, <value3> -> <expr>;
 : };
+
+*** Pattern matching for ~instanceof~ (since Java 14-16)
+
+This was such a common pattern that there is now a shortcut.
+
+Example:
+#+begin_src java
+// previously we had to explicitly downcast to the subclass:
+if (obj instanceof String) {
+    String s = (String) obj;
+    // …
+}
+
+// now, s can be bound directly:
+if (obj instanceof String s) {
+    // …
+}
+#+end_src
+
+*** Pattern matching in ~switch~ (since Java 17-21)
+
+- can match on subtype
+- guards are possible
+
+Example:
+#+begin_src java
+static String formatter(Object obj) {
+    return switch (obj) {
+        case Integer i
+            -> String.format("int %d, i");
+        case Long l
+            -> String.format("long %d, l");
+        case Double d
+            -> String.format("double %f, d");
+        case String s
+            -> String.format("String %s, s");
+        default
+            -> obj.toString();
+    };
+}
+#+end_src
+*** ~record~'s (since Java 14-16)
+
+Classes with immutable fields, etc. Similar to Clojure records.
+
+Example:
+#+begin_src java
+// before:
+class Point {
+    private final int x;
+    private final int y;
+
+    Point(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    int x() { return x; }
+    int y() { return y; }
+
+    // …
+}
+
+// now:
+record Point(int x, int y) {
+    // …
+}
+#+end_src
 
 * Minimal example app
 
@@ -861,3 +942,21 @@ public class Bar {
 
 Testing framework *JUnit*:
 - https://junit.org
+
+Examples:
+#+begin_src java
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+// To assert that an exception is thrown:
+// - from https://stackoverflow.com/a/40268447/1204047
+@Test
+void exceptionTesting() {
+    MyException thrown = assertThrows(
+           MyException.class,
+           () -> myObject.doThing(),
+           "Expected doThing() to throw, but it didn't"
+    );
+
+    assertTrue(thrown.getMessage().contains("Stuff"));
+}
+#+end_src
