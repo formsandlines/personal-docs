@@ -106,8 +106,18 @@ Controls, how elements inside the box are laid out.
 Short for “Flexible Box Layout”. Makes it easier to lay out things in one
 dimension.
 - https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_flexible_box_layout
+- https://developer.mozilla.org/en-US/docs/Learn/CSS/CSS_layout/Flexbox
+- https://www.w3.org/TR/css-flexbox-1/
 
+#+CAPTION: Flex model terms
+#+NAME: fig_flex-terms
+#+ATTR_HTML: :width 90%
+[[./_res/css/flex_terms.png]]
+- [[https://developer.mozilla.org/en-US/docs/Learn/CSS/CSS_layout/Flexbox][Source]]
+
+Make the element a *flex container* and its children *flex items*:
 : display: flex
+- *note*: margins don’t collapse!
 
 Defaults:
 - ~flex-direction: row~
@@ -115,19 +125,35 @@ Defaults:
 
 *** Flex Container properties
 
-*Direction* of item flow:
-: flex-direction  :: row | column | row-reverse | column-reverse
+*Main axis direction* in which items are layed out:
+: flex-direction  :: row | row-reverse | column | column-reverse | …
 
-*Alignment* of items in flex container:
-: align-items  :: start | center | end | stretch
-- ~stretch~ will stretch out elements to fill the container height/width
-  - doesn’t word if elements’ ~height~ is fixed
+*Main axis wrapping* onto multiple lines if items overflow container:
+: flex-wrap  :: nowrap | wrap | wrap-reverse
+- tries to fill a line (→ /main axis/) with as many items as the container
+  size allows (without /overflow/)
+- the number of items in one line is determined by the items ~flex~ property
+- remaining items in the last row may be wider to fill the entire row
+- ~wrap-reverse~ will let wrapped lines stack in reverse order
+
+Shorthand to set the *item flow*:
+: flex-flow
+- https://developer.mozilla.org/en-US/docs/Web/CSS/flex-flow
+*keywords:*
+:            :: initial => row nowrap
+:            :: inherit | revert | revert-layer | unset
+*single property:*
+:            :: <flex-direction> => x nowrap
+:            :: <flex-wrap>      => row y
+*multiple properties:*
+:            :: <flex-direction> <flex-wrap>
 
 *** Flex Item properties
 
 Set how the item *flexibly grows/shrinks* (in ~flex-direction~) to fit the
 available space of the flex container:
 : flex
+- https://developer.mozilla.org/en-US/docs/Web/CSS/flex
 - for most purposes, set to ~auto~, ~initial~, ~none~ or a positive integer
 *keywords:*
 :       :: initial => 0 1 auto
@@ -141,7 +167,8 @@ available space of the flex container:
 :       :: none    => 0 0 auto
 - item is sized according to its ~width~ & ~height~ properties
 - neither /shrinks/ nor /grows/
-*single properties:*
+:       :: inherit | revert | revert-layer | unset
+*single property:*
 :       :: <flex-grow>  => x 1 0
 - other values are ~0~
 :       :: <flex-basis> => 1 1 x
@@ -150,13 +177,77 @@ available space of the flex container:
 :       :: <flex-grow> <flex-basis>               => x 1 y
 :       :: <flex-grow> <flex-shrink>              => x y 0
 :       :: <flex-grow> <flex-shrink> <flex-basis> => x y z
-*global values:*
-:       :: inherit | revert | revert-layer | unset
+- exceeding the size given by ~flex-basis~ will cause the rest of the
+  available space to be shared according to ~flex-grow~
 
 Flex-properties can be set individually:
 : flex-grow    :: <int+>
 : flex-shrink  :: <int+>
-: flex-basis   :: <any size>
+: flex-basis   :: <size>
+** Grid
+** Alignment / Distribution
+
+- [[https://www.w3.org/TR/css-align/][CSS Box Alignment Module Level 3]] (W3C)
+- [[https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_box_alignment][CSS box alignment]] (mdn)
+
+*** All items in a container
+
+*Alignment of items:*
+- flexbox → on *cross axis* for all items (→ ~align-self~)
+- grid → on *block axis* of items within their *grid area*
+: align-items  :: start | center | end | flex-start | flex-end
+:              :: normal | *stretch*
+:              :: baseline | first baseline | last baseline
+- https://developer.mozilla.org/en-US/docs/Web/CSS/align-items
+- ~stretch~ will stretch out elements to fill the containers /cross axis/
+  - doesn’t work if elements’ ~height~ is fixed
+  - if containers’ ~height~ is not fixed, all items will become as tall as
+    the tallest item
+
+*Distribution of space* between/around content items:
+- flexbox → along *main axis* for all items (as a whole):
+- grid → along *inline axis* of a grid container
+: justify-content  :: start | center | end | *flex-start* | flex-end
+:                  :: left | right
+:                  :: normal
+:                  :: space-between | space-around | space-evenly | stretch
+- *ignored in flexbox layouts*
+- the ~flex-~ values respect the ~-reverse~ values of ~flex-direction~ (might
+  not work in some older browsers)
+  - see https://stackoverflow.com/a/54278834/1204047
+
+*Distribution of space* between/around content items:
+- flexbox → along *cross axis* for wrapped lines
+- grid → along *block axis*
+: align-content  :: start | center | end | flex-start | flex-end
+:                :: space-between | space-around | space-evenly | stretch
+:                :: normal
+:                :: baseline | first baseline | last baseline
+- https://developer.mozilla.org/en-US/docs/Web/CSS/align-content
+- e.g. on flex-wrap, distributes space between/around wrapped lines
+
+*Gap between rows/columns* (multi-column, flexbox and grid layouts):
+: gap  :: <row-gap>              => x x
+:      :: <row-gap> <column-gap> => x y
+
+Shorthand for:
+: column-gap  :: <units> | *normal*
+: row-gap  :: <units> | *normal*
+- can use length or percentage units
+- use e.g. ~calc(10% + 20px)~ to calculate units
+
+*** Individual items
+
+Override a grid or flex item’s ~align-items~ value:
+- flexbox: aligns the item on the *cross axis*
+- grid: aligns the item inside the *grid area*
+: align-self  :: <...align-items>
+
+Change the *layout order* without affecting the /source order/ (flexbox/grid):
+: order  :: <int>
+- default: ~0~ (for all flex items)
+- negative values can be used to make items appear before ~0~
+- flex items with equal order values will appear in their /source order/
 
 * Normal flow
 
