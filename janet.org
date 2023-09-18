@@ -62,20 +62,38 @@ Load an image file into Janet:
 - deserializes the env table in the image, looks up a symbol ~main~ there and
   (if found), executes that function
 
+* Projects
+
+Create a new Janet (+ C) project interactively in a directory =name=:
+: $ jpm new-project [name]
+: $ jpm new-c-project [name]
+Create a new project for an executable in a directory =name=:
+: $ jpm new-exe-project [name]
+
+To install dependencies of a project:
+: $ sudo jpm deps
+- installs them globally to =/opt/homebrew/Cellar/janet/<version>/lib=
+
 * Packages
 
 To install a package:
-: $ sudo jpm install pkg-name
+: $ sudo jpm install [pkg-name …]
+To uninstall a package:
+: $ sudo jpm uninstall [pkg-name …]
 
 Installation directory: =/opt/homebrew/Cellar/janet/<version>/lib=
 
 To list installed packages:
 : $ jpm list-installed
-
 To list available packages:
 : $ jpm list-pkgs [name]
 
-To update jpm:
+To update the package listing:
+: $ sudo jpm update-pkgs
+- same as ~sudo jpm install pkgs~
+To update all installed packages to latest version:
+: $ sudo jpm update-installed
+To update jpm itself:
 : $ sudo jpm install jpm
 
 * Editor support
@@ -168,12 +186,13 @@ Numeric literals:
 0
 +0.0
 -10_000
-16r1234abcd
+16r1234abcd 2r101 # hexadecimal, binary, etc.
 0x23.23
 1e10
 1.6e-4
 7r343_111_266.6&+10 # a base 7 number in scientific notation.
 # evaluates to 1.72625e+13 in base 10
+
 #+end_src
 
 ** Extended abstract types:
@@ -357,6 +376,12 @@ Value semantics on immutable data structures.
 # just a macro that expands to:
 (def <name> (fn [<param …>] <body …>))
 
+# optional parameters:
+(defn … [… &opt <param>]
+  # can have a default value:
+  (default <param> <default-val>)
+  …)
+
 # early return from a function:
 (break <?value>)
 
@@ -367,6 +392,7 @@ Value semantics on immutable data structures.
 # use `$` for arguments:
 (|(* $ $) 3) #=> 9
 (|(* $0 $1) 3 4) #=> 12
+(|(apply * $&) 3 4 5) #=> 17
 
 # For structs and tables, keys act as accessors (same as `in`):
 ({:a 1 :b 2} :b) #=> 2
@@ -482,6 +508,19 @@ More infos:
 (next <indexed coll>)  # returns the next index
 (in <indexed coll> <index>)  # returns the value, given an index
 #+end_src
+
+Flexible general purpose loop macros:
+#+begin_src janet
+# for side-effects
+# - (similar to Common Lisp loop macro)
+(loop <head> & <body>)
+
+# for data
+# - like loop, but accumulates the loop body into an array
+# - (similar to Clojure’s `for`)
+(seq <head> & <body>)
+#+end_src
+- see https://janetdocs.com/loop / https://janetdocs.com/seq
 
 Iterable data structures are e.g. *tuples*, *arrays*, *structs*, *tables*, *strings*,
 *buffers*, *fibers*, *keywords* and *symbols*
@@ -692,33 +731,44 @@ To replace (the first match / all matches) of a PEG:
 See Docs:
 - https://janet-lang.org/docs/peg.html#Built-in-patterns
 
-: :s[+/*]  # ASCII whitespace char
 : :d[+/*]  # ASCII digit
 : :a[+/*]  # ASCII letter
+: :s[+/*]  # ASCII whitespace char
 : :w[+/*]  # ASCII digit or letter (word char)
+: :h[+/*]  # hex char
+: :D | :A | :S | :W | :H  # negated ASCII/hex patterns
+- whitespace includes newlines ~"\n"~
 
 ** Captures
 
-| PEG                            | Meaning                                |
-|--------------------------------+----------------------------------------|
-| ~(capture <ptn> <?tag>)~         | capture all text if pattern matches    |
-| / ~(<- …)~                       |                                        |
-| ~(replace <ptn> <subst> <?tag>~) | replaces a capture from pattern        |
-| / ~(/ …)~                        | / with (f capture(s)) or a new value   |
-| ~(accumulate <ptn> <?tag>)~      | captures a string as the concatenation |
-| / ~(% …)~                        | / of all captures in pattern           |
-| ~(constant <const> <?tag>)~      | captures/returns a Janet constant      |
-|                                | / useful for parsing                   |
-| ~(group <ptn> <?tag>)~           | puts captures into an array            |
-| ~(position <?tag>)~              | capture the current index              |
-| / ~($ …)~                        |                                        |
-| ~(unref <ptn> <?tag>)~           | scope tagged captures                  |
-|                                | / e.g.to backmatch in nested patterns  |
-| ~(number <ptn> <?base> <?tag>)~  | capture a number parsed from match     |
-| ~(cmt <ptn> <fun> <?tag>)~       | invoke (fun capture(s)), expr fails    |
-|                                | / if fun returns false or nil          |
-| ~(backref <tag> <?tag>)~         | duplicate last capture with given tag  |
-| ~(-> …)~                         | / match fails if no capture exists     |
+| PEG                            | Meaning                                 |
+|--------------------------------+-----------------------------------------|
+| ~(capture <ptn> <?tag>)~         | capture all text if pattern matches     |
+| / ~(<- …)~                       |                                         |
+| ~(replace <ptn> <subst> <?tag>~) | replaces a capture from pattern         |
+| / ~(/ …)~                        | / with (f capture(s)) or a new value    |
+| ~(accumulate <ptn> <?tag>)~      | captures a string as the concatenation  |
+| / ~(% …)~                        | / of all captures in pattern            |
+| ~(constant <const> <?tag>)~      | captures/returns a Janet constant       |
+|                                | / useful for parsing                    |
+| ~(group <ptn> <?tag>)~           | puts captures into an array             |
+| ~(position <?tag>)~              | capture the current index               |
+| / ~($ …)~                        |                                         |
+| ~(unref <ptn> <?tag>)~           | scope tagged captures                   |
+|                                | / e.g.to backmatch in nested patterns   |
+| ~(cmt <ptn> <fun> <?tag>)~       | invoke (fun capture(s)), expr fails     |
+|                                | / if fun returns false or nil           |
+| ~(backref <tag> <?tag>)~         | duplicate last capture with given tag   |
+| ~(-> …)~                         | / match fails if no capture exists      |
+| ~(argument <n> <?tag>)~          |                                         |
+| ~(number <ptn> <?base> <?tag>)~  | capture a number parsed from match      |
+| ~(uint <num-bytes> <?tag>)~      |                                         |
+| ~(uint-be <num-bytes> <?tag>)~   |                                         |
+| ~(int <num-bytes> <?tag>)~       |                                         |
+| ~(int-be <num-bytes> <?tag>)~    |                                         |
+| ~(lenprefix <n> <ptn> <?tag>)~   |                                         |
+| ~(drop <ptn>)~                   | ignores (drops) all captures from patt. |
+| ~(error <?ptn>)~                 | throws a Janet error                    |
 
 - ~(quote …) / '…~ can be used instead of ~(capture …)~
 - ~cmt~ stands for “match-time capture” (see [[http://www.inf.puc-rio.br/~roberto/lpeg/][LPEG]] (Lua))
@@ -1093,10 +1143,7 @@ To compute the module’s environment without creating names in the current env:
 ** Environment
 To inspect documentation on a symbol:
 : (doc <symbol>)
-
-To exit from Janet with optional ~exit-code~:
-: (os/exit <?exit-code>)
-- can use bash exit codes like ~0~ and ~1~
+- type e.g. ~(doc "string/")~ to find all functions related to a module
 
 ** IO
 *** Print/Logs
@@ -1143,51 +1190,50 @@ Open a connection to communicate with a server
 Suspend program for /n/ seconds
 : (os/sleep <seconds>)
 
-** Booleans
+Exit from a Janet app with optional ~exit-code~:
+: (os/exit <?exit-code>)
+- can use bash exit codes like ~0~ and ~1~
+
+Get or append ~n~ bytes of good quality random data provided by the OS:
+: (os/cryptorand <n> <?buff>)
+- returns a new buffer or ~buff~.
+
+** Functions
+Like in Clojure:
+: (partial <f> <args …>)
+: (comp <f …>)
+
+** Primitive DS
+*** Numbers
+To parse a number from a string:
+: (scan-number <string> <?base>)
+
+*** Booleans
 Checks for truthyness:
 : (truthy? <expr>)
 
-** Strings
-Check for a prefix in a string:
-: (string/has-prefix? <prefix-str> <string>)
+** Indexed/sequential DS
+*** Common
 
-To create a formatted string:
-: (string/format <string> <value …>)
-- https://janetdocs.com/string%2fformat
+Select elements:
+: (first <xs>)
+: (last <xs>)
 
-To upper-case:
-: (string/ascii-upper <string>)
+Get the number of elements:
+: (length <xs>)
 
-To convert bytes (e.g. from string iteration) to a string:
-: (string/from-bytes <byte-vals …>)
-
-Join an array of strings with optional separator string:
-: (string/join <str-array> <?sep>)
-
-Examples:
-#+begin_src janet
-(string/format "Hello %s, you are %02d years old." "Peter" 35)
-#=> "Hello Peter, you are 35 years old."
-(string/format "This %q is an expression." [1 2 3])
-#=> "This (1 2 3) is an expression."
-#+end_src
-
-** Arrays/Tuples
-To select elements:
-: (first <seq>)
-: (last <seq>)
-
-To get number of elements:
-: (length <seq>)
+Extract a sub-range:
+: (slice <xs> <?start> <?end>)
+- see also: ~tuple/slice~
 
 Higher-order sequence functions (no mutation):
-: (map <fn> <seq …>)
-: (filter <pred> <seq>)
-: (reduce <fn> <init> <seq>) (reduce2 <fn> <seq>)
-: (partition <n> <seq>)
+: (map <fn> <xs …>)
+: (filter <pred> <xs>)
+: (reduce <fn> <init> <xs>) (reduce2 <fn> <xs>)
+: (partition <n> <xs>)
 
 Map & concat:
-: (mapcat <fn> <seq>)
+: (mapcat <fn> <xs>)
 - uses ~array/concat~ to concatenate
 - returns a new array (mutable)
 
@@ -1201,6 +1247,15 @@ Create an array of numbers from ~start~ (incl.) to ~end~ (excl.):
 
 Interleave collections (like in Clojure):
 : (interleave <coll …>)
+- returns a new array
+
+Interpose a ~sep~ element between elements of the indexed sequence:
+: (interpose <sep> <xs>)
+- returns a new array
+
+Reverse the elements:
+: (reverse <xs>)
+- returns a new array
 
 *** Tuple
 
@@ -1212,17 +1267,83 @@ To take a sub-seq of an array/tuple from ~start~ (incl.) to ~end~ (excl.) index:
 *** Array
 
 To insert an element to the end of an array (mutation):
-: (array/push <array> <elem>)
+: (array/push <arr> <elem>)
 - https://janetdocs.com/array%2fpush
-- returns the ~array~
+- returns ~arr~
 
 Concatenate a variable number of elements/arrays/tuples into the first array:
 : (array/concat <arr> <x …>)
 - mutates ~arr~!
 
-Create a new ~array~ of ~count~ elements, all set to ~value~ (default: ~nil~)
+Create a new array of ~count~ elements, all set to ~value~ (default: ~nil~)
 : (array/new-filled <count> <?val>)
-- returns a new ~array~
+- returns a new array
+
+*** Buffer
+
+Append bytes to a buffer:
+: (buffer/push-byte <buff> <byte …>)
+
+Remove last ~n~ bytes from a buffer:
+: (buffer/popn <buff> <n>)
+
+*** String
+
+Trim leading and trailing whitespace:
+: (string/trim <string> <?set>)
+- optionally consider only chars in ~set~ to be whitespace
+
+Check for a prefix in a string:
+: (string/has-prefix? <prefix-str> <string>)
+
+To create a formatted string:
+: (string/format <string> <value …>)
+- https://janetdocs.com/string%2fformat
+- use ~"%q"~ for data structures
+
+To upper-case:
+: (string/ascii-upper <string>)
+
+To convert bytes (e.g. from string iteration) to a string:
+: (string/from-bytes <byte-vals …>)
+
+Join an array of strings with optional separator string:
+: (string/join <str-array> <?sep>)
+
+To reverse (the /bytes/ of) a string/buffer:
+: (string/reverse <string>)
+- will reverse all bytes from UTF-8 encoding → *breaks unicode chars!*
+
+Examples:
+#+begin_src janet
+(string/format "Hello %s, you are %02d years old." "Peter" 35)
+#=> "Hello Peter, you are 35 years old."
+(string/format "This %q is an expression." [1 2 3])
+#=> "This (1 2 3) is an expression."
+(map string/from-bytes "hello")
+#=> @["h" "e" "l" "l" "o"]
+#+end_src
+
+** Associative DS
+*** Common
+
+Return an array of key-value pairs from a table/struct:
+: (kvs <dict>)
+
+Merge multiple tables/structs into one new table:
+: (merge <coll …>)
+- similar to Clojure: later values with equal keys replace earlier ones
+- returns a new table
+
+*** Table
+
+Associate a key with a value:
+: (put <table/…> <key> <val>)
+
+Convert to struct:
+: (table/to-struct <tbl>)
+
+*** Struct
 
 ** Exceptions
 To throw an exception
@@ -1236,21 +1357,245 @@ To catch an exception
   ([e] (print e)))
 #+end_src
 
-** Arithmetic
+** Math/Arithmetic
 - https://janet-lang.org/api/math.html
 - from the C library ~<math.h>~
 
-To parse a number from a string:
-: (scan-number <string> <?base>)
+Constants:
+: math/int-min
+: math/int-max
+: math/int32-min
+: math/int32-max
+: math/nan  # not a number
+: math/inf  # positive infinity
+: math/-inf # negative infinity
+: math/pi   # π
+: math/e    # Eulers number (base of natural log)
+
+Return the next representable floating point value after ~x~ in the direction
+of ~y~:
+: (math/next <x> <y>)
+- returned number may appear the same as ~x~ but this is due to printing
+  truncation (see examples: https://janetdocs.com/math/next)
+
+*** Random numbers
+
+*Note:* to get a new and different number on each run of the program, set
+the /seed/ to e.g. ~(os/cryptorand 8)~.
+
+Return a uniformly distributed random number between 0 and 1:
+: (math/random)
+- sequence will repeat after restart of Janet (same seed)
+
+Set the seed for the RNG:
+: (math/seedrandom <seed>)
+- ~seed~: integer or buffer
+- e.g. for ~math/random~
+
+Create a pseudo-random number generator (RNG) with optional ~seed~:
+: (math/rng <?seed>)
+- default seed is ~0~
+- do *not* use for cryptography
+
+Extract a random number in range ~[0, 1)~ from a RNG:
+: (math/rng-uniform <rng>)
+
+Extract an integer in range ~[0, max)~ from a RNG:
+: (math/rng-int <rng> <?max>)
+
+Get ~n~ bytes from a RNG and put them in a buffer:
+: (math/rng-buffer <rng> <n> <?buff>)
+- creates a new buffer if none provided, otherwise appends to ~buff~
+- returns the buffer
 
 *** Bit-wise operaors
 - like in C or Java
+- all inputs have to be integers
+
+: (bnot x)
+
+: (band & xs)
+: (bor & xs)
+: (bxor & xs)
+
+Return value of ~x~ bit shifted left/right by the sum of all ~shifts~:
+: (blshift x & shifts)
+: (brshift x & shifts)
+: (brushift x & shifts)
+- in ~brushift~, the sign of ~x~ is not preserved
+  -> always positive for positive shifts
+
+Examples:
+#+begin_src janet
+(bnot 0) #=> -1
+(bnot 1) #=> -2
+
+(band 2r101 2r110) #=> 4  (100)
+(bor 2r1 2r10) #=> 3  (11)
+(bxor 2r101 2r11) #=> 6  (110)
+
+(blshift 2r11 1) #=> 6  (11 -> 110)
+(blshift 2r11 2) #=> 12  (11 -> 1100)
+
+(brshift 2r110 1) #=> 3  (110 -> 11)
+(brshift 2r1100 2) #=> 3  (1100 -> 11)
+#+end_src
 
 ** Compilation
 To compile an /abstract syntax tree/ into a function (with no args):
 : (compile <ast> …)
 - https://janetdocs.com/compile
 - https://janet.guide/macros-and-metaprogramming/
+* Janet C API
+- https://janet-lang.org/capi/index.html
+- https://janet-lang.org/capi/writing-c-functions.html
+- https://janet.guide/xenofunctions/
+
+** Native Janet modules in C
+
+Build and install native modules:
+: $ jpm install --local --verbose
+
+This will generate the files in =jpm_tree/lib/=:
+- =set.a= → *static library* file /(archive)/
+  - contains object files that can be linked directly at compile time
+  - self-contained and independent of external deps
+  - will be linked in if a native executable gets compiled via ~jpm~
+- =set.so= → *dynamic library* file /(shared objects)/
+  - can be compiled, linked and loaded at runtime
+  - will be linked in if the lib is imported in a REPL session or if a
+    script that depends on it is executed with the ~janet~ interpreter
+- =set.meta.janet=
+  - contains metadata ~jpm~ uses in order to statically link =set.a=
+
+In =project.janet=:
+#+begin_src janet
+# …
+(declare-native
+  :name "mylib"
+  :source ["mylib.c"])
+#+end_src
+
+In =mylib.c=:
+#+begin_src C
+#include <janet.h>
+
+static Janet cfun_foo(int32_t argc, Janet *argv) {
+  // Assert how many arguments should be passed in:
+  // Exactly two arguments:
+  janet_fixarity(argc, 2);
+  // One, two, or three arguments:
+  janet_arity(argc, 1, 3);
+  // At least two arguments:
+  janet_arity(argc, 2, -1);
+
+  // …
+
+  // Return a Janet value, e.g. `nil`:
+  return janet_wrap_nil();
+}
+
+static JanetReg cfuns[] = {
+  {"foo", cfun_foo, "some docstring"},
+  {NULL, NULL, NULL}
+};
+
+JANET_MODULE_ENTRY(JanetTable *env) {
+  janet_cfuns(env, "foo", cfuns);
+}
+#+end_src
+
+~JANET_MODULE_ENTRY~ is a macro that expands to something like this:
+#+begin_src C
+JanetBuildConfig _janet_mod_config(void) {
+  // returns the current version of Janet
+  // - Janet will check if that version matches when it dynamically
+  //   loads the native module
+  return ((JanetBuildConfig){ 1, 27, 0, (0 | 0) });
+}
+
+void _janet_init(JanetTable *env) {
+  // takes a freshly allocated env table as input and
+  // mutates the table, installing all env entries for the module
+  janet_cfuns(env, "foo", cfuns);
+}
+#+end_src
+
+
+*** Example
+
+In =project.janet=:
+#+begin_src janet
+(declare-project :name "set")
+
+(declare-native
+  :name "set"
+  :source ["set.c"])
+#+end_src
+
+In =set.c=:
+#+begin_src C
+#include <janet.h>
+
+static Janet cfun_hello(int32_t argc, Janet *argv) {
+  janet_fixarity(argc, 0);
+  printf("hello world\n");
+  return janet_wrap_nil();
+}
+
+static JanetReg cfuns[] = {
+  {"hello", cfun_hello, "(hello)\n\nprints hello"},
+  {NULL, NULL, NULL}
+};
+
+JANET_MODULE_ENTRY(JanetTable *env) {
+  janet_cfuns(env, "set", cfuns);
+}
+#+end_src
+
+In =main.janet=:
+#+begin_src janet
+(import set)
+
+(set/hello)
+#+end_src
+
+Build and install the native module:
+: $ jpm install --local --verbose
+
+To use the *dynamic library*:
+
+Run the application:
+: $ jpm -l janet main.janet
+
+Load the module in Janet REPL:
+: $ jpm -l repl
+: repl:1:> (use set)
+: @{_ @{:value <cycle 0>} hello @{:private true} :macro-lints @[]}
+: repl:2:> hello
+: <cfunction set/hello>
+
+
+
 * Code Examples
 
 - [[https://github.com/saikyun/freja][freja]] (text editor)
+
+* Libraries
+
+Data structures
+- [[https://github.com/andrewchambers/janet-utf8/][janet-utf8]] (Unicode representation for strings)
+- [[https://github.com/ianthehenry/jimmy][jimmy]] (bindings for [[https://github.com/arximboldi/immer][immer]], a library for immutable data structures)
+  - enables *sets* in Janet
+- [[https://github.com/MikeBeller/janet-set][janet-set]] (another implementation for set types)
+
+Web
+- [[https://joy.swlkr.com][Joy]] (web framework)
+
+UI
+- [[https://github.com/kamisori/jaylib/][jaylib]] (Raylib bindings)
+- [[https://github.com/janet-lang/janetui][janetui]] (libui bindings)
+
+Parser
+- [[https://github.com/pyrmont/remarkable][remarkable]] (CommonMark parser written in Janet)
+- [[https://github.com/pyrmont/markable][Markable]] (bindings for GitHubs fork of the CommonMark lib)

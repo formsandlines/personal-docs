@@ -16,22 +16,36 @@ VS Code extensions:
 Useful snippets:
 - ~_rafce~
 
-* Setup
-Import react libraries:
-: import React from 'react';
-: import ReactDOM from 'react-dom';
+Convert html to jsx:
+- https://transform.tools/html-to-jsx
 
-Render component on DOM load:
+* Setup
+
 #+begin_src typescript
-ReactDOM.render(
-  <MyComponent />,
-  document.getElementById('root')
-);
+import { createRoot } from 'react-dom/client';
+
+const root = createRoot(container);
+root.render(<App />);
 #+end_src
 
 To try the built app on a local server, we can use serve:
 : $ sudo npm i -g serve
 : $ serve -s build -p 8000
+
+** pre React 18 setup:
+
+Import react libraries:
+
+Render component on DOM load:
+#+begin_src typescript
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+ReactDOM.render(
+  <App />,
+  document.getElementById('root')
+);
+#+end_src
 
 * Components
 “A good rule of thumb is that if a part of your UI is used several times

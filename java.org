@@ -283,6 +283,8 @@ class MyClass<T> { // generic type variable
 
 ~@Override~ before a method declaration tells the compiler, that the
 corresponding method from base class will be overwritten.
+- not necessary, but can be useful to avoid spelling mistakes in method
+  inheritance and quickly see what methods have been overwritten
 
 *** Examples:
 #+begin_src java
@@ -320,8 +322,30 @@ System.out.println("Point 1: ( " + p1.x + ", " + p1.y + ")");
 
 #+begin_src java
 public interface Subject {
+    private final String DEFAULT_NAME = "X";
+
     public int getAge();
-    public String getName();
+
+    // interfaces can also pass down (default) implementations:
+    // - this is called “implementation inheritance”
+    // - NOT recommended!
+    default public String getName() {
+        return this.DEFAULT_NAME;
+    };
+}
+
+// implement an interface in a class like this:
+public class Human implements Subject {
+    private int age;
+    private String name;
+
+    // …
+
+    @Override
+    public int getAge() {
+        return this.age;
+    }
+    // `getName()` already has a default implementation
 }
 #+end_src
 
