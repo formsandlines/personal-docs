@@ -679,6 +679,20 @@ function call:
 
 : $ echo 'foo.txt\nbar.txt\nbaz.txt' | xargs touch
 : (creates files foo.txt, bar.txt and baz.txt)
+** Terminal process
+
+Lookup running processes and their ~PID~:
+: ps
+
+Send a signal to a process (usually to terminate the process):
+: kill <PID>
+- lookup ~PID~ with ~ps~ first
+
+Examples:
+
+To immediately terminate a process (no chance to capture the signal):
+: kill -9 <PID>
+- e.g. use if a process is stuck and ~C-c~ doesn’t abort it
 
 ** User
 *** Current user
@@ -1736,6 +1750,7 @@ Input patterns:
 
 Examples:
 : $ bc <<< "obase=2;ibase=16;F0F0"
+: $ bc <<< "obase=16; ibase=16; 8+10+2"
 
 *** Print sequence of numbers
 ~seq~ prints a sequence of numbers.
@@ -1780,6 +1795,10 @@ External tools:
 - [[rlwrap]] is a wrapper for REPLs to navigate command history
 
 ** Mail
+- uses ~ed~ editor for writing mails (?)
+  - finish editing with ~.~ on a new line
+- after session, stores mails that have been read in ~~/mbox~ file (if not
+  aborted with ~x~)
 
 : $ mail         : check mails
 : $ mail <user>  : send a mail to <user>
