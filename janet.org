@@ -35,9 +35,6 @@ Load/run a Janet script:
 - this will run the ~main~ function of the script, if there is any
 - ~main~ must be defined with variadic args, like ~[&]~
 
-Compilation to native code, using ~jpm~:
-: ?
-
 
 ** Images
 
@@ -62,7 +59,8 @@ Load an image file into Janet:
 - deserializes the env table in the image, looks up a symbol ~main~ there and
   (if found), executes that function
 
-* Projects
+* jpm
+** Projects
 
 Create a new Janet (+ C) project interactively in a directory =name=:
 : $ jpm new-project [name]
@@ -73,6 +71,19 @@ Create a new project for an executable in a directory =name=:
 To install dependencies of a project:
 : $ sudo jpm deps
 - installs them globally to =/opt/homebrew/Cellar/janet/<version>/lib=
+
+** Executables
+
+#+begin_src janet
+(declare-executable
+  :name "myexec"
+  :entry "main.janet"
+  :install true)
+#+end_src
+- ~:install true~ not needed for building
+
+Compilation to native code:
+: $ jpm build
 
 * Packages
 
@@ -192,7 +203,32 @@ Numeric literals:
 1.6e-4
 7r343_111_266.6&+10 # a base 7 number in scientific notation.
 # evaluates to 1.72625e+13 in base 10
+#+end_src
 
+String literals:
+#+begin_src janet
+"Hello, this is a string."
+
+# Add escape characters for newlines, double quotes, backslash, tabs, etc.
+"Hello\nThis is on line two\n\tThis is indented\n"
+
+# If a double-quoted string spans multiple lines, newline characters will
+# be removed but other whitespace is preserved.
+"Hello, this
+    is al
+l one line
+here."   # -> "Hello, this    is all one linehere."
+
+# To avoid escape characters in long strings, use 1 or more backticks (`):
+``
+This is a string.
+Line 2
+    Indented
+"We can just type quotes here", and backslashes \ no problem.
+``
+
+# If printable, embed UTF-8 literally in strings rather than escaping:
+"Hello, 👍"
 #+end_src
 
 ** Extended abstract types:
@@ -487,7 +523,8 @@ More infos:
 (forever <form …>)
 
 (for i <n-start> <n-end>
-  <form …>)
+  <form …>
+  ?(break))
 # variant where iteration variable `i` can be mutated in the loop:
 (forv i <n-start> <n-end>
   <form …>)
@@ -804,7 +841,7 @@ More infos:
 
 ** API
 
-To create a fiber:
+Create a fiber:
 : (fiber/new <function> <?signalmask>)
 - the ~function~ argument must have zero arity
 - the optional ~signalmask~ is a collection of flags for checking what kinds of
@@ -812,24 +849,33 @@ To create a fiber:
   - any un-trapped signals are propagated to the previous calling fiber
   - use ~:e~ to “catch” exceptions from an ~error~
 
-To yield the next value of a fiber, optionally passing a value back to the
+Yield a value to the parent fiber:
+: (yield <?x>)
+
+Yield the next value of a fiber, optionally passing a value back to the
 ~yield~ call:
 : (resume <fiber> <?x>)
 
-To inspect the status of a fiber:
+Inspect the status of a fiber:
 : (fiber/status <fiber>)
 
-To get the last value returned or signaled from a fiber:
+Get the last value returned or signaled from a fiber:
 : (fiber/last-value <fiber>)
 
-To create a fiber to yield multiple values:
+Create a fiber to yield multiple values:
 : (coro <body …>)
 - this is the same as calling ~(fiber/new (fn [] <body …>) :yi)~
 - “coro” is short for [[*Coroutines][“coroutine”]]
 
-To get the current environment table:
+Get the current environment table:
 : (curenv <?n>)
 - same as ~(fiber/getenv (fiber/current))~
+
+Propagate a signal (? ~x~) from a ~fiber~ to the current fiber:
+: (propagate <x> <fiber>)
+- if ~fiber~ is in a state that can be resumed, resuming the current fiber
+  will first resume ~fiber~
+- can be used to re-raise an error without losing the original stack trace
 
 ** Signals
 
@@ -1024,7 +1070,7 @@ To cancel a suspended fiber in the event loop:
 : (ev/cancel <fib> <err>)
 
 To get the currently executing task:
-: (fiber/root-fiber)
+: (fiber/root)
 
 To suspends the current fiber (without blocking the event loop):
 : (ev/sleep <sec>)
@@ -1043,6 +1089,22 @@ To write a value to a channel:
 - suspends the current fiber if the ~channel~ is full
 - returns the ~channel~ if write succeeds, ~nil~ otherwise
 
+[[Streams]]:
+
+To create a stream from a file:
+: (os/open <path> <?flags> <?mode>)
+- returns a new stream
+- creates new file if it doesn’t exist
+- see [[https://janetdocs.com/os%2fopen][docs]] for optional ~flags~ and ~mode~
+  - ~:r~ to open for reading
+  - ~:w~ to open for writing
+
+To read up to ~n~ bytes into a /buffer/ asynchronously from a ~stream~:
+: (ev/read <stream> <n> <?buffer> <?timeout>)
+- use ~:all~ for ~n~ to read until the end of stream
+
+To close a ~stream~:
+: (ev/close <stream>)
 
 ** Tasks / root fibers
 
@@ -1081,23 +1143,6 @@ network.
 The /Stream API/ is an abstraction over *byte buffers* that can be read from or
 written to without blocking the program.
 - e.g. to asynchronously read and write to files or TCP sockets
-
-*** API
-
-To create a stream from a file:
-: (os/open <path> <?flags> <?mode>)
-- returns a new stream
-- creates new file if it doesn’t exist
-- see [[https://janetdocs.com/os%2fopen][docs]] for optional ~flags~ and ~mode~
-  - ~:r~ to open for reading
-  - ~:w~ to open for writing
-
-To read up to ~n~ bytes into a /buffer/ asynchronously from a ~stream~:
-: (ev/read <stream> <n> <?buffer> <?timeout>)
-- use ~:all~ for ~n~ to read until the end of stream
-
-To close a ~stream~:
-: (ev/close <stream>)
 
 * Modules
 Importing a module actually means importing the [[Environment][environment]] which is the
@@ -1271,6 +1316,10 @@ To insert an element to the end of an array (mutation):
 - https://janetdocs.com/array%2fpush
 - returns ~arr~
 
+Remove the last value from array and return it:
+: (array/pop <arr>)
+- returns ~nil~ if ~arr~ is empty
+
 Concatenate a variable number of elements/arrays/tuples into the first array:
 : (array/concat <arr> <x …>)
 - mutates ~arr~!
@@ -1350,7 +1399,11 @@ To throw an exception
 : (error <string>)
 
 To catch an exception
-: (try <form> ([<binding …>] <catch-expr>))
+: (try
+:   <body>
+:   ([<error-binding> <?fiber-binding>]
+:     <catch-expr>))
+- ~fiber-binding~ is an optional binding for the fiber wrapping the ~body~
 
 #+begin_src janet
 (try …

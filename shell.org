@@ -46,6 +46,13 @@ echo $var
 
 More infos:
 - https://dev.to/awwsmm/elegant-multi-line-shell-strings-2lja
+** Stop a script from running after error
+
+On top of the script, set:
+: set -e
+
+*Gotchas*:
+- if a function is invoked on an ~||~ condition, ~-e~ will be disabled.
 
 ** Fixes
 *** How to fix homebrew error: “invalid active developer path” after upgrade to

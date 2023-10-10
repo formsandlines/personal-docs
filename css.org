@@ -248,6 +248,12 @@ Change the *layout order* without affecting the /source order/ (flexbox/grid):
 - default: ~0~ (for all flex items)
 - negative values can be used to make items appear before ~0~
 - flex items with equal order values will appear in their /source order/
+** Columns
+See:
+- https://developer.mozilla.org/en-US/docs/Web/CSS/columns
+- [[https://developer.mozilla.org/en-US/docs/Learn/CSS/CSS_layout/Multiple-column_Layout][Multiple-column layout]] (mdn/guides)
+
+: columns: …
 
 * Normal flow
 

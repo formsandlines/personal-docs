@@ -40,6 +40,10 @@ Features of R:
   - ~NULL~ -> does not exist
 - for-loops are inefficient in R
 
+R uses *nonstandard evaluation (NSE)* comparable to [[https://en.wikipedia.org/wiki/Fexpr][fexprs]] for more readable and
+expressive syntax, more convenient function calls and the creation of DSLs
+within R.
+
 ** Editors
 
 - [[https://posit.co/products/open-source/rstudio/][RStudio]] -> IDE

@@ -989,3 +989,11 @@ Web RTC
 
 Local Storage
 - store data in the browser
+* Debugging
+
+To freeze the UI state (if F8 doesn’t work):
+1. in Chrome browser console:
+: setTimeout(() => {debugger;}, 5000)
+1. set the state in Browser
+2. wait 5 seconds for freezing to occur
+- [[https://stackoverflow.com/a/63643578/1204047][source]]

@@ -1,0 +1,126 @@
+#+title: Docs/TIC-80
+
+- https://tic80.com
+- [[https://github.com/nesbox/TIC-80/wiki][TIC-80 Wiki]]
+- [[https://github.com/nesbox/TIC-80][TIC-80 Repository]]
+
+Learning:
+- https://tic80.com/learn
+- https://github.com/nesbox/TIC-80/wiki/Beginners'-Tips
+- [[https://skyelynwaddell.github.io/tic80-manual-cheatsheet/][TIC-80 Manual & Cheat Sheet]]
+- [[https://hub.xpub.nl/sandbot/PrototypingTimes/tic80-manual.html][TIC-80 The Missing Manual]]
+
+* Specs
+
+| Spec          | Value                                                      |
+|---------------+------------------------------------------------------------|
+| Resolution    | 240 × 136 pixel display                                    |
+| Color         | 16 color palette (chosen from 24-bit colorspace)           |
+| Input         | 4 gamepads with 8 buttons / mouse / keyboard               |
+| Sprites       | 256 foreground sprites and 256 background tiles (8 × 8 px) |
+| Map           | 240 × 136 tiles (ie, 1920 × 1088 pixels)                   |
+| Sound         | 4 channels (with editable waveform envelopes)              |
+| Code          | 512KB of source or 256KB compiled BINARY size              |
+| Memory        | Up to 272kb of RAM (including 32KB of VRAM)                |
+| Bankswitching | Up to 8 banks in cart (PRO version only)                   |
+- [[https://skyelynwaddell.github.io/tic80-manual-cheatsheet/][Source]]
+
+- *free* and *open source*
+- *Cart formats:* lua, ruby, js, moon, fennel, scheme, squirrel, wren, wasm,
+  janet, python
+- *Supported platforms:* HTML5, Windows, Windows 10 UWP, Linux 32/64bit,
+  Android, Mac OS, Raspberry Pi, Pocket CHIP, iOS (courtesy of CliffsDover and
+  Bruno Philipe), libretro
+- *Screen origin:* top-left
+- *Author:* Nesbox (Vadim Grigoruk)
+
+* Shortcuts
+
+https://github.com/nesbox/TIC-80/wiki/Hotkeys
+
+| Key            | Description                                              |
+|----------------+----------------------------------------------------------|
+| ESC            | Switch between console/editor or open menu while in-game |
+| ESC+F1         | Switch to editor while in-game                           |
+| F1…5 / ALT+1…5 | Show code/sprite/map/sfx/music editor                    |
+| C-PGUP/PGDOWN  | Switch to previous/next editor mode                      |
+| C-R/ENTER      | Run cart                                                 |
+| C-S            | Save cart                                                |
+
+* Program
+
+Main function, must be present in every program:
+: (defn TIC [] …)
+- called 60 times per second (60 fps)
+
+Execute code between drawing of each scan line:
+: (defn SCN [line] …)
+- e.g. to manipulate the palette
+
+Execude code on every frame:
+: (defn OVR [] …)
+- draws on a separate layer
+- can be used together with ~SCN~ to create separate background/foreground
+  layers and other visual effects
+
+Execude code between the drawing of each fullscreen scanline:
+: (defn BDR [row] …)
+- e.g. to manipulate the palette
+
+Game menu handler:
+: (defn MENU [index] …)
+
+Startup function:
+: (defn BOOT [] …)
+
+Basic program structure:
+#+begin_src janet
+# title:   game title
+# author:  game developer, email, etc.
+# desc:    short description
+# site:    website link
+# license: MIT License (change this to your license of choice)
+# version: 0.1
+# script: janet
+# strict:  true
+
+# Unlike other languages, the tic80 API
+# is provided as a module.
+(import tic80)
+
+(defn TIC []
+  # game loop
+  )
+#+end_src
+
+* API
+** System
+Ticks (milliseconds) elapsed since game start:
+: (tic80/time)
+- e.g. for keeping track of time, animation and triggering events
+
+** Draw
+Clear screen:
+: (tic80/cls <color-id>)
+
+Draw a sprite:
+: (tic80/spr <sprite-index> <x> <y>
+:  <colorkey = -1>
+:  <scale = 1>
+:  <flip = 0>
+:  <rotate = 0>
+:  <w = 1>
+:  <h = 1>)
+- ~sprite-index~: 0 … 511
+- ~colorkey~: index (or array of indexes) of the color in the sprite that will
+  be used as transparent color (~-1~ → opaque)
+- ~flip~: ~0~ no flip | ~1~ horizontally | ~2~ vertically | ~3~ both axes
+- ~rotate~ (in 90° steps): ~0~ no rotation | ~1~ 90° | ~2~ 180° | ~3~ 270°
+
+Draw text:
+: (tic80/print <str> <x> <y>)
+
+** Input
+
+Button pressed?:
+: (tic80/btn <id>)

@@ -221,8 +221,8 @@ Declare a constant (immutable) with ~static final~.
 
 ** Classes
 
-Classes without a constructor automatically get a default constructor on
-compilation.
+Classes without a constructor automatically get a *default constructor* (with
+no arguments) on compilation.
 
 It is common to have *getter* and *setter* methods in classes.
 - e.g. ~getField~ and ~setField~
@@ -285,6 +285,99 @@ class MyClass<T> { // generic type variable
 corresponding method from base class will be overwritten.
 - not necessary, but can be useful to avoid spelling mistakes in method
   inheritance and quickly see what methods have been overwritten
+- overriding only applies to non-static methods
+- see https://docs.oracle.com/javase/tutorial/java/IandI/override.html for
+  special cases of overriding
+
+*Implementation inheritance* is done by using the ~extends~ keyword.
+- inherits all instance and static variables
+- inherits all methods
+- inherits all nested classes
+- constructors are *not* inherited
+- ~private~ members are /inaccessible/ from the subclass
+- ~super()~ can call methods of the superclass within the subclass
+
+All constructors *must start with* a call to one of the super class’s
+constructors.
+- if ~super()~ is not being called at the start of the subclass constructor,
+  Java will automatically do it (without args)
+- ~super()~ can be called with arguments to use a different constructor
+
+*Interface inheritance* is done by using the ~implements~ keyword.
+- the inheriting class must implement all specified methods
+- interfaces can pass down implementations with the ~default~ keyword
+  -> *NOT* recommended!
+
+**** Static type / Dynamic type
+
+The /static type/ is determined at *compile time* from the type declaration
+of the variable.
+- also called /compile-time type/
+- immutable
+- every expression has a compile-time type
+- methods have compile-time type equal to their declared type
+
+The /dynamic type/ is only determined at *run-time* after the object has
+been initialized with the ~new~ keyword.
+- also called /run-time type/
+- can change at run-time if the variable gets reassigned
+- every object must have a static type, but its dynamic type might be
+  ~null~ if the variable is unassigned
+
+Example:
+#+begin_src java
+Insect x = new Caterpillar();
+x = new Butterfly();
+#+end_src
+- ~x~ has the /dynamic type/ ~Caterpillar~, but the /static type/ ~Insect~
+- after the reassignment, ~x~ still has the static type of ~Insect~, but its
+  /dynamic type/ is now ~Butterfly~
+
+**** Upward casting / Downward casting
+
+*Upward casting*: an object instantiated from a /subclass/ can be assigned
+to a variable that has the type of its /superclass/.
+: Superclass subObj = new Subclass();
+- enabled the object to be used in more general contexts
+- cannot call methods that are only defined in the subclass
+- [[Dynamic method selection]] applies
+
+*Downward casting*: an object instantiated from a /superclass/ usually
+/cannot/ be assigned to a variable that has the type of its /subclass/.
+However, the compiler can be convinced that the compile-time type of an
+expression is of a certain other type than the one it has been declared
+with:
+: Subclass subObj = (Subclass) new Superclass();
+- may result in a ~ClassCastException~ at runtime! (breaks type safety)
+- dynamic type is unaffected, so [[Dynamic method selection]] may cause
+  unexpected behaviour
+
+**** Dynamic method selection
+
+If in a method call the method of the static type has been overwritten
+(~@Override~) by the dynamic type, the Java interpreter will select the
+method of the *dynamic type*.
+
+Example:
+#+begin_src java
+public class Animal {
+    // …
+    public void show() {
+        // …
+    }
+}
+public class Fox extends Animal {
+    // …
+    @Override
+    public void show() {
+        // …
+    }
+}
+
+Animal fox = new Fox();
+fox.show(); // ← calls show() from Fox class
+#+end_src
+
 
 *** Examples:
 #+begin_src java
@@ -397,10 +490,12 @@ letter).
 : long    -> Long
 : char    -> Character
 
-*** Object
+*** Object Class
+- [[https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/Object.html][Docs (Oracle)]]
 - root of the class hierarchy
-- every class has ~Object~ as a superclass
+- *every* class has ~Object~ as a superclass
 - all objects, including arrays, implement the methods of this class
+- the ~clone~ method is /fundamentally broken/ (in modern Java)
 
 *** Array
 
@@ -917,6 +1012,60 @@ class Point {
 // now:
 record Point(int x, int y) {
     // …
+}
+#+end_src
+
+* Higher order functions
+- Examples source: [[https://docs.google.com/presentation/d/1kddUDGDz_fxbWtUBXP-7-PsYG0JwAjPgyQ5zmDSGmx8/edit#slide=id.g10a4194b67_0_295][CS 61B 2023, lecture 9]]
+
+** Before Java 8
+
+Before Java 8, it was not possible to pass methods as arguments to other
+methods. Memory boxes (variables) could not contain pointers to methods.
+
+However, there is a workaround using [[Interfaces]]. Before Java 8, it was
+implemented like this:
+#+begin_src java
+// Create an interface for any kind function that takes an Int and returns one:
+public interface IntUnaryFunction {
+    int apply(int x);
+}
+
+// Implement it in a class created just for the specific function TenX:
+public class TenX implements IntUnaryFunction {
+    public int apply(int x) {
+        return 10 * x;
+    }
+}
+
+// A “higher-order method” can now take any object of the general type
+// `IntUnaryFunction` and call its `apply` method to “call” the “function”:
+public class Java7HoFDemo {
+    public static int doTwice(IntUnaryFunction f, int x) {
+        return f.apply(f.apply(x));
+    }
+    public static void main(String[] args) {
+        System.out.println(doTwice(new TenX(), 2));
+    }
+
+}
+#+end_src
+
+** Java 8 and later
+
+Since Java 8, types can hold references to methods:
+#+begin_src java
+public class Java8HoFDemo {
+    public static int tenX(int x) {
+        return 10 * x;
+    }
+    public static int doTwice(Function<Integer, Integer> f, int x) {
+        return f.apply(f.apply(x));
+    }
+    public static void main(String[] args) {
+        int result = doTwice(Java8HoFDemo::tenX, 2);
+        System.out.println(result);
+    }
 }
 #+end_src
 
