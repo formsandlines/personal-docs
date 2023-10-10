@@ -506,8 +506,10 @@ Repeat infinitely until a halting command is executed:
 - halt with e.g. ~throw~, ~stop~ or ~output~
 
 : WHILE <condition> [ <while-true> … ]
+: DO.WHILE [ <while-true> ] <condition>
 
 : UNTIL <condition> [ <while-false> … ]
+: DO.UNTIL [ <while-false> ] <condition>
 
 Iterate on ~data~ (list, word or array):
 : FOREACH <data> <template> : (FOREACH <data> … <template>)
