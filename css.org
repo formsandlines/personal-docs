@@ -185,6 +185,9 @@ Flex-properties can be set individually:
 : flex-shrink  :: <int+>
 : flex-basis   :: <size>
 ** Grid
+
+: display: grid
+
 ** Alignment / Distribution
 
 - [[https://www.w3.org/TR/css-align/][CSS Box Alignment Module Level 3]] (W3C)
