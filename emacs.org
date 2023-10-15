@@ -1,0 +1,442 @@
+#+title: Docs/Emacs
+
+Learning resources:
+- [[https://www.youtube.com/watch?v=48JlgiBpw_I][The Absolute Beginner's Guide to Emacs]] (System Crafters)
+- [[https://www.masteringemacs.org][Mastering Emacs]] (ebook by Mickey Petersen)
+- [[https://emacs.stackexchange.com][emacs StackExchange]]
+- [[https://www.reddit.com/r/emacs/][r/emacs]]
+
+*Note:* keybindings are Emacs defaults, if not specified otherwise, OS-specific details assume MacOS (which I use)
+
+* Installing Emacs
+** Yamamoto’s Mac port
+https://github.com/railwaycat/homebrew-emacsmacport
+
+: $ brew tap railwaycat/emacsmacport
+: $ brew install emacs-mac  --with-modules --with-native-compilation
+
+** Other Mac ports
+Infos:
+- [[https://www.reddit.com/r/emacs/comments/lijn31/best_emacs_port_for_mac_early_2021_edition/gn45q1h/]['Best' Emacs port for Mac - early 2021 edition?]] (reddit)
+- https://emacsformacosx.com
+- https://www.emacswiki.org/emacs/EmacsForMacOS
+
+* Starting Emacs
+: $ emacs
+or open the app.
+
+** in the Terminal
+
+: $ exec emacs -nw
+- ~exec~ will replace the shell with the Emacs process (may not be necessary)
+- ~-nw~ runs Emacs in “no-window” mode, so it won’t try to create a graphical
+  frame (ensures all keystrokes are sent to Emacs)
+
+Use ~F10~ to open menu, arrow keys to navigate, ~ESC~ to exit
+
+To prevent the terminal session from closing after Emacs has been closed:
+: $ bash -c 'exec emacs -nw'
+- starts a subshell for Emacs to replace
+
+** with a different /init/ file
+
+: $ mkdir ~/.emacs.d.foo
+: $ touch ~/.emacs.d.foo/init.el
+
+: $ emacs -q -l ~/.emacs.d.foo/init.el
+- ~-q~ does not load the default init file
+- ~-l~ loads a different config file
+
+** as a separate GUI instance
+
+On MacOS:
+: $ open -n -a /Applications/Emacs.app --args --no-desktop
+- ~-n~ opens a new instance of the app
+- ~--no-desktop~ does not load a saved desktop
+
+* Configuration
+
+=~/.emacs/init.el= is the configuration file.
+
+** location of /init.el/
+Normally Emacs uses the environment variable ~HOME~ to find =.emacs=. If =.emacs=
+is not found inside =~/= (nor =.emacs.el=), Emacs looks for =~/.emacs.d/init.el=
+(which, like =~/.emacs.el=, can be byte-compiled).
+- when both are available, =~/.emacs.el= is preferred over =~/.emacs=
+- see [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Find-Init.html#Find-Init][How Emacs Finds Your Init File]]
+
+The variable ~user-init-file~ holds the location of the init file. After Emacs
+found and has finished loading the init file, it sets the value of the
+variable to its path.
+- if it is ~nil~, no configuration was loaded
+- when starting Emacs with the ~-q~ flag, the variable will still be set to
+  the init file that would ordinarily be loaded, even though no init file
+  was actually loaded
+
+The variable ~user-emacs-directory~ holds the directory for per-user
+Emacs-specific files.
+- set ~--init-directory~ flag (Emacs 29+) to start Emacs from a different user
+  directory (e.g. to use a separate config)
+
+The file =early-init.el= (Emacs 27+) is loaded before the package system and
+GUI is initialized, which makes it ideal for settings that need to be in
+effect at the start of Emacs startup process.
+- it must be created by the user, e.g. inside =~/.emacs.d=
+- its location is determined implicitly by the value of ~user-emacs-directory~
+
+** using the /Customize/ interface
+Recommended for beginners who are not yet comfortable writing elisp.
+- supported by most built-in packages and some third-party ones
+
+: M-x customize
+- opens up ~*Customize Group: Emacs*~ buffer with a list of /groups/
+
+** using elisp
+
+
+** Debugging
+
+Try starting Emacs with the ~-q~ flag to prevent the /init/ file from loading and
+determine if the error comes from a broken init file.
+
+** Example configs
+- https://github.com/daviwil/dotfiles/blob/master/Emacs.org
+- https://github.com/olivertaylor/dotfiles/blob/master/emacs/init.el
+
+** Starter Kits
+*** Doom Emacs
+https://github.com/hlissner/doom-emacs/blob/develop/docs/getting_started.org#on-macos
+
+*** Other
+- [[https://github.com/purcell/emacs.d][.emacs.d]] (Steve Purcell)
+- [[https://github.com/bbatsov/prelude][Prelude]] (Bozhidar Batzov)
+- [[https://spacemacs.org][Spacemacs]]
+
+* Keybindings
+
+| Notation | Key                                               |
+|----------+---------------------------------------------------|
+| ~C~        | CONTROL (hold)                                    |
+| ~M~        | META (=> often OPT/ALT key (hold) or ESC (press)) |
+| ~S~        | SHIFT                                             |
+
+Mostly obsolete/historic keys:
+| Notation | Key                                    |
+|----------+----------------------------------------|
+| ~s~        | SUPER (=> often CMD/LINUX/WINDOWS key) |
+| ~H~        | HYPER                                  |
+| ~A~        | ALT (redundant and not used)           |
+
+- ~C~ is often used for operations with basic text units
+- ~M~ is often used for operations with linguistic units
+
+Personal mapping (MacOS):
+#+begin_src elisp
+(setq mac-command-modifier 'meta)       ;; left cmd
+(setq mac-right-command-modifier 'meta) ;; right cmd
+(setq mac-right-option-modifier nil)
+(setq mac-option-modifier nil)
+#+end_src
+- no OPT bindings because the interfere with European umlaut chars, etc.
+- left/right CTRL = CAPS-LOCK = ~C~ (map in MacOS keyboard settings)
+
+Terminology (source: “Mastering Emacs”):
+- *key sequence* (or just /key/) → sequence of keyboard/mouse actions
+- *complete key* → one or more /key sequences/ that invoke a /command/
+- *prefix key* → /key sequence/ that is not a /complete key/
+
+Common prefix keys:
+- ~C-x~ is the prefix for Emacs’ primary key bindings
+- ~C-c~ is the prefix for active major or minor modes and user key bindings
+
+* Commands
+
+** General
+
+Exit Emacs:
+: C-x C-c : save-buffers-kill-terminal
+
+Exit out of prompts, regions, prefix arguments and return to just one window:
+: ESC ESC ESC
+Interrupt command (maybe press multiple times):
+: C-g : keyboard-quit
+
+Repeat the previous command:
+: C-x z (z …) : repeat
+- just ~z~ to repeat multiple times
+Repeat a command ~n~ times:
+: C-u <n> <cmd> : universal-argument
+- e.g. ~C-u 8 C-f~ to move cursor forward 8×
+See also [[Repeat Mode]]
+
+** Help / Infos
+Get help/description:
+: C-h …
+- ~a~: ~apropos~ (regex search for Lisp symbols)
+- ~i~: ~info~ (INFO mode / Emacs manual)
+- ~k~: ~helpful-key~ (lookup key binding)
+- ~f~: ~helpful-callable~ (lookup function)
+- ~F~: ~Info-goto-emacs-command-node~ (find documentation for command)
+- ~m~: ~describe-mode~ (lookup (current) mode)
+
+Show list of all bindings:
+: M-x describe-bindings
+
+Show Emacs uptime counter:
+: M-x emacs-uptime
+Show Emacs version:
+: M-x emacs-version
+
+Keyboard-friendly menu bar:
+: M-`
+- ? does this work
+
+** Info mode
+
+| Key   | Action                                  |
+|-------+-----------------------------------------|
+| ~[~ · ~]~ | Previous / next section                 |
+| ~l~ · ~r~ | Go back / forward in viewing history    |
+| ~n~ · ~p~ | Previous / next section (same level)    |
+| ~u~     | Parent section                          |
+| ~SPC~   | Scroll one screen at a time             |
+| ~TAB~   | Cycle through cross-references & links  |
+| ~RET~   | Open selected link                      |
+| ~m~     | Prompt for a menu item name and open it |
+| ~q~     | Close INFO                              |
+
+** Buffers
+Show buffer list:
+: C-x C-b : list-buffers
+Open dired buffer manager:
+: M-x ibuffer
+
+Switch to previous/next buffer:
+: C-x ←/→ : previous-buffer / next-buffer
+Switch to buffer by name:
+: C-x b : consult-buffer
+
+Kill buffer (current buffer or named):
+: C-x k : kill-buffer
+- according to “Mastering Emacs”, it is normal to have hundreds or even
+  thousands of buffers open, so this is not as important as it seems
+
+Reload buffer (replaces buffer with file on disk, undoing all changes):
+: M-x revert-buffer
+
+Completion frameworks for buffer switching:
+- [[#icomplete][Icomplete / IDO / FIDO]]
+
+** Windows
+Select another window (in cyclic ordering):
+: C-x o : other-window
+
+Toggle popups (e.g. for help):
+: C-` : +popup/toggle
+- requires ~popup.el~
+
+** Files
+
+Load file into buffer:
+: C-x C-f : find-file
+
+Save buffer to file:
+: C-x C-s : save-buffer
+Write buffer to different file (save as…):
+: C-x C-w : write-file
+** Expressions
+
+Evaluate elisp expression:
+: C-: : (eval-expression <exp> …)
+
+** Other things
+
+Weird screensaver:
+: M-x zone
+Text adventure game:
+: M-x dunnet
+Tetris clone:
+: M-x tetris
+Psychotherapist:
+: M-x doctor
+
+* Navigation / Movement
+
+Scroll line with cursor to the center (or upper+lower edge on repetition) of
+the window:
+: C-l : recenter-top-bottom
+
+Scroll window page-wise further/back:
+: C-v / SPC (read-only) / PgDown : scroll-up-command
+: M-v / DEL (read-only) / PgUp   : scroll-down-command
+
+Scroll window ~n~ lines further/back:
+: C-u <n> C-v
+: C-u <n> M-v
+
+Navigation in text (or use arrow keys):
+:    C-p    : previous-line
+: C-b · C-f : backward-char · forward-char
+:    C-n    : next-line
+- wraps around lines
+
+Jump to start of previous word / before next word:
+: M-b / M ← : left-word
+: M-f / M → : right-word
+
+Jump to beginning/end of line:
+: C-a / Home : move-beginning-of-line
+: C-e / End  : move-end-of-line
+Jump to beginning/end of sentence (must be separated by 2 spaces):
+: M-a : backward-sentence
+: M-e : forward-sentence
+
+Jump to start/end of buffer:
+: M-< / C-Home : beginning-of-buffer
+: M-> / C-End  : end-of-buffer
+
+* Text editing
+
+** Definitions
+
+- *Sentence* → string of text that ends with a period followed by two spaces
+  or (?)
+- *Word* → string of text that ends on a non-alphabetic char (?) or (?)
+
+Lines are (usually) not continuous but are broken up by hard line-breaks.
+- ~(auto-fill-mode)~ activates automatic breaking of lines if they exceed the
+  max. character limit
+- ~M-q : fill-paragraph / org-fill-paragraph~ correctly breaks a continuous
+  paragraph into lines
+
+** Insert
+
+Insert newline and leave cursor before it:
+: C-o : open-line
+
+** Delete
+
+Delete char before cursor:
+: DEL : backward-delete-char-untabify
+Delete backwards until next word beginning:
+: M-DEL : backward-kill-word
+
+Delete char under cursor:
+: C-d : (delete-char <n> <?KILLFLAG>)
+- as a command, kills ~n~ following or (if negative) previous chars
+Delete until next word ending:
+: M-d : kill-word
+
+Delete until line ending:
+: C-k : kill-line
+- if cursor is at line ending, deletes the next line
+- delete multiple lines with ~C-u <n> C-k~
+
+Delete until end of sentence:
+: M-k : kill-sentence
+
+** Indent
+
+Indent with ~TAB~.
+
+Indent a region:
+: C-M-\ : indent-region
+
+To manually increase/decrease indentation:
+: C-x TAB : indent-rigidly
+
+** Search / Replace
+
+: C-r : isearch-backward
+: C-s : isearch-forward
+** Undo / Redo
+
+Undo changes:
+: C-/  /  C-_  /  C-x u  : undo
+
+Redo changes:
+: C-g <undo>
+** Copy / Paste
+
+Save /(copy)/ the region as if it was /killed/ but don’t kill it:
+: M-w : kill-ring-save
+- (?) copies up to mark
+
+Reinsert /(paste)/ the most recent /kill/ or /yank/:
+: C-y : yank
+
+Kill /(cut)/ text between point and mark:
+: C-w : kill-region
+- (?) deletes up to mark
+
+(?) Re-insert previously deleted text parts:
+: M-y : yank-pop
+- multiple times to go further back in /kill ring/
+
+* Emacs Lisp (elisp)
+
+To open [[https://www.gnu.org/software/emacs/manual/eintr.html][An Introduction to Programming in Emacs Lisp]]:
+: C-h R eintr
+- Emacs 28+
+
+* Built-in modes
+** ORG mode
+
+Navigate quickly by using single keys at the beginning of an Org headline:
+: (setq org-use-speed-commands t)
+- see https://orgmode.org/manual/Speed-Keys.html
+- to show currently active Speed Keys: ~M-x org-speed-command-help~ or ~?~ when
+  point is at the beginning of an org headline
+
+** Dired (file-/directory manager)
+** Icomplete / IDO / FIDO
+:PROPERTIES:
+:CUSTOM_ID: icomplete
+:END:
+Icomplete global minor mode
+: M-x icomplete-mode / (setq icomplete-mode t)
+
+Continuously displays a list of possible completions that match the typed
+string.
+
+*Usage:* select the first completion in the list with ~C-j~. To make an item in
+the list the first one, either:
+1. type some initial letters (can be anywhere in the string)
+2. use ~C-.~ and ~C-,~ to rotate the list
+
+*** Ido mode / Fido mode
+
+*Ido mode:* “Interactively DO things”
+- https://www.masteringemacs.org/article/introduction-to-ido-mode
+
+*Fido mode:* “Fake Ido” – similar to /Icomplete mode/ but retains some
+functionality from Ido mode.
+- uses ~flex~ as the default completion style
+: M-x fido-mode / (setq fido-mode t)
+- ~C-k~ to to delete files and kill buffers in-list
+
+*Recommended:* IDO for Emacs 26-, FIDO for Emacs 27+.
+** Repeat Mode
+/(Emacs 28+)/
+
+- https://karthinks.com/software/it-bears-repeating/
+
+Enable repeat-mode:
+: M-x repeat-mode
+: (setq repeat-mode t)
+
+Lookup commands supported by repeat-mode:
+: M-x describe-repeat-maps
+
+Exit transient repeating mode by typing any other key. Or set a custom exit
+key (~<return>~ is recommended):
+: (setq repeat-exit-key "<return>")
+
+* Extensions
+** Magit (Git manager)
+** Eshell (shell access)
+** Tramp (remote file editing)
+** Symbolic Calculator
+** Other
+- [[https://emacspeak.sourceforge.net][Emacspeak]] (speech interface for visually impaired people)
+- EMMS (Emacs multimedia system) (interactive media browser & music player)

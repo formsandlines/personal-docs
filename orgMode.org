@@ -132,6 +132,9 @@ See https://orgmode.org/manual/Internal-Links.html
 *** Across files
 [[file:clojure_zip.org][clojure.zip API]]
 
+Jump to a specific heading:
+[[file:clojure_zip.org::*Inspection][clojure.zip API - Inspection]]
+
 [[file:clojure_zip.org::*Movement][Movement]]
 
 *** Using section names
