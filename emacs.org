@@ -92,7 +92,13 @@ Recommended for beginners who are not yet comfortable writing elisp.
 - opens up ~*Customize Group: Emacs*~ buffer with a list of /groups/
 
 ** using elisp
+** single vs double spacing after sentences
+- https://www.gnu.org/software/emacs/manual/html_node/emacs/Sentences.html
+- [[https://emacs.stackexchange.com/questions/7195/how-can-i-normalize-sentence-endings][How can I normalize sentence-endings?]]
+- [[https://emacs.stackexchange.com/questions/2766/any-functionality-differences-using-a-two-space-vs-one-space-convention-at-the-e/2771#2771][Any functionality differences using a two-space vs one-space convention at the end of a sentence?]]
 
+To switch to single-spacing:
+: (setq sentence-end-double-space nil)
 
 ** Debugging
 
@@ -140,14 +146,29 @@ Personal mapping (MacOS):
 - no OPT bindings because the interfere with European umlaut chars, etc.
 - left/right CTRL = CAPS-LOCK = ~C~ (map in MacOS keyboard settings)
 
-Terminology (source: “Mastering Emacs”):
+Common prefix keys:
+- ~C-x~ is the prefix for Emacs’ primary key bindings
+- ~C-c~ is the prefix for active major or minor modes and user key bindings
+
+* Terminology
+Keybindings:
 - *key sequence* (or just /key/) → sequence of keyboard/mouse actions
 - *complete key* → one or more /key sequences/ that invoke a /command/
 - *prefix key* → /key sequence/ that is not a /complete key/
 
-Common prefix keys:
-- ~C-x~ is the prefix for Emacs’ primary key bindings
-- ~C-c~ is the prefix for active major or minor modes and user key bindings
+Editor:
+- *frame* → Emacs GUI window or terminal area
+- *window* → subdivision in a /frame/
+
+Text editing:
+- *point* → caret/cursor
+- *mark* → fixed /point/
+- *region* → contiguous text range from /mark/ to /point/
+
+Text units:
+- *Sentence* → string of text that ends with a period followed by two spaces
+  or (?)
+- *Word* → string of text that ends on a non-alphabetic char (?) or (?)
 
 * Commands
 
@@ -205,6 +226,14 @@ Keyboard-friendly menu bar:
 | ~m~     | Prompt for a menu item name and open it |
 | ~q~     | Close INFO                              |
 
+** Windows
+Select another window (in cyclic ordering):
+: C-x o : other-window
+
+Toggle popups (e.g. for help):
+: C-` : +popup/toggle
+- requires ~popup.el~
+
 ** Buffers
 Show buffer list:
 : C-x C-b : list-buffers
@@ -226,14 +255,6 @@ Reload buffer (replaces buffer with file on disk, undoing all changes):
 
 Completion frameworks for buffer switching:
 - [[#icomplete][Icomplete / IDO / FIDO]]
-
-** Windows
-Select another window (in cyclic ordering):
-: C-x o : other-window
-
-Toggle popups (e.g. for help):
-: C-` : +popup/toggle
-- requires ~popup.el~
 
 ** Files
 
@@ -260,7 +281,16 @@ Tetris clone:
 Psychotherapist:
 : M-x doctor
 
-* Navigation / Movement
+* Text editing
+
+** General
+Lines are (usually) not continuous but are broken up by hard line-breaks.
+- ~(auto-fill-mode)~ activates automatic breaking of lines if they exceed the
+  max. character limit
+- ~M-q : fill-paragraph / org-fill-paragraph~ correctly breaks a continuous
+  paragraph into lines
+
+** Navigation / Movement
 
 Scroll line with cursor to the center (or upper+lower edge on repetition) of
 the window:
@@ -294,20 +324,31 @@ Jump to beginning/end of sentence (must be separated by 2 spaces):
 Jump to start/end of buffer:
 : M-< / C-Home : beginning-of-buffer
 : M-> / C-End  : end-of-buffer
+- sets a /mark/ on the previous cursor position (to jump back to)
 
-* Text editing
+** Mark / Select region
 
-** Definitions
+*Transient Mark Mode (TMM)*: minor mode for activating the /mark/ and
+highlighting the /region/ (on by default)
 
-- *Sentence* → string of text that ends with a period followed by two spaces
-  or (?)
-- *Word* → string of text that ends on a non-alphabetic char (?) or (?)
+Set a *mark* (/activates/ it; press again to /deactivate/ the mark):
+: C-SPC : set-mark-command
+- or press ~C-g~ which also /deactivates/ the mark
+- the mark is /not/ removed after deactivating it
 
-Lines are (usually) not continuous but are broken up by hard line-breaks.
-- ~(auto-fill-mode)~ activates automatic breaking of lines if they exceed the
-  max. character limit
-- ~M-q : fill-paragraph / org-fill-paragraph~ correctly breaks a continuous
-  paragraph into lines
+Mark while moving the cursor /(conventional shift-selection)/:
+: S+<left>, …
+
+Jump to a /marked/ position:
+: C-u C-SPC
+- repeated calls go further back the /mark ring/
+- does /not/ work across buffers
+
+Exchange /point/ and /mark/ and /reactivate/ the last /region/:
+: C-x C-x : exchange-point-and-mark
+
+- *mark ring:* contains all marks that have been set.
+- *global mark ring:* also works across buffer boundaries
 
 ** Insert
 
@@ -349,6 +390,10 @@ To manually increase/decrease indentation:
 
 : C-r : isearch-backward
 : C-s : isearch-forward
+
+Replace ~from-str~ with ~to-str~ (in the current /region/):
+: M-x (replace-string <from-str> <to-str> …)
+
 ** Undo / Redo
 
 Undo changes:
@@ -358,16 +403,16 @@ Redo changes:
 : C-g <undo>
 ** Copy / Paste
 
+Kill /(cut)/ text between point and mark:
+: C-w : kill-region
+- (?) deletes up to mark
+
 Save /(copy)/ the region as if it was /killed/ but don’t kill it:
 : M-w : kill-ring-save
 - (?) copies up to mark
 
 Reinsert /(paste)/ the most recent /kill/ or /yank/:
 : C-y : yank
-
-Kill /(cut)/ text between point and mark:
-: C-w : kill-region
-- (?) deletes up to mark
 
 (?) Re-insert previously deleted text parts:
 : M-y : yank-pop

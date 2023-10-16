@@ -273,13 +273,6 @@ for (int i=0; i<5; i++) {
 }
 #+end_src
 
-#+RESULTS:
-: Counting 0
-: Counting 1
-: Counting 2
-: Counting 3
-: Counting 4
-
 Inline src_clojure{ (defn square [x] (* x x)) } source code.
 
 
