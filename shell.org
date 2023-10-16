@@ -2062,6 +2062,12 @@ Utilities for music theory
 
 Check the signature of a downloaded package (Apple only):
 : pkgutil --check-signature <some-package>.pkg
+** http-server
+Simple static HTTP server to serve static files.
+- https://github.com/http-party/http-server
+- https://tldr.inbrowser.app/pages/common/http-server
+
+: http-server <path> --port <port>
 
 * Shell services
 ** Weather
