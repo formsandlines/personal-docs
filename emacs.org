@@ -166,13 +166,20 @@ Text editing:
 - *region* → contiguous text range from /mark/ to /point/
 
 Text units:
-- *Sentence* → string of text that ends with a period followed by two spaces
+- *sentence* → string of text that ends with a period followed by two spaces
   or (?)
-- *Word* → string of text that ends on a non-alphabetic char (?) or (?)
+- *word* → string of text that ends on a non-alphabetic char (?) or (?)
+
+Modes:
+- *major mode* → ?
+- *minor mode* → ?
 
 * Commands
-
 ** General
+
+Enter and execute a command:
+: M-x
+- press ~TAB~ to list all commands starting with the input text
 
 Exit Emacs:
 : C-x C-c : save-buffers-kill-terminal
@@ -199,6 +206,7 @@ Get help/description:
 - ~f~: ~helpful-callable~ (lookup function)
 - ~F~: ~Info-goto-emacs-command-node~ (find documentation for command)
 - ~m~: ~describe-mode~ (lookup (current) mode)
+- ~C~: ~describe-coding-system~ (display infos about coding system)
 
 Show list of all bindings:
 : M-x describe-bindings
@@ -212,8 +220,7 @@ Keyboard-friendly menu bar:
 : M-`
 - ? does this work
 
-** Info mode
-
+Info mode navigation:
 | Key   | Action                                  |
 |-------+-----------------------------------------|
 | ~[~ · ~]~ | Previous / next section                 |
@@ -226,19 +233,58 @@ Keyboard-friendly menu bar:
 | ~m~     | Prompt for a menu item name and open it |
 | ~q~     | Close INFO                              |
 
+** Modes
+
+A *major mode* provides /core functionality/ for the current buffer.
+- activated by specific /file extensions/ the buffer reacts to or with
+  specific /commands/
+- displayed in the /mode line/ (e.g. ~Org~ for /Org mode/)
+- ~Fundamental~ is the /default mode/ that has no special functionality
+
+A *minor mode* provides /additional functionality/, independent of a specific
+buffer.
+- can be activated in a /single buffer/ or /globally/
+- e.g. for workflow customizations, appearance, etc.
+
+A file’s *major mode is detected* (in order) by:
+- *[[File-local variables]]* can have ~mode~ values that Emacs will detect
+- *Program loader directives* /(shebangs)/ that begin with ~#!~
+  - Emacs will figure out the major mode if available
+  - the variable ~interpreter-mode-alist~ lists all program loaders Emacs can
+    detect
+- *Magic mode detection* checks if the beginning of the file matches a pattern
+  stored in the variable ~magic-mode-alist~
+  - applies if filename or extension cannot be predicted ahead of time
+- *Automatic mode detection* through file extensions, file names or all or
+  parts of a file’s path
+  - the variable ~auto-mode-alist~ lists all patterns and associated modes
+    Emacs can detect
+
 ** Windows
 Select another window (in cyclic ordering):
 : C-x o : other-window
+
+Delete all windows except the /active window/:
+: C-x 1 : delete-other-windows
+Split /active window/ vertically:
+: C-x 2 : split-window-below
+Split /active window/ horizontally:
+: C-x 3 : split-window-right
 
 Toggle popups (e.g. for help):
 : C-` : +popup/toggle
 - requires ~popup.el~
 
 ** Buffers
+Buffers need not be for files, but can also be /transient buffers/ for e.g.
+network I/O or text processing (/scratch/, /help/, etc.).
+
 Show buffer list:
 : C-x C-b : list-buffers
 Open dired buffer manager:
 : M-x ibuffer
+- recommended to use with keybinding of ~list-buffer~:
+  ~(global-set-key [remap list-buffers] 'ibuffer)~
 
 Switch to previous/next buffer:
 : C-x ←/→ : previous-buffer / next-buffer
@@ -253,6 +299,10 @@ Kill buffer (current buffer or named):
 Reload buffer (replaces buffer with file on disk, undoing all changes):
 : M-x revert-buffer
 
+*Mini buffer* / *minibuffer*: interactive buffer that appears in the /echo area/
+and displays errors and general information or acts as an interface (e.g.
+for buffer selection or input of pathnames).
+
 Completion frameworks for buffer switching:
 - [[#icomplete][Icomplete / IDO / FIDO]]
 
@@ -263,12 +313,52 @@ Load file into buffer:
 
 Save buffer to file:
 : C-x C-s : save-buffer
-Write buffer to different file (save as…):
+Write buffer to different file /(save as…)/:
 : C-x C-w : write-file
+Save all modified file-visiting buffers:
+: C-x s : save-some-buffers
+-  will ask, in turn, for each unsaved file
+
+*** Coding system
+
+Check the variable ~buffer-file-coding-system~ to see the coding system used
+by the current buffer.
+- can also be checked with ~C-h C <RET>~, but not if ~fido-mode~ is active
+- alternatively, click the leftmost symbol in the /modeline/
+
+To change the coding system in use (select from list):
+: C-x RET r : revert-buffer-with-coding-system
+- reverts the buffer!
+- buffer must be saved to make changes permanent
+
+*** Line endings
+
+Line ending indicators in the /modeline/ (e.g. in ~U:**-~):
+| Indicator | Style               |
+|-----------+---------------------|
+| ~:~         | UNIX-style          |
+| ~(DOS)~     | DOS                 |
+| ~(Mac)~     | Macintosh (pre-OSX) |
+
+
+*** File-local variables
+Enabled per file if present in the file.
+- will *not* overwrite variables globally
+
+As headers:
+: -*- mode: mode-name-here; my-variable: value -*-
+or footers:
+: Local Variables:
+: mode: mode-name-here
+: my-variable: value
+: End:
+
+Commented lines (with the /major mode’s/ comment syntax) will work too.
+
 ** Expressions
 
 Evaluate elisp expression:
-: C-: : (eval-expression <exp> …)
+: M-: / M-ESC :  : (eval-expression <exp> …)
 
 ** Other things
 
@@ -332,9 +422,10 @@ Jump to start/end of buffer:
 highlighting the /region/ (on by default)
 
 Set a *mark* (/activates/ it; press again to /deactivate/ the mark):
-: C-SPC : set-mark-command
+: C-SPC / C-@ : set-mark-command
 - or press ~C-g~ which also /deactivates/ the mark
 - the mark is /not/ removed after deactivating it
+- each mark is saved in the /mark ring/
 
 Mark while moving the cursor /(conventional shift-selection)/:
 : S+<left>, …
@@ -380,19 +471,26 @@ Delete until end of sentence:
 
 Indent with ~TAB~.
 
-Indent a region:
+Indent (?outdent) a /region/:
 : C-M-\ : indent-region
 
-To manually increase/decrease indentation:
+To manually increase/decrease indentation of a /region/:
 : C-x TAB : indent-rigidly
+- always starts from the /mark/, even if the /region/ is not visible
 
 ** Search / Replace
 
 : C-r : isearch-backward
 : C-s : isearch-forward
+- repeat ~C-r~ or ~C-s~ to go to next match in backward/forward direction
+- ~M-s M-<~ to go to first, ~M-s M->~ to go to last match
+- ~RET~ exits search, leaving /point/ at location found
+- ~C-j~ (or type LFD) to match end of the line
+- … (see docs)
 
 Replace ~from-str~ with ~to-str~ (in the current /region/):
 : M-x (replace-string <from-str> <to-str> …)
+- if no /region/ (selection) is visible, searches the entire /buffer/
 
 ** Undo / Redo
 
@@ -426,6 +524,7 @@ To open [[https://www.gnu.org/software/emacs/manual/eintr.html][An Introduction 
 
 * Built-in modes
 ** ORG mode
+See [[file:orgMode.org][Docs/OrgMode]]
 
 Navigate quickly by using single keys at the beginning of an Org headline:
 : (setq org-use-speed-commands t)
@@ -449,6 +548,8 @@ the list the first one, either:
 1. type some initial letters (can be anywhere in the string)
 2. use ~C-.~ and ~C-,~ to rotate the list
 
+~C-M-i~ will just autocomplete without selecting.
+
 *** Ido mode / Fido mode
 
 *Ido mode:* “Interactively DO things”
@@ -458,7 +559,13 @@ the list the first one, either:
 functionality from Ido mode.
 - uses ~flex~ as the default completion style
 : M-x fido-mode / (setq fido-mode t)
-- ~C-k~ to to delete files and kill buffers in-list
+
+Keybindings in the /minibuffer/:
+- ~RET / C-m~ to confirm & autocomplete
+- ~M-j~ to confirm /without/ autocomplete (e.g. to create a new buffer)
+- ~C-.~ and ~C-,~ to rotate the list
+- ~DEL~ to move up in path/directory
+- ~C-k~ to delete files and kill buffers in-list
 
 *Recommended:* IDO for Emacs 26-, FIDO for Emacs 27+.
 ** Repeat Mode
