@@ -58,7 +58,12 @@ On MacOS:
 
 =~/.emacs/init.el= is the configuration file.
 
-** location of /init.el/
+** Location for config files
+Main configuration file (might have to be created first):
+- =~/.emacs= or =~/.emacs.el= : old locations, *not recommended*
+- =~/.emacs.d/init.el= : recommended for *MacOS* and *Windows*
+- =~/.config/emacs/init.el= : recommended for *Linux*
+
 Normally Emacs uses the environment variable ~HOME~ to find =.emacs=. If =.emacs=
 is not found inside =~/= (nor =.emacs.el=), Emacs looks for =~/.emacs.d/init.el=
 (which, like =~/.emacs.el=, can be byte-compiled).
@@ -86,19 +91,39 @@ effect at the start of Emacs startup process.
 
 ** using the /Customize/ interface
 Recommended for beginners who are not yet comfortable writing elisp.
-- supported by most built-in packages and some third-party ones
-
 : M-x customize
+- supported by most built-in packages and some third-party ones
 - opens up ~*Customize Group: Emacs*~ buffer with a list of /groups/
 
-** using elisp
-** single vs double spacing after sentences
-- https://www.gnu.org/software/emacs/manual/html_node/emacs/Sentences.html
-- [[https://emacs.stackexchange.com/questions/7195/how-can-i-normalize-sentence-endings][How can I normalize sentence-endings?]]
-- [[https://emacs.stackexchange.com/questions/2766/any-functionality-differences-using-a-two-space-vs-one-space-convention-at-the-e/2771#2771][Any functionality differences using a two-space vs one-space convention at the end of a sentence?]]
+To customize a specific option:
+: M-x customize-option
+To customize a specific group of options:
+: M-x customize-group
 
-To switch to single-spacing:
-: (setq sentence-end-double-space nil)
+** using elisp
+
+#+begin_src elisp
+;; Setting configuration variables:
+(setq true-config-variable t
+      false-config-variable nil)
+
+;; Enabling/disabling modes:
+(turned-off-mode -1)
+(turned-on-mode 1)
+#+end_src
+
+** Themes
+
+To load a custom theme:
+: (load-theme 'some-theme)
+
+To disable a theme:
+: M-x disable-theme
+
+Modus themes
+- https://protesilaos.com/emacs/modus-themes
+- [[https://protesilaos.com/emacs/modus-themes#h:1af85373-7f81-4c35-af25-afcef490c111][How to install the Modus Themes]]
+- [[https://protesilaos.com/emacs/modus-themes#h:bf1c82f2-46c7-4eb2-ad00-dd11fdd8b53f][How to customize the Modus Themes]]
 
 ** Debugging
 
@@ -108,6 +133,30 @@ determine if the error comes from a broken init file.
 ** Example configs
 - https://github.com/daviwil/dotfiles/blob/master/Emacs.org
 - https://github.com/olivertaylor/dotfiles/blob/master/emacs/init.el
+
+Some common configs:
+#+begin_src elisp
+;; Get rid of the startup buffer
+(setq inhibit-startup-message t)
+
+;; Turn off unneeded UI elements
+(menu-bar-mode -1)
+(tool-bar-mode -1)
+(scroll-bar-mode -1)
+
+;; Display line numbers in every buffer
+(global-display-line-numbers-mode 1)
+
+;; Use spaces instead of tabs for indentation
+(indent-tabs-mode nil)
+
+;; Retain 4 lines of overlapping text when scrolling
+(setq next-screen-context-lines 4)
+
+;; Define sentences to end with single instead of double space
+(setq sentence-end-double-space nil)
+
+#+end_src
 
 ** Starter Kits
 *** Doom Emacs
@@ -164,15 +213,35 @@ Text editing:
 - *point* → caret/cursor
 - *mark* → fixed /point/
 - *region* → contiguous text range from /mark/ to /point/
+- *visual line* / *screen line* → text line as it appears (before a wrap)
+- *logical line* → text line as a syntactic unit (disregarding any wraps)
 
 Text units:
-- *sentence* → string of text that ends with a period followed by two spaces
-  or (?)
 - *word* → string of text that ends on a non-alphabetic char (?) or (?)
+- *sentence* → defined by the variables ~sentence-end-double-space~,
+  ~sentence-end-without-period~ and ~sentence-end-without-space~
+  - by default, a string of text that ends with a period followed by two
+    spaces
+- *paragraph* → defined by the variables ~paragraph-start~, ~paragraph-separate~ and
+  ~use-hard-newlines~
+  - by default, a newline-delimited block of text
+  - ~M-x paragraph-indent-minor-mode~ to mark the beginning by leading spaces
+- *page* → anything delimited by the character defined in the variable
+  ~page-delimiter~
 
-Modes:
-- *major mode* → ?
-- *minor mode* → ?
+[[Modes]]:
+- *mode* → collection of functionality that applies to one or more buffers
+- *major mode* → /mode/ that applies to a single buffer
+- *minor mode* → /mode/ that may apply to multiple buffers
+
+** single vs double spacing after sentences
+- https://www.gnu.org/software/emacs/manual/html_node/emacs/Sentences.html
+- [[https://emacs.stackexchange.com/questions/7195/how-can-i-normalize-sentence-endings][How can I normalize sentence-endings?]]
+- [[https://emacs.stackexchange.com/questions/2766/any-functionality-differences-using-a-two-space-vs-one-space-convention-at-the-e/2771#2771][Any functionality differences using a two-space vs one-space convention at the end of a sentence?]]
+
+To switch to single-spacing:
+: (setq sentence-end-double-space nil)
+
 
 * Commands
 ** General
@@ -197,16 +266,24 @@ Repeat a command ~n~ times:
 - e.g. ~C-u 8 C-f~ to move cursor forward 8×
 See also [[Repeat Mode]]
 
+Begin a /negative/ numeric argument for the next command:
+: C-M-- / C-- / M-- : negative-argument
+
 ** Help / Infos
 Get help/description:
 : C-h …
-- ~a~: ~apropos~ (regex search for Lisp symbols)
+- ~a~: ~apropos-command~ (regex search for Lisp symbols)
 - ~i~: ~info~ (INFO mode / Emacs manual)
-- ~k~: ~helpful-key~ (lookup key binding)
-- ~f~: ~helpful-callable~ (lookup function)
-- ~F~: ~Info-goto-emacs-command-node~ (find documentation for command)
+- ~k~: ~describe-key~ (lookup a key binding)
+- ~v~: ~describe-variable~
+- ~f~: ~describe-function~
+- ~o~: ~describe-symbol~
 - ~m~: ~describe-mode~ (lookup (current) mode)
 - ~C~: ~describe-coding-system~ (display infos about coding system)
+- ~F~: ~Info-goto-emacs-command-node~ (find documentation for command)
+
+To open the /man page/ for a terminal command in Emacs:
+: M-x man
 
 Show list of all bindings:
 : M-x describe-bindings
@@ -340,7 +417,6 @@ Line ending indicators in the /modeline/ (e.g. in ~U:**-~):
 | ~(DOS)~     | DOS                 |
 | ~(Mac)~     | Macintosh (pre-OSX) |
 
-
 *** File-local variables
 Enabled per file if present in the file.
 - will *not* overwrite variables globally
@@ -357,8 +433,14 @@ Commented lines (with the /major mode’s/ comment syntax) will work too.
 
 ** Expressions
 
-Evaluate elisp expression:
+Evaluate elisp expression in minibuffer:
 : M-: / M-ESC :  : (eval-expression <exp> …)
+
+Evaluate top-level /form/ around /point/:
+: C-M-x : eval-defun
+
+Evaluate /sexp/ before /point/:
+: C-x C-e : eval-last-sexp
 
 ** Other things
 
@@ -372,37 +454,59 @@ Psychotherapist:
 : M-x doctor
 
 * Text editing
-
 ** General
+*** Line wrapping /(truncation)/
+
 Lines are (usually) not continuous but are broken up by hard line-breaks.
-- ~(auto-fill-mode)~ activates automatic breaking of lines if they exceed the
-  max. character limit
+- ~M-x auto-fill-mode~ activates automatic breaking of lines if they exceed
+  the max. character limit
 - ~M-q : fill-paragraph / org-fill-paragraph~ correctly breaks a continuous
   paragraph into lines
 
-** Navigation / Movement
+If a line /is/ continuous, it can wrap into multiple /visual lines/ or stretch
+out in full horizontally, which can be toggled using:
+: M-x toggle-truncate-lines
 
-Scroll line with cursor to the center (or upper+lower edge on repetition) of
-the window:
-: C-l : recenter-top-bottom
+By default, Emacs movement is by *visual lines*.
+- to change this, set ~line-move-visual~ to ~nil~
+- [[#evil-mode][evil mode]] moves by /logical lines/ instead, as /Vi(m)/ does
 
-Scroll window page-wise further/back:
-: C-v / SPC (read-only) / PgDown : scroll-up-command
-: M-v / DEL (read-only) / PgUp   : scroll-down-command
+The /minor mode/ ~visual-line-mode~ (disabled by default) makes Emacs behave
+more like a traditional word processor, e.g. by wrapping by word boundary
+and disabling the fringe indicators.
+- will also change some movement and editing commands to act on /visual
+  lines/ instead
+- set ~global-visual-line-mode~ variable to enable globally
 
-Scroll window ~n~ lines further/back:
-: C-u <n> C-v
-: C-u <n> M-v
+*** Line numbers
 
-Navigation in text (or use arrow keys):
+To enable line numbers globally, call in =init.el=:
+: (global-display-line-numbers-mode)
+- configure options with ~M-x customize-group RET display-line-numbers~
+- for a single buffer, call ~M-x display-line-numbers-mode~
+
+** Text Movement
+
+To repeat movements ~n~ times, type ~C-{n} <cmd>~ or the longer ~C-u <n> <cmd>~ to
+enter larger ~n~.
+
+Move by character:
 :    C-p    : previous-line
 : C-b · C-f : backward-char · forward-char
 :    C-n    : next-line
+: (or use arrow keys)
 - wraps around lines
 
-Jump to start of previous word / before next word:
+Move to start of previous word / before next word:
 : M-b / M ← : left-word
 : M-f / M → : right-word
+
+Move to start of / end of /paragraph/:
+: M-{ : backward-paragraph
+: M-} : forward-paragraph
+
+Jump to the first non-whitespace character on the current line:
+: M-m : back-to-indentation
 
 Jump to beginning/end of line:
 : C-a / Home : move-beginning-of-line
@@ -411,10 +515,57 @@ Jump to beginning/end of sentence (must be separated by 2 spaces):
 : M-a : backward-sentence
 : M-e : forward-sentence
 
+Jump to a place in the buffer chosen from menu (e.g. specific symbols):
+: M-g i : imenu
+
+** Window/Buffer Movement (scrolling, etc.)
+
+Go to line:
+: M-g M-g / M-g g : (goto-line <n>)
+Go to column:
+: M-g TAB : (move-to-column <n>)
+Go to character position (absolute pos. from beginning of buffer):
+: M-g c : (goto-char <n>)
+
+Scroll window so that current line is in the middle/top/bottom of the window:
+: C-l : recenter-top-bottom
+Re-position the point to the middle/top/bottom left of the window:
+: M-r : move-to-window-line-top-bottom
+Make current definition and/or comment visible:
+: C-M-l : reposition-window
+- tries to scroll comments or definitions into view
+
+Scroll window page-wise further/back:
+: C-v / SPC (read-only) / PgDown : scroll-up-command
+: M-v / DEL (read-only) / PgUp   : scroll-down-command
+- set ~next-screen-context-lines~ variable to retain /n/ lines of overlapping
+  text when scrolling
+- use ~C-<n>~ or ~C-u <n>~ before the command to scroll ~n~ lines further/back
+
+Scroll /other/ window page-wise further/back:
+: C-M-v : scroll-other-window
+: C-M-S-v : scroll-other-window-down
+- useful e.g. for scrolling help buffers
+- ~C-M-- C-M-v~ may be easier to type for reverse scroll
+
 Jump to start/end of buffer:
 : M-< / C-Home : beginning-of-buffer
 : M-> / C-End  : end-of-buffer
 - sets a /mark/ on the previous cursor position (to jump back to)
+
+Scroll left/right:
+: C-x < / C-<next> : scroll-left
+: C-x > / C-<prior> : scroll-right
+: S-<wheel>  (since Emacs 28)
+- *disabled* by default, because confusing to beginners
+  - see: [[https://stackoverflow.com/questions/35437652/how-to-scroll-horizontally-in-emacs][How to scroll horizontally in emacs?]]
+
+Set/fix the /goal column/ (horizontal position for the /point/):
+: C-x C-n : set-goal-column
+- when moving from one line to the next, Emacs will try to set the point on
+  the /goal column/ instead of the one the /point/ is currently at
+- *disabled* by default, because confusing to beginners
+- ~C-u C-x C-n~ resets the goal column
 
 ** Mark / Select region
 
@@ -445,6 +596,9 @@ Exchange /point/ and /mark/ and /reactivate/ the last /region/:
 
 Insert newline and leave cursor before it:
 : C-o : open-line
+
+Toggle ~overwrite-mode~ to overwrite each char under cursor:
+: <insert> : overwrite-mode
 
 ** Delete
 
@@ -493,21 +647,29 @@ Replace ~from-str~ with ~to-str~ (in the current /region/):
 - if no /region/ (selection) is visible, searches the entire /buffer/
 
 ** Undo / Redo
-
 Undo changes:
 : C-/  /  C-_  /  C-x u  : undo
 
-Redo changes:
+Redo changes (undo the ~undo~ call):
 : C-g <undo>
+- can be any other command that breaks a repeated ~undo~ call, which adds the
+  undone items as /redo records/ to the *undo ring* so that they can be /redone/
+  by the next ~undo~ calls
+
+Classic /redo/ behavior /(Emacs 28+)/:
+: C-? / C-M-_ : undo-redo
+- use after normal ~undo~ or ~undo-only~ (which will not /redo/ undo)
+- won’t push the “redo” step to the /undo ring/
+
 ** Copy / Paste
 
 Kill /(cut)/ text between point and mark:
 : C-w : kill-region
-- (?) deletes up to mark
+- deletes up to mark
 
 Save /(copy)/ the region as if it was /killed/ but don’t kill it:
 : M-w : kill-ring-save
-- (?) copies up to mark
+- copies up to mark
 
 Reinsert /(paste)/ the most recent /kill/ or /yank/:
 : C-y : yank
@@ -516,11 +678,74 @@ Reinsert /(paste)/ the most recent /kill/ or /yank/:
 : M-y : yank-pop
 - multiple times to go further back in /kill ring/
 
+** S-expressions
+These commands work in any /major mode/ and on any /balanced expression/
+(which can span multiple lines):
+- *strings:* ~"…"~, ~'…'~
+- *brackets:* ~[…]~, ~(…)~, ~{…}~, ~<…>~
+- also depends on the /syntax table/ of the particular /major mode/
+- for any /unbalanced expression/ (like regular text), they behave like the
+  commands that act on /words/
+
+Move forward/backward by /s-expression/:
+: C-M-f : forward-sexp
+: C-M-b : backward-sexp
+
+Move down/into the nearest /list/:
+: C-M-d : down-list
+Move up/out of the current /list/ (or /string/):
+: C-M-u : backward-up-list
+
+Move to next/previous /list/:
+: C-M-n : forward-list
+: C-M-p : backward-list
+
+Delete the /s-expression/ following the /point/:
+: C-M-k : kill-sexp
+
+Complete the text/symbol at /point/:
+: C-M-i : completion-at-point
+
+** Other text objects
+
+Move to beginning/end of /defun/ (loosely for some kind of block in
+programming languages or text):
+: C-M-a : beginning-of-defun
+: C-M-e : end-of-defun
+
+Move forward/backward one /page/:
+: C-x ] : forward-page
+: C-x [ : backward-page
+
 * Emacs Lisp (elisp)
 
 To open [[https://www.gnu.org/software/emacs/manual/eintr.html][An Introduction to Programming in Emacs Lisp]]:
 : C-h R eintr
 - Emacs 28+
+
+** Interactive commands
+
+To be used as a /command/ and called via a /keybinding/, a function must be made
+*interactive*, e.g.:
+#+begin_src elisp
+(defun my-command ()
+  "This is an interactive command."
+  (interactive)
+  (print "It worked!"))
+
+(global-set-key (kbd "C-x c") 'my-command)
+#+end_src
+
+*Non-interactive* functions can still be called /interactively/ with a
+keybinding using a /lambda function/:
+#+begin_src elisp
+(defun non-interactive-function ()
+  (print "It worked!"))
+
+(global-set-key (kbd "C-x c")
+                (lambda () (interactive) (non-interactive-function)))
+#+end_src
+
 
 * Built-in modes
 ** ORG mode
@@ -589,6 +814,16 @@ key (~<return>~ is recommended):
 ** Eshell (shell access)
 ** Tramp (remote file editing)
 ** Symbolic Calculator
+** Undo Tree
+Alternative /undo/ implementation.
+- https://www.emacswiki.org/emacs/UndoTree
+** Evil mode (vi for Emacs)
+:PROPERTIES:
+:CUSTOM_ID: evil-mode
+:END:
+- https://github.com/emacs-evil/evil
+- https://www.emacswiki.org/emacs/Evil
+
 ** Other
 - [[https://emacspeak.sourceforge.net][Emacspeak]] (speech interface for visually impaired people)
 - EMMS (Emacs multimedia system) (interactive media browser & music player)
