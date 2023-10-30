@@ -232,7 +232,6 @@ Flex-properties can be set individually:
 *Gap between rows/columns* (multi-column, flexbox and grid layouts):
 : gap  :: <row-gap>              => x x
 :      :: <row-gap> <column-gap> => x y
-
 Shorthand for:
 : column-gap  :: <units> | *normal*
 : row-gap  :: <units> | *normal*

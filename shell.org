@@ -691,6 +691,10 @@ function call:
 Lookup running processes and their ~PID~:
 : ps
 
+Display sorted information about processes:
+: top
+- default sorting key is ~PID~, other keys can be used as well
+
 Send a signal to a process (usually to terminate the process):
 : kill <PID>
 - lookup ~PID~ with ~ps~ first
