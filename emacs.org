@@ -100,6 +100,14 @@ To customize a specific option:
 To customize a specific group of options:
 : M-x customize-group
 
+By default, Emacs adds customization UI configs to =init.el=. Some commands
+like ~use-packages~ or loading themes may also do this. To avoid this and move
+the customization variables to a separate file (and load it):
+#+begin_src elisp
+(setq custom-file (locate-user-emacs-file "custom-vars.el"))
+(load custom-file 'noerror 'nomessage)
+#+end_src
+
 ** using elisp
 
 #+begin_src elisp
@@ -208,6 +216,8 @@ Keybindings:
 Editor:
 - *frame* → Emacs GUI window or terminal area
 - *window* → subdivision in a /frame/
+- *echo area* → line at the bottom of the /frame/
+  - displays infos, prompts / /minibuffer/, etc.
 
 Text editing:
 - *point* → caret/cursor
@@ -264,7 +274,7 @@ Repeat the previous command:
 Repeat a command ~n~ times:
 : C-u <n> <cmd> : universal-argument
 - e.g. ~C-u 8 C-f~ to move cursor forward 8×
-See also [[Repeat Mode]]
+See also [[#repeat-mode]]
 
 Begin a /negative/ numeric argument for the next command:
 : C-M-- / C-- / M-- : negative-argument
@@ -281,6 +291,10 @@ Get help/description:
 - ~m~: ~describe-mode~ (lookup (current) mode)
 - ~C~: ~describe-coding-system~ (display infos about coding system)
 - ~F~: ~Info-goto-emacs-command-node~ (find documentation for command)
+
+To see a full list of all Unicode categories:
+: M-x describe-categories
+- (?) what is this
 
 To open the /man page/ for a terminal command in Emacs:
 : M-x man
@@ -341,6 +355,8 @@ A file’s *major mode is detected* (in order) by:
 Select another window (in cyclic ordering):
 : C-x o : other-window
 
+Delete current /(active)/ window:
+: C-x 0 : delete-window
 Delete all windows except the /active window/:
 : C-x 1 : delete-other-windows
 Split /active window/ vertically:
@@ -430,6 +446,15 @@ or footers:
 : End:
 
 Commented lines (with the /major mode’s/ comment syntax) will work too.
+*** File history
+To remember recently edited files:
+- [[#recentf-mode]]
+
+To remember the last place visited in a file:
+- [[#save-place-mode]]
+
+To automatically revert a buffer when the underlying file has changed:
+- [[#auto-revert-mode]]
 
 ** Expressions
 
@@ -441,8 +466,61 @@ Evaluate top-level /form/ around /point/:
 
 Evaluate /sexp/ before /point/:
 : C-x C-e : eval-last-sexp
+** History of input
+
+To save the history of commands, etc., see:
+[[#savehist-mode]]
+
+** Shell commands
+
+Call shell command and print output:
+: M-! : shell-command
+- prints to =*Shell Command Output*= and (for short output) the /echo area/
+- ~C-u M-!~ inserts output into the current buffer
+
+Call shell command /asynchronously/ and print output:
+: M-& : async-shell-command
+- prints to =*Async Shell Command*= and (for short output) the /echo area/
+- ~C-u M-&~ inserts output into the current buffer
+- prefer ~M-x compile~ for long-running tasks
+
+Pipe /region/ to shell command:
+: M-| : shell-command-on-region
+- ~C-u M-|~ replaces the /region/
+- e.g. use with ~wc~ to show word count
+
+---
+
+Run a command and track errors:
+: M-x compile
+- e.g. for unit tests, compiling, scripts, etc.
+- ~M-g M-n~ / ~M-g M-p~ jumps to the next/prev error (global)
+
+Re-run the last command:
+: g : M-x recompile
+
+Compile in the current project:
+: C-x p c
+
+
+** Browsing
+
+EWW: Emacs Web Wowser
+: M-x eww
+- ~q~ to quit
+- ~l~ / ~r~ to browse backward/forward in history
+- ~TAB~ / ~S-TAB~ to cycle to next/prev hyperlink
+- see chapter in “Mastering Emacs” for more infos
+
+Browse URL in external browser:
+: M-x browse-url
+- the variables ~browse-url-browser-function~, ~browse-url-handlers~, and
+  ~browse-url-default-handlers~ determine which browser function to use
 
 ** Other things
+
+Show a calendar:
+: M-x calendar
 
 Weird screensaver:
 : M-x zone
@@ -455,18 +533,33 @@ Psychotherapist:
 
 * Text editing
 ** General
-*** Line wrapping /(truncation)/
-
+*** Line wrapping /(truncation, filling)/
 Lines are (usually) not continuous but are broken up by hard line-breaks.
-- ~M-x auto-fill-mode~ activates automatic breaking of lines if they exceed
-  the max. character limit
-- ~M-q : fill-paragraph / org-fill-paragraph~ correctly breaks a continuous
-  paragraph into lines
+- ~C-x f : set-fill-column~ sets the /fill column width/ *(buffer-local)*
+
+Activate automatic breaking/filling of lines if they exceed the max.
+character limit:
+: M-x auto-fill-mode
+
+Correctly /break/refill/ a continuous paragraph into lines:
+: M-q : fill-paragraph / org-fill-paragraph
+- ~C-u M-q~ will attempt to justify the paragraph
+- Emacs will *not hyphenate* words
+
+The *fill prefix* is a sequence of characters that should appear at the
+start of any line that belongs to the group of lines which is to be
+/filled/.
+- ~C-x . : set-fill-prefix~ sets the /fill prefix/
+- e.g. ~`;; `~ as a prefix lets Emacs fill only lines that belong to a
+  comment block in elisp
+- if a prefixed line exceeds the /fill column width/, Emacs will
+  automatically insert the prefix on all broken/filled lines
 
 If a line /is/ continuous, it can wrap into multiple /visual lines/ or stretch
 out in full horizontally, which can be toggled using:
 : M-x toggle-truncate-lines
 
+*** Line movement
 By default, Emacs movement is by *visual lines*.
 - to change this, set ~line-move-visual~ to ~nil~
 - [[#evil-mode][evil mode]] moves by /logical lines/ instead, as /Vi(m)/ does
@@ -515,8 +608,7 @@ Jump to beginning/end of sentence (must be separated by 2 spaces):
 : M-a : backward-sentence
 : M-e : forward-sentence
 
-Jump to a place in the buffer chosen from menu (e.g. specific symbols):
-: M-g i : imenu
+To jump to a specific place in buffer, see [[#imenu]].
 
 ** Window/Buffer Movement (scrolling, etc.)
 
@@ -592,38 +684,39 @@ Exchange /point/ and /mark/ and /reactivate/ the last /region/:
 - *mark ring:* contains all marks that have been set.
 - *global mark ring:* also works across buffer boundaries
 
-** Insert
+** Insert / Indent
+*** Lines (new/split/join)
+Insert a /newline/ and move to left margin of the new line:
+: RET : newline
 
-Insert newline and leave cursor before it:
+Insert a /newline/ after the /point/ (keeping cursor position):
 : C-o : open-line
+- (?) might insert a comment
 
-Toggle ~overwrite-mode~ to overwrite each char under cursor:
-: <insert> : overwrite-mode
+Split line after /point/, maintaining /column offset/ (and cursor position):
+: C-M-o : split-line
+- uncommon in daily use
+- inserts /fill-prefix/ on the new line (if set)
 
-** Delete
+Break line at /point/ and indent (respecting /fill prefix/ as in comments):
+: C-M-j / M-j : default-indent-new-line
+- calls ~comment-line-break-function~ if comment syntax is defined
 
-Delete char before cursor:
-: DEL : backward-delete-char-untabify
-Delete backwards until next word beginning:
-: M-DEL : backward-kill-word
+Join the line the /point/ is on with the line above:
+: M-^ : delete-indentation
+- use ~C-u M-^~ to join with the line below instead
+- trims whitespace between lines (keeping one space for non-blank lines)
+- removes /fill-prefixes/ from joined lines
 
-Delete char under cursor:
-: C-d : (delete-char <n> <?KILLFLAG>)
-- as a command, kills ~n~ following or (if negative) previous chars
-Delete until next word ending:
-: M-d : kill-word
+Delete all blank lines after /point/:
+: C-x C-o : delete-blank-lines
+- will /not/ remove the line the /point/ is on
+- also removes lines with only tabs or whitespace
 
-Delete until line ending:
-: C-k : kill-line
-- if cursor is at line ending, deletes the next line
-- delete multiple lines with ~C-u <n> C-k~
-
-Delete until end of sentence:
-: M-k : kill-sentence
-
-** Indent
-
-Indent with ~TAB~.
+*** Indentation
+Indent the current /line/ or /region/ (or insert a tab):
+: TAB : indent-for-tab-command
+- moves to the right indentation level in code
 
 Indent (?outdent) a /region/:
 : C-M-\ : indent-region
@@ -632,19 +725,84 @@ To manually increase/decrease indentation of a /region/:
 : C-x TAB : indent-rigidly
 - always starts from the /mark/, even if the /region/ is not visible
 
-** Search / Replace
+Also see:
+- [[#electric-indent-mode]]
 
-: C-r : isearch-backward
-: C-s : isearch-forward
-- repeat ~C-r~ or ~C-s~ to go to next match in backward/forward direction
-- ~M-s M-<~ to go to first, ~M-s M->~ to go to last match
-- ~RET~ exits search, leaving /point/ at location found
-- ~C-j~ (or type LFD) to match end of the line
-- … (see docs)
+*** Overwrite text
+Toggle ~overwrite-mode~ to overwrite each char under cursor:
+: <insert> : overwrite-mode
 
-Replace ~from-str~ with ~to-str~ (in the current /region/):
-: M-x (replace-string <from-str> <to-str> …)
-- if no /region/ (selection) is visible, searches the entire /buffer/
+** Comments
+
+(Un-)comment DWIM /(Do What I Mean)/:
+: M-; : comment-dwim
+- Emacs tries to guess what the user tries to do
+- on a non-empty line, inserts a comment at the end of the line
+- on an empty line, comments the whole line
+- with a /region/, comments out the selected text (or multiple lines)
+
+(Un-)comment non-empty /line/ at /point/:
+: C-x C-; : comment-line
+- moves /point/ to the next line
+- also works with negative and digit arguments/modifiers
+
+Comment the /region/, but as a box:
+: M-x comment-box
+
+*Comment variables* to set up in a major mode:
+| Variable        | Purpose                                        |
+|-----------------+------------------------------------------------|
+| ~comment-style~   | Style of comment to use                        |
+| ~comment-styles~  | Association list of available comment styles   |
+| ~comment-start~   | Character(s) to mark start of comment          |
+| ~comment-end~     | Character(s) to mark end of comment            |
+| ~comment-padding~ | Padding used (usually a space) between comment |
+|                 | character(s) and the text                      |
+
+** Delete
+
+*Note:* /kill/ commands retain removed text in the *kill ring*, while /delete/
+commands do not.
+
+Delete char before cursor:
+: DEL : backward-delete-char-untabify
+Delete char under cursor:
+: C-d : (delete-char <n> <?KILLFLAG>)
+- as a command, kills ~n~ following or (if negative) previous chars
+
+Kill backward until word beginning:
+: M-DEL : backward-kill-word
+Kill forward until word ending:
+: M-d : kill-word
+
+Kill until line ending:
+: C-k : kill-line
+- if cursor is at line ending, deletes the next line
+- delete multiple lines with ~C-u <n> C-k~
+
+Kill the current line:
+: C-S-<backspace> : kill-whole-line
+
+Kill until end of sentence:
+: M-k : kill-sentence
+** Copy / Paste
+
+Kill /(cut)/ text between point and mark:
+: C-w : kill-region
+- deletes up to mark
+
+Save /(copy)/ the region as if it was /killed/ but don’t kill it:
+: M-w : kill-ring-save
+- copies up to mark
+
+Reinsert /(paste)/ the most recent /kill/ or /yank/:
+: C-y : yank
+
+Re-insert previously /killed/ text by cycling through /kill ring/:
+: M-y : yank-pop
+- by default, will show the kill history in the minibuffer for selection
+- if ~C-y~ has been typed immediately before the command, the pasted text will
+  be replaced with the item that comes before it in the /kill ring/
 
 ** Undo / Redo
 Undo changes:
@@ -661,22 +819,48 @@ Classic /redo/ behavior /(Emacs 28+)/:
 - use after normal ~undo~ or ~undo-only~ (which will not /redo/ undo)
 - won’t push the “redo” step to the /undo ring/
 
-** Copy / Paste
+** Transpose
+Emacs will swap two syntactic units surrounding the /point/ based on its
+current position.
+- negative arguments also work, but the behaviour is a bit complicated
 
-Kill /(cut)/ text between point and mark:
-: C-w : kill-region
-- deletes up to mark
+Transpose characters:
+: C-t : transpose-chars
+Transpose words:
+: M-t : transpose-words
 
-Save /(copy)/ the region as if it was /killed/ but don’t kill it:
-: M-w : kill-ring-save
-- copies up to mark
+Transpose lines:
+: C-x C-t : transpose-lines
 
-Reinsert /(paste)/ the most recent /kill/ or /yank/:
-: C-y : yank
+Transpose paragraphs:
+: M-x transpose-paragraphs
+Transpose sentences:
+: M-x transpose-sentences
+** Changing Case
 
-(?) Re-insert previously deleted text parts:
-: M-y : yank-pop
-- multiple times to go further back in /kill ring/
+Uppercase/Lowercase the region:
+: C-x C-u : upcase-region
+: C-x C-l : downcase-region
+- disabled by default, but actually not confusing at all
+
+Capitalize the region (every word in it):
+: M-x upcase-initials-region
+
+Capitalize/Uppercase/Lowercase the next word:
+: M-c : capitalize-word
+: M-u : upcase-word
+: M-l : downcase-word
+- work with digit and negative commands
+
+** imenu
+:PROPERTIES:
+:CUSTOM_ID: imenu
+:END:
+
+Jump to a place in the buffer chosen from menu (e.g. specific symbols):
+: M-g i : imenu
+- sets a mark on the previous position
+- suggests the symbol at /point/ to jump to its definition
 
 ** S-expressions
 These commands work in any /major mode/ and on any /balanced expression/
@@ -703,8 +887,29 @@ Move to next/previous /list/:
 Delete the /s-expression/ following the /point/:
 : C-M-k : kill-sexp
 
+Transpose two /s-expressions/:
+: C-M-t : transpose-sexps
+
 Complete the text/symbol at /point/:
 : C-M-i : completion-at-point
+
+To check for unbalanced parentheses:
+: M-x check-parens
+
+To jump to a specific symbol (named or at /point/), see [[#imenu]].
+** Search / Replace
+
+: C-r : isearch-backward
+: C-s : isearch-forward
+- repeat ~C-r~ or ~C-s~ to go to next match in backward/forward direction
+- ~M-s M-<~ to go to first, ~M-s M->~ to go to last match
+- ~RET~ exits search, leaving /point/ at location found
+- ~C-j~ (or type LFD) to match end of the line
+- … (see docs)
+
+Replace ~from-str~ with ~to-str~ (in the current /region/):
+: M-x (replace-string <from-str> <to-str> …)
+- if no /region/ (selection) is visible, searches the entire /buffer/
 
 ** Other text objects
 
@@ -719,9 +924,15 @@ Move forward/backward one /page/:
 
 * Emacs Lisp (elisp)
 
+elisp file extension is =.el=
+
 To open [[https://www.gnu.org/software/emacs/manual/eintr.html][An Introduction to Programming in Emacs Lisp]]:
 : C-h R eintr
 - Emacs 28+
+
+elisp “cheat sheet” (short doc. summary for functions in specified group):
+: M-x shortdoc-display-group
+- [[https://www.masteringemacs.org/article/emacs-builtin-elisp-cheat-sheet][Source]]
 
 ** Interactive commands
 
@@ -793,7 +1004,10 @@ Keybindings in the /minibuffer/:
 - ~C-k~ to delete files and kill buffers in-list
 
 *Recommended:* IDO for Emacs 26-, FIDO for Emacs 27+.
-** Repeat Mode
+** Repeat mode
+:PROPERTIES:
+:CUSTOM_ID: repeat-mode
+:END:
 /(Emacs 28+)/
 
 - https://karthinks.com/software/it-bears-repeating/
@@ -808,10 +1022,133 @@ Lookup commands supported by repeat-mode:
 Exit transient repeating mode by typing any other key. Or set a custom exit
 key (~<return>~ is recommended):
 : (setq repeat-exit-key "<return>")
+** Recentf mode
+:PROPERTIES:
+:CUSTOM_ID: recentf-mode
+:END:
+
+Enable in config:
+: (recentf-mode 1)
+
+Show a buffer of recently opened files:
+: M-x recentf-open-files
+** Savehist mode
+:PROPERTIES:
+:CUSTOM_ID: savehist-mode
+:END:
+
+Saves /minibuffer/ history, e.g. from /i-search/.
+- stored in ~savehist-file~ (variable to path of =history= file)
+
+Limit the retained history (to improve startup time):
+: (setq history-length 25)
+
+Enable in config:
+: (savehist-mode 1)
+
+Use ~M-p~ / ~M-n~ to move backward/forward in history.
+** Save-Place mode
+:PROPERTIES:
+:CUSTOM_ID: save-place-mode
+:END:
+Remembers the last place a file was visited and restores it.
+- https://www.emacswiki.org/emacs/SavePlace
+
+To enable:
+: (save-place-mode 1)
+** Auto-Revert mode
+:PROPERTIES:
+:CUSTOM_ID: auto-revert-mode
+:END:
+Automatically reverts a buffer when the underlying file has changed.
+- will ask if the buffer has unsaved changes
+
+On a single buffer:
+: M-x auto-revert-mode
+
+To enable globally for all buffers:
+: (global-auto-revert-mode 1)
+This will also automatically revert Dired and other non-file buffers:
+: (setq global-auto-revert-non-file-buffers t)
+** Electric indent mode
+:PROPERTIES:
+:CUSTOM_ID: electric-indent-mode
+:END:
+On-the-fly reindentation of text lines.
+
+Insert a /newline/:
+: C-j : electric-newline-and-maybe-indent
+
+** Shell Mode
+:PROPERTIES:
+:CUSTOM_ID: shell-mode
+:END:
+Shell using an external program (~bash~ on Linux, ~cmd.exe~ on Windows).
+- can use normal Emacs text editing and movement (just a simple buffer)
+- for interactive terminal programs, use [[#ansi-term]] instead
+
+Redirects I/O through a pseudo-terminal (Linux) to interact with the
+underlying shell through Emacs.
+- cannot use the shell’s native TAB-completion (uses Emacs’s own)
+- can edit and delete output from commands
+- can kill and yank text between buffers
+- some programs like ~top~ and ~man~ don’t work (well)
+  - use ~M-x proced~ and ~M-x man~ as replacements
+
+: M-x shell
+
+| Keys              | Description                                |
+|-------------------+--------------------------------------------|
+| ~M-p~ / ~M-n~         | cycle through command history              |
+| ~C-<up>~ / ~C-<down>~ |                                            |
+| ~M-r~               | Isearch history backward                   |
+| ~C-c C-p/n~         | jump to prev/next prompt                   |
+| ~C-c C-s~           | save command output to file                |
+| ~C-c C-o~           | deletes command output since last input    |
+|                   | (does NOT send to /kill ring/ by default)    |
+| ~C-c C-l~           | list command history (to reinsert)         |
+| ~C-d~               | delete forward char or send ~^D~ if no input |
+|                   | (may exit the shell)                       |
+| ~C-c C-z~           | (?) send stop sub job                      |
+| ~TAB~               | complete at the point                      |
+
+** ansi-term (Terminal Emulator)
+:PROPERTIES:
+:CUSTOM_ID: ansi-term
+:END:
+Acts like a /ANSI-capable terminal emulator/, not like [[#shell-mode]] or a
+typical Emacs buffer.
+- slow and some obscure terminal emulation features are not supported
+
+: M-x ansi-term
+
+*line mode* can be used for editing like in a typical Emacs buffer.
+
+*character mode* is like a normal terminal emulator.
+- most keys are sent directly to the underlying shell program, bypassing
+  Emacs entirely
+- the /escape character/ ~C-c~ gets intercepted by Emacs
+- to send /C-c/ to the sub-program, type ~C-c C-c~
+
+| Keys    | Description              |
+|---------+--------------------------|
+| ~C-c C-j~ | switch to /line mode/      |
+| ~C-c C-k~ | switch to /character mode/ |
+
+** Eshell (Emacs Shell written in elisp)
+:PROPERTIES:
+:CUSTOM_ID: eshell
+:END:
+
+: M-x eshell
+
+To open a file in an Emacs buffer:
+: $ find-file <filename>
+To open a dired session for the current directory:
+: $ dired .
 
 * Extensions
 ** Magit (Git manager)
-** Eshell (shell access)
 ** Tramp (remote file editing)
 ** Symbolic Calculator
 ** Undo Tree
@@ -823,7 +1160,6 @@ Alternative /undo/ implementation.
 :END:
 - https://github.com/emacs-evil/evil
 - https://www.emacswiki.org/emacs/Evil
-
 ** Other
 - [[https://emacspeak.sourceforge.net][Emacspeak]] (speech interface for visually impaired people)
 - EMMS (Emacs multimedia system) (interactive media browser & music player)
