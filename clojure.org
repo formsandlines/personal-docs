@@ -566,17 +566,35 @@ interested in and instrument them.
 
 
 * Editor support
+** Vim: conjure
+- https://github.com/Olical/conjure
 
-Emacs:
-- CIDER
-  (Doom Emacs: uncomment "clojure" in init.el)
+** Emacs: CIDER
+- https://github.com/clojure-emacs/cider
+- https://github.com/clojure-emacs/clj-refactor.el for additional refactoring
 
-Neovim extension:
-- clonjure (https://github.com/Olical/conjure)
+Installation in Doom Emacs: uncomment ~clojure~ in =init.el=.
 
-VS Code extension:
-- Calva
-  (note: has some problems with Vim extension, see https://calva.io/vim/)
+Installation with ~use-package~:
+#+begin_src elisp
+(use-package cider
+  :ensure t
+  :config
+  (require 'flycheck-clj-kondo))
+
+;; Linter:
+(use-package flycheck
+  :ensure t
+  :defer t
+  :diminish
+  :init (global-flycheck-mode))
+(use-package flycheck-clj-kondo
+  :ensure t)
+#+end_src
+
+
+** VS Code: Calva
+(note: has some problems with Vim extension, see https://calva.io/vim/)
 
 ** Leiningen
 

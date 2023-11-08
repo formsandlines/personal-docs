@@ -26,8 +26,10 @@
   | M-(←/→)         | outdent / indent node                              |
   | M-SHIFT-(←/→)   | outdent / indent node + subtrees                   |
   | M-(↑/↓)         | reorder nodes                                      |
+  | M-S-(↑/↓)       | reorder lines                                      |
   | C-c (C-n / C-p) | previous / next node                               |
   | C-c (C-f / C-b) | forward / back same level                          |
+  | M-{ / M-}       | backward / forwared by one element                 |
   | C-c C-u         | up parent node                                     |
   | C-c C-j         | jump to node                                       |
   | TAB             | cycle CURRENT: top-level -> first-sublevel         |
@@ -233,6 +235,22 @@ Includes MathJax to render Latex in HTML.
 
 * Examples
 
+Tag expansion:
+- needs ~(require 'org-tempo)~ in config
+
+| Typing … + TAB | Expands to …                            |
+|----------------+-----------------------------------------|
+| <a             | '#+BEGIN_EXPORT ascii' … '#+END_EXPORT  |
+| <c             | '#+BEGIN_CENTER' … '#+END_CENTER'       |
+| <C             | '#+BEGIN_COMMENT' … '#+END_COMMENT'     |
+| <e             | '#+BEGIN_EXAMPLE' … '#+END_EXAMPLE'     |
+| <E             | '#+BEGIN_EXPORT' … '#+END_EXPORT'       |
+| <h             | '#+BEGIN_EXPORT html' … '#+END_EXPORT'  |
+| <l             | '#+BEGIN_EXPORT latex' … '#+END_EXPORT' |
+| <q             | '#+BEGIN_QUOTE' … '#+END_QUOTE'         |
+| <s             | '#+BEGIN_SRC' … '#+END_SRC'             |
+| <v             | '#+BEGIN_VERSE' … '#+END_VERSE'         |
+
 ** Literal
 
 Examples are typeset in monospace and not subjected to markup.
@@ -257,15 +275,17 @@ Shortcut: write ~<q~ & hit ENTER.
 Some quoted line.
 #+end_quote
 
-
 ** Source code
 
   | Shortcut | Action                              |
   |----------+-------------------------------------|
   | <s + TAB | quickly insert source code block    |
   | C-c '    | edit source block in specified mode |
-  | C-c      | exit edit mode and return to org    |
+  | C-c '    | exit edit mode and return to org    |
   | C-c C-c  | evaluate source block               |
+
+To use ~<s + TAB~, eval this in config:
+: (require 'org-tempo)
 
 #+begin_src java
 for (int i=0; i<5; i++) {
@@ -274,7 +294,6 @@ for (int i=0; i<5; i++) {
 #+end_src
 
 Inline src_clojure{ (defn square [x] (* x x)) } source code.
-
 
 ** Literate programming
 

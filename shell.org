@@ -781,6 +781,9 @@ To get the directory part of a path:
 **** Working directory
 /print working/ (current) /directory/:
 : $ pwd
+- when ~cd~'d into a *symlink*'ed directory, prints the path from the directory with
+  the symlink instead of the actual directory
+  - use ~$ realpath~ to print the /actual/ directory
 
 **** Change directory
 : $ cd /  : root directory
@@ -1054,6 +1057,9 @@ to the parent directory of the symlink that is to be created
 
 *CAUTION:* hidden paths will be ignored if not provided as absolute pathname
 - e.g. use =/Users/name/.dir/= instead of =~/.dir/=
+
+Print the actual path of a file/directory or the current directory:
+: $ realpath <?file-or-dir>
 
 **** Softlink
 Ordinary alias, used 99% of the time.
