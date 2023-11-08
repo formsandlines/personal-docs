@@ -6,7 +6,8 @@ Learning resources:
 - [[https://emacs.stackexchange.com][emacs StackExchange]]
 - [[https://www.reddit.com/r/emacs/][r/emacs]]
 
-*Note:* keybindings are Emacs defaults, if not specified otherwise, OS-specific details assume MacOS (which I use)
+*Note:* keybindings are Emacs defaults, if not specified otherwise, OS-specific
+details assume MacOS (which I use).
 
 * Installing Emacs
 ** Yamamoto’s Mac port
@@ -14,6 +15,7 @@ https://github.com/railwaycat/homebrew-emacsmacport
 
 : $ brew tap railwaycat/emacsmacport
 : $ brew install emacs-mac  --with-modules --with-native-compilation
+- add ~--with-xwidgets~ to use [[#xwidget-webkit]] in Emacs buffer
 
 ** Other Mac ports
 Infos:
@@ -120,23 +122,62 @@ the customization variables to a separate file (and load it):
 (turned-on-mode 1)
 #+end_src
 
-** Themes
+** Packages
+*** Standard Emacs package manager
+:PROPERTIES:
+:CUSTOM_ID: standard-package-manager
+:END:
+- [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Package-Installation][Package Installation (GNU Emacs Manual)]]
 
-To load a custom theme:
-: (load-theme 'some-theme)
+To retrieve package listings from configured repos:
+: M-x package-list-packages
+- opens a buffer to browse packages and install them from the detail page
+  that opens from a hyperlink
 
-To disable a theme:
-: M-x disable-theme
+To refresh the packages catalog for updates:
+: M-x package-refresh-contents
 
-Modus themes
-- https://protesilaos.com/emacs/modus-themes
-- [[https://protesilaos.com/emacs/modus-themes#h:1af85373-7f81-4c35-af25-afcef490c111][How to install the Modus Themes]]
-- [[https://protesilaos.com/emacs/modus-themes#h:bf1c82f2-46c7-4eb2-ad00-dd11fdd8b53f][How to customize the Modus Themes]]
+To (manually) install a package (enter name in the /minibuffer/):
+: M-x package-install
+- not needed with ~use-package~, when ~:ensure t~ is declared on a package
+
+To delete a package (prompt with autocompletion):
+: M-x package-delete
+- Emacs 25.1+
+
+To automatically remove all unused packages:
+: M-x package-autoremove
+- [[#use-package]] does not properly add packages to
+  ~package-selected-packages~, which causes Emacs package manager to
+  incorrectly view them as dependencies to be removed
+  - see [[https://github.com/jwiegley/use-package/issues/870#issuecomment-771881305][GitHub issue]] for a fix
+
+To upgrade (all) packages:
+: M-x package-upgrade
+: M-x package-upgrade-all
+- will not upgrade built-in packages
+
+By default, packages are downloaded only from the ~gnu~ /archive/. To enable
+different /archive/ sources:
+#+begin_src elisp
+(setq package-archives
+      '(("melpa" . "https://melpa.org/packages/")
+        ("elpa" . "https://elpa.gnu.org/packages/")))
+#+end_src
+
+To disable all packages at startup (e.g. for debugging), set in
+=early-init.el=:
+: (setq package-enable-at-startup nil)
+- value is ~t~ by default
+*** Declarative package management
+See [[#use-package]]
+*** Packages outside of /archives/
+See [[#package-vc]]
 
 ** Debugging
 
-Try starting Emacs with the ~-q~ flag to prevent the /init/ file from loading and
-determine if the error comes from a broken init file.
+Try starting Emacs with the ~-q~ flag to prevent the /init/ file from loading
+and determine if the error comes from a broken init file.
 
 ** Example configs
 - https://github.com/daviwil/dotfiles/blob/master/Emacs.org
@@ -174,8 +215,45 @@ https://github.com/hlissner/doom-emacs/blob/develop/docs/getting_started.org#on-
 - [[https://github.com/purcell/emacs.d][.emacs.d]] (Steve Purcell)
 - [[https://github.com/bbatsov/prelude][Prelude]] (Bozhidar Batzov)
 - [[https://spacemacs.org][Spacemacs]]
+* Version Control
+** VC (Emacs’ version control system)
+:PROPERTIES:
+:CUSTOM_ID: package-vc
+:END:
+
+To always follow symlinks and visit the real files (for version control):
+: (setq vc-follow-symlinks t)
+
+** Backup files
+- [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Backup.html#Backup][Backup Files]] (GNU Emacs Manual)
+
+Emacs automatically creates backup files from visited files, by copying the
+old contents (before saving the file) into a new file in the same directory
+with ~~~ appended to the filename.
+
+It gets created only the first time the file is saved from a buffer and
+remains unchanged until the buffer gets killed and the file is visited
+again.
+
+To disable backup files, set variable ~make-backup-files~ to ~nil~. For files
+managed by version control, ~vc-make-backup-files~ determines whether to make
+backup files (~nil~ by default, since Emacs does not save backup files for
+files under version control).
 
 * Keybindings
+
+Guides and infos:
+- [[https://www.masteringemacs.org/article/mastering-key-bindings-emacs][Mastering Key Bindings in Emacs]] /(Mastering Emacs)/
+- [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Key-Bindings.html][Customizing Key Bindings]] /(GNU Emacs Manual)/
+- [[https://github.com/noctuid/evil-guide#keybindings-and-states][Keybindings and States]] /(Evil guide)/
+
+The most important functions to set keybindings are ~define-key~ and
+~global-set-key~. For [[#evil-mode]], they are ~evil-define-key~ and
+~evil-define-minor-mode-key~.
+
+[[#general.el]] is a more convenient, unified interface for key definitions that
+supports additional functionality (e.g. for /vim-style/ keybindings with a
+leader key).
 
 | Notation | Key                                               |
 |----------+---------------------------------------------------|
@@ -220,7 +298,7 @@ Editor:
   - displays infos, prompts / /minibuffer/, etc.
 
 Text editing:
-- *point* → caret/cursor
+- *point* → location of the caret/cursor in the /buffer/
 - *mark* → fixed /point/
 - *region* → contiguous text range from /mark/ to /point/
 - *visual line* / *screen line* → text line as it appears (before a wrap)
@@ -252,18 +330,21 @@ Text units:
 To switch to single-spacing:
 : (setq sentence-end-double-space nil)
 
-
 * Commands
 ** General
 
 Enter and execute a command:
-: M-x
+: M-x execute-extended-command
 - press ~TAB~ to list all commands starting with the input text
+
+For a restricted list of commands relevant to the current /buffer/:
+: M-S-x execute-extended-command-for-buffer
 
 Exit Emacs:
 : C-x C-c : save-buffers-kill-terminal
 
-Exit out of prompts, regions, prefix arguments and return to just one window:
+Exit out of prompts, regions, prefix arguments and return to just one
+window:
 : ESC ESC ESC
 Interrupt command (maybe press multiple times):
 : C-g : keyboard-quit
@@ -292,6 +373,10 @@ Get help/description:
 - ~C~: ~describe-coding-system~ (display infos about coding system)
 - ~F~: ~Info-goto-emacs-command-node~ (find documentation for command)
 
+Get information about prefixed bindings (global and for Major mode):
+: C-x C-h : C-c C-h : …
+or ~C-h m~ for just Major mode bindings and other infos
+
 To see a full list of all Unicode categories:
 : M-x describe-categories
 - (?) what is this
@@ -301,6 +386,9 @@ To open the /man page/ for a terminal command in Emacs:
 
 Show list of all bindings:
 : M-x describe-bindings
+
+See a list of the active keymaps:
+: evaluate (current-active-maps)
 
 Show Emacs uptime counter:
 : M-x emacs-uptime
@@ -456,16 +544,6 @@ To remember the last place visited in a file:
 To automatically revert a buffer when the underlying file has changed:
 - [[#auto-revert-mode]]
 
-** Expressions
-
-Evaluate elisp expression in minibuffer:
-: M-: / M-ESC :  : (eval-expression <exp> …)
-
-Evaluate top-level /form/ around /point/:
-: C-M-x : eval-defun
-
-Evaluate /sexp/ before /point/:
-: C-x C-e : eval-last-sexp
 ** History of input
 
 To save the history of commands, etc., see:
@@ -502,10 +580,9 @@ Re-run the last command:
 Compile in the current project:
 : C-x p c
 
-
 ** Browsing
 
-EWW: Emacs Web Wowser
+*** EWW: Emacs Web Wowser
 : M-x eww
 - ~q~ to quit
 - ~l~ / ~r~ to browse backward/forward in history
@@ -516,6 +593,15 @@ Browse URL in external browser:
 : M-x browse-url
 - the variables ~browse-url-browser-function~, ~browse-url-handlers~, and
   ~browse-url-default-handlers~ determine which browser function to use
+
+*** xwidget-webkit
+:PROPERTIES:
+:CUSTOM_ID: xwidget-webkit
+:END:
+GUI browser using webkit (for MacOS).
+- requires Emacs compilation flag ~--with-xwidgets~
+
+: M-x xwidget-webkit-browse-url
 
 ** Other things
 
@@ -534,7 +620,8 @@ Psychotherapist:
 * Text editing
 ** General
 *** Line wrapping /(truncation, filling)/
-Lines are (usually) not continuous but are broken up by hard line-breaks.
+Lines are (usually) not continuous but are broken up by hard
+line-breaks.
 - ~C-x f : set-fill-column~ sets the /fill column width/ *(buffer-local)*
 
 Activate automatic breaking/filling of lines if they exceed the max.
@@ -546,17 +633,17 @@ Correctly /break/refill/ a continuous paragraph into lines:
 - ~C-u M-q~ will attempt to justify the paragraph
 - Emacs will *not hyphenate* words
 
-The *fill prefix* is a sequence of characters that should appear at the
-start of any line that belongs to the group of lines which is to be
-/filled/.
+The *fill prefix* is a sequence of characters that should appear at
+the start of any line that belongs to the group of lines which is to
+be /filled/.
 - ~C-x . : set-fill-prefix~ sets the /fill prefix/
 - e.g. ~`;; `~ as a prefix lets Emacs fill only lines that belong to a
   comment block in elisp
 - if a prefixed line exceeds the /fill column width/, Emacs will
   automatically insert the prefix on all broken/filled lines
 
-If a line /is/ continuous, it can wrap into multiple /visual lines/ or stretch
-out in full horizontally, which can be toggled using:
+If a line /is/ continuous, it can wrap into multiple /visual lines/ or
+stretch out in full horizontally, which can be toggled using:
 : M-x toggle-truncate-lines
 
 *** Line movement
@@ -597,6 +684,7 @@ Move to start of previous word / before next word:
 Move to start of / end of /paragraph/:
 : M-{ : backward-paragraph
 : M-} : forward-paragraph
+- will move between bullets in /org-mode/ if /point/ is on a bullet
 
 Jump to the first non-whitespace character on the current line:
 : M-m : back-to-indentation
@@ -619,7 +707,8 @@ Go to column:
 Go to character position (absolute pos. from beginning of buffer):
 : M-g c : (goto-char <n>)
 
-Scroll window so that current line is in the middle/top/bottom of the window:
+Scroll window so that current line is in the middle/top/bottom of the
+window:
 : C-l : recenter-top-bottom
 Re-position the point to the middle/top/bottom left of the window:
 : M-r : move-to-window-line-top-bottom
@@ -905,6 +994,7 @@ To jump to a specific symbol (named or at /point/), see [[#imenu]].
 - ~M-s M-<~ to go to first, ~M-s M->~ to go to last match
 - ~RET~ exits search, leaving /point/ at location found
 - ~C-j~ (or type LFD) to match end of the line
+- ~C-g~ will return the /point/ to the starting position
 - … (see docs)
 
 Replace ~from-str~ with ~to-str~ (in the current /region/):
@@ -921,8 +1011,108 @@ programming languages or text):
 Move forward/backward one /page/:
 : C-x ] : forward-page
 : C-x [ : backward-page
+* Appearance
+** Faces
+Different styles applied to text are called *faces*. Each face can specify
+various *face attributes*, such as the /font/, /height/, /weight/, /slant/, /foreground/
+and /background color/, and /underlining/ or /overlining/.
 
-* Emacs Lisp (elisp)
+By default, Emacs automatically chooses which set of /face attributes/ to
+display on each /frame/, based on the frame’s current /background color/.
+- override by setting ~frame-background-mode~ (see variable docs)
+
+*Special faces:*
+- ~default~: the default for displaying text
+  - its /background color/ is also used as the frame’s background color
+- ~cursor~: used to draw the text /cursor/ (on graphical displays)
+  - attributes other than /background color/ have no effect
+  - /foreground color/ is taken from the /backgr. color/ of the underlying text
+
+To inspect a /face/ at /point/:
+: M-x describe-face
+
+To see what faces are currently defined:
+: M-x list-faces-display
+
+To set a specific /face attribute/:
+: (set-face-attribute <face> <frame> <attr-value pair …>)
+- if ~<frame>~ is ~nil~, sets the face for all and new /frames/
+
+To set the /foreground/ / /background color/ on a /face/:
+: (set-face-foreground)
+: (set-face-background)
+
+Colors for /faces/ can be specified by a /color name/ or /RGB triplet/.
+- an /RGB triplet/ is a string of the form ~#RRGGBB~
+
+List of all color names (standard /X11/ color names):
+: M-x list-colors-display
+- also shows correspondence between a /color name/ and its /RGB triplet/
+- customize variable ~list-colors-sort~ to sort colors differently
+
+Infos:
+- [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Faces.html][Text Faces]] (GNU Emacs Manual)
+- [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Colors.html][Colors for Faces]] (GNU Emacs Manual)
+- [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Face-Customization.html][Customizing Faces]] (GNU Emacs Manual)
+
+Examples:
+#+begin_src elisp
+;; To set a font for the 'default' face:
+(set-face-attribute 'default nil
+                    :font "Courier"
+                    :height 120 ;; 12 pt
+                    :weight 'regular)
+#+end_src
+
+** Using Themes
+To make own theme files discoverable by Emacs:
+: (add-to-list 'custom-theme-load-path (concat user-emacs-directory "themes"))
+- theme files can be placed in the =themes= directory of the emacs user dir.
+
+To load a custom theme:
+: (load-theme 'some-theme)
+
+For a list of available themes and to toggle between them:
+: M-x customize-themes
+
+To disable a theme:
+: M-x disable-theme
+
+Modus themes
+- https://protesilaos.com/emacs/modus-themes
+- [[https://protesilaos.com/emacs/modus-themes#h:1af85373-7f81-4c35-af25-afcef490c111][How to install the Modus Themes]]
+- [[https://protesilaos.com/emacs/modus-themes#h:bf1c82f2-46c7-4eb2-ad00-dd11fdd8b53f][How to customize the Modus Themes]]
+
+** Creating themes
+A theme ~foo~ should be defined in a file called =foo-theme.el=.
+
+To declare a theme to be a /custom theme/:
+: (deftheme <name>)
+- must appear at the beginning of the file
+
+To apply a list of /face specs/ for a theme:
+: (custom-theme-set-faces <theme> <args …>)
+- ~<args>~ are of the form ~(<face> <spec>  <?now> <?comment>)~
+
+To indicate that the current /file/ provides a /theme/:
+: (provide-theme <theme>)
+** Other
+
+Toggle visualization of matching parens:
+: (show-paren-mode)
+- /face/ for matching paren is ~show-paren-match~
+- /face/ for mismatched paren is ~show-paren-mismatch~
+
+* Development
+Emacs has built-in programming language modes for Lisp, Scheme, DSSSL, Ada,
+ASM, AWK, C, C++, Fortran, Icon, IDL (CORBA), IDLWAVE, Java, Javascript, M4,
+Makefiles, Metafont, Modula2, Object Pascal, Objective-C, Octave, Pascal,
+Perl, Pike, PostScript, Prolog, Python, Ruby, Simula, SQL, Tcl, Verilog, and
+VHDL.
+
+Other languages will require the installation of additional modes.
+
+** Emacs Lisp (elisp)
 
 elisp file extension is =.el=
 
@@ -957,53 +1147,48 @@ keybinding using a /lambda function/:
                 (lambda () (interactive) (non-interactive-function)))
 #+end_src
 
+** Expressions
+
+Evaluate elisp expression in minibuffer:
+: M-: / M-ESC :  : (eval-expression <exp> …)
+
+Evaluate top-level /form/ around /point/:
+: C-M-x : eval-defun
+
+Evaluate /sexp/ before /point/:
+: C-x C-e : eval-last-sexp
+
+** Xref (cross-references)
+*Xref* is a unified platform to match symbols to their definitions.
+- backend uses a /TAGS/ table by default to generate and store identifiers in
+  static lookup-tables
+  - [[#dumb-jump]] is a good alternative that uses file search engines instead,
+    which is recommended for most users
+- also available in [[#dired]]: ~A~ to search and ~Q~ to search & replace in marked
+  files
+
+Jump to definition at point:
+: M-. : xref-find-definitions
+
+Return to prev. position in /xref/ history (pop marker):
+: M-, : xref-go-back
+
+Find references matching a pattern:
+: M-? : xref-find-references
+
+Find symbols matching a pattern:
+: C-M-. : xref-find-apropos
+
+*xref definition buffer* navigation:
+| Xref Buffer Keys | Description                       |
+|------------------+-----------------------------------|
+| RET              | Jump to definition                |
+| TAB              | Jump to definition, and hide xref |
+| C-o              | Show definition                   |
+| . and ,          | Navigate up or down               |
+| r                | Query search and replace regexp   |
 
 * Built-in modes
-** ORG mode
-See [[file:orgMode.org][Docs/OrgMode]]
-
-Navigate quickly by using single keys at the beginning of an Org headline:
-: (setq org-use-speed-commands t)
-- see https://orgmode.org/manual/Speed-Keys.html
-- to show currently active Speed Keys: ~M-x org-speed-command-help~ or ~?~ when
-  point is at the beginning of an org headline
-
-** Dired (file-/directory manager)
-** Icomplete / IDO / FIDO
-:PROPERTIES:
-:CUSTOM_ID: icomplete
-:END:
-Icomplete global minor mode
-: M-x icomplete-mode / (setq icomplete-mode t)
-
-Continuously displays a list of possible completions that match the typed
-string.
-
-*Usage:* select the first completion in the list with ~C-j~. To make an item in
-the list the first one, either:
-1. type some initial letters (can be anywhere in the string)
-2. use ~C-.~ and ~C-,~ to rotate the list
-
-~C-M-i~ will just autocomplete without selecting.
-
-*** Ido mode / Fido mode
-
-*Ido mode:* “Interactively DO things”
-- https://www.masteringemacs.org/article/introduction-to-ido-mode
-
-*Fido mode:* “Fake Ido” – similar to /Icomplete mode/ but retains some
-functionality from Ido mode.
-- uses ~flex~ as the default completion style
-: M-x fido-mode / (setq fido-mode t)
-
-Keybindings in the /minibuffer/:
-- ~RET / C-m~ to confirm & autocomplete
-- ~M-j~ to confirm /without/ autocomplete (e.g. to create a new buffer)
-- ~C-.~ and ~C-,~ to rotate the list
-- ~DEL~ to move up in path/directory
-- ~C-k~ to delete files and kill buffers in-list
-
-*Recommended:* IDO for Emacs 26-, FIDO for Emacs 27+.
 ** Repeat mode
 :PROPERTIES:
 :CUSTOM_ID: repeat-mode
@@ -1079,7 +1264,483 @@ On-the-fly reindentation of text lines.
 Insert a /newline/:
 : C-j : electric-newline-and-maybe-indent
 
-** Shell Mode
+* Packages list
+** Version Control
+*** Magit (Git manager)
+- https://www.magit.vc
+- [[https://magit.vc/manual/magit/index.html][Magit Manual]]
+- [[https://www.youtube.com/watch?v=_zfvQkJsYwI][An Introduction to the Ultimate Git Interface, Magit!]] (YouTube)
+- [[https://www.youtube.com/watch?v=qPfJoeQCIvA][9 Techniques to Boost Your Git Workflow with Magit]] (YouTube)
+
+Magit will look for a Git repo associated with the current value of
+~default-directory~ (typically the dir that contains the file associated
+with the selected buffer).
+
+Launch the /status interface/ to view the state of the repository:
+: C-x g : magit-status
+
+*Status buffer actions:*
+| Key | Command              | Description                              |
+|-----+----------------------+------------------------------------------|
+| ~g~   | magit-refresh        | refresh status buffer if some file in    |
+|     |                      | another buffer was changd while open     |
+| ~s~   | magit-stage-file     | add change at point to staging area      |
+| ~S~   | magit-stage-modified | stage all changes                        |
+| ~u~   | magit-unstage-file   | remove change at point from staging area |
+| ~U~   | magit-unstage-all    | unstage all changes                      |
+| ~c~   | magit-commit         | create a commit or replace existing one  |
+| ~P~   | magit-push           | push to another repository               |
+
+*Evil bindings* work, but [[#evil-collection]] needs to be installed and some
+Magit bindings may be different.
+- *CAUTION* some keys may be bound to Git actions (see tables)
+
+Press ~? : magit-dispatch~ for a list of available actions. Press one of the
+displayed keys to bring up a subpanel to specify arguments and specialized
+commands. To enable an argument, press the argument key (e.g. ~-a~,
+including the dash).
+- press ~C-g~ to exit a panel
+
+*Status buffer navigation:*
+| Key              | Description                                    |
+|------------------+------------------------------------------------|
+| ~q~                | close status buffer                            |
+| ~TAB~              | expand sections                                |
+| ~S-TAB~            | cycle visibility of sections (like in OrgMode) |
+| ~n~ / ~p~ (non-Evil) | move to next/prev section                      |
+| ~M-n~ / ~M-p~        | move to next/prev sibling section              |
+| ~^~                | move to parent section                         |
+
+For *stashes*, press ~<return>~ to see included files a diff of changes.
+- press ~q~ to close
+
+For *commits* after entering the commit-message, press ~C-c C-c~ to confirm.
+
+*** diff-hl (diff in fringe)
+:PROPERTIES:
+:CUSTOM_ID: diff-hl
+:END:
+~diff-hl-mode~ highlights uncommitted changes on the side of the window
+(using the /fringe/, by default), allows you to jump between the hunks and
+revert them selectively.
+- https://github.com/dgutov/diff-hl
+- has more features than [[#git-gutter]] and may be more performant
+
+| Binding | Command                     |
+|---------+-----------------------------|
+| ~C-x v =~ | ~diff-hl-diff-goto-hunk~      |
+| ~C-x v n~ | ~diff-hl-revert-hunk~         |
+| ~C-x v [~ | ~diff-hl-previous-hunk~       |
+| ~C-x v ]~ | ~diff-hl-next-hunk~           |
+| ~C-x v *~ | ~diff-hl-show-hunk~           |
+| ~C-x v S~ | ~diff-hl-stage-current-hunk~  |
+|         | ~diff-hl-set-reference-rev~   |
+|         | ~diff-hl-reset-reference-rev~ |
+|         | ~diff-hl-unstage-file~      |
+
+*** git-gutter (diff in fringe)
+:PROPERTIES:
+:CUSTOM_ID: git-gutter
+:END:
+- ~git-gutter+~ contains patches that haven’t been added to ~git-gutter~
+- https://github.com/emacsorphanage/git-gutter (~git-gutter~)
+- https://github.com/nonsequitur/git-gutter-plus (~git-gutter+~)
+** Symbolic Calculator
+** Undo Tree
+Alternative /undo/ implementation.
+- https://www.emacswiki.org/emacs/UndoTree
+** Package managers
+*** [built-in] Standard Emacs package manager
+See [[#standard-package-manager]]
+*** [built-in] use-package (declarative package configuration macro)
+:PROPERTIES:
+:CUSTOM_ID: use-package
+:END:
+- recommended way to deal with packages
+- built-in since Emacs 29
+- [[https://www.gnu.org/software/emacs/manual/html_mono/use-package.html][use-package (GNU Emacs Manual)]]
+- [[https://www.masteringemacs.org/article/spotlight-use-package-a-declarative-configuration-tool][Spotlight: use-package, a declarative configuration tool]]
+- https://github.com/jwiegley/use-package
+
+Macro to /declare/ a package that is to be used:
+: (use-package <pkg-name> …)
+to ensure that the package is installed automatically if not already:
+:  :ensure t
+to pin a package to a specific /archive/:
+:  :pin <archive>
+evaluate ~body~ /before/ the package is loaded:
+:  :init
+:  <body>
+evaluate ~body~ /after/ the package is loaded:
+:  :config
+:  <body>
+to /force/ loading to occur immediately (no /autoloading/):
+:  :demand t
+to /defer/ loading the package until it is needed /(autoloading)/:
+- will override ~use-package-always-defer~ variable
+:  :defer t
+- package must provide its own /autoloads/
+- takes precendence over ~:demand~ if both are ~t~
+to /autoload/ specific commands (instead of ~:defer~):
+:  :commands (<command> …)
+to bind keys to commands:
+:  :bind (<binding> …)
+to add functions to hooks:
+:  :hook ((<hooked-mode> . <func>) …)
+:  :hook (<hooked-mode> . <func>)
+:  :hook <hooked-mode>
+to keep it out of the modeline (less clutter):
+:  :diminish
+- requires ~diminish~ package
+
+~:pin~ and ~:ensure~ interface with the [[#standard-package-manager]] for package
+installation.
+
+To globally ensure automatic package installation:
+: (setq use-package-always-ensure t)
+
+If the /archive/ *MELPA* is used, it is recommended to set:
+: (setq use-package-always-pin "nongnu")
+- ensures that only versions of a package are used that have been marked
+  for release by the developer
+
+Packages explicitly installed by the user are listed in the variable
+~package-selected-packages~.
+- fed automatically by Emacs when installing a new package
+- used by ~M-x package-autoremove~ to decide which packages are no longer
+  needed
+- can also be used to reinstall all selected packages on a new machine
+  with ~package-install-selected-packages~
+
+Hooks example:
+#+begin_src elisp
+(use-package my-pkg
+  :init (add-hook 'hooked-mode-hook #'my-pkg-mode))
+;; simplifies to:
+(use-package my-pkg
+  :hook (hooked-mode . (lambda () (my-pkg-mode))))
+;; or just:
+(use-package my-pkg
+  :hook (hooked-mode . my-pkg-mode))
+;; or even simpler (assumes `my-pkg-mode` as the function):
+(use-package my-pkg
+  :hook hooked-mode)
+#+end_src
+
+*** [built-in] package-vc
+:PROPERTIES:
+:CUSTOM_ID: package-vc
+:END:
+
+*** Elpaca
+:PROPERTIES:
+:CUSTOM_ID: elpaca
+:END:
+- comparison to [[#straight-el]]: [[https://www.reddit.com/r/emacs/comments/z4dw4v/comment/ixtzuag/][How does elpaca improve on straight?]]
+- [[https://www.youtube.com/watch?v=5Ud-TE3iIQY][Elpaca: Async Emacs Package Manager]] (YouTube)
+*** straight.el
+:PROPERTIES:
+:CUSTOM_ID: straight-el
+:END:
+** Vim Emulation
+*** Evil mode
+:PROPERTIES:
+:CUSTOM_ID: evil-mode
+:END:
+- https://github.com/emacs-evil/evil
+- https://www.emacswiki.org/emacs/Evil
+
+Guides:
+- [[https://github.com/noctuid/evil-guide][Emacs/Evil for Vim Users]]
+- [[https://www.youtube.com/watch?v=1C9GbmIP1EA][Getting Evil (aka Vim keys) in Emacs without Doom Emacs]] (YouTube)
+
+Look at the ~evil-want~ variables in =evil-vars.el= to set some common
+options.
+
+To switch to the normal Emacs keybinding, use ~\~ as a prefix before the
+command.
+- e.g. ~\ C-u~ is ~C-u~ is set to scroll
+
+The package [[#evil-collection]] is highly recommended to integrate Evil mode
+across other Emacs buffers.
+
+See [[https://github.com/noctuid/evil-guide#what-overrides-evil][What Overrides Evil?]] if normal-mode bindings do not work.
+
+When modes are messed up, execute ~evil-normal-state~.
+
+*** evil-surround
+surround.vim for [[#evil-mode]].
+- https://github.com/emacs-evil/evil-surround
+*** evil-collection
+:PROPERTIES:
+:CUSTOM_ID: evil-collection
+:END:
+- https://github.com/emacs-evil/evil-collection
+
+- provides keybindings for various modes and parts of Emacs that /Evil/ does
+  not cover properly, e.g. ~help-mode~, ~dired~, ~magit~, ~debugger~, ~calendar~,
+  Eshell, etc.
+- uses a consistent set of rules for what keys are bound to what types of
+  actions
+- may replace some default keybindings in some modes
+*** evil-org
+- https://github.com/Somelauw/evil-org-mode
+*** evil-markdown
+- https://github.com/Somelauw/evil-markdown
+*** evil-magit
+:PROPERTIES:
+:CUSTOM_ID: evil-magit
+:END:
+
+Now part of [[#evil-collection]]
+** Keybindings
+*** general.el (convenient key definitions)
+:PROPERTIES:
+:CUSTOM_ID: general.el
+:END:
+- https://github.com/noctuid/general.el
+*** which-key
+:PROPERTIES:
+:CUSTOM_ID: which-key
+:END:
+- https://github.com/justbur/emacs-which-key
+** Completion frameworks
+*** [built-in] Icomplete / IDO / FIDO
+:PROPERTIES:
+:CUSTOM_ID: icomplete
+:END:
+Icomplete global minor mode
+: M-x icomplete-mode / (setq icomplete-mode t)
+
+Continuously displays a list of possible completions that match the typed
+string.
+
+*Usage:* select the first completion in the list with ~C-j~. To make an item
+in the list the first one, either:
+1. type some initial letters (can be anywhere in the string)
+2. use ~C-.~ and ~C-,~ to rotate the list
+
+~C-M-i~ will just autocomplete without selecting.
+
+**** Ido mode / Fido mode
+
+*Ido mode:* “Interactively DO things”
+- https://www.masteringemacs.org/article/introduction-to-ido-mode
+
+*Fido mode:* “Fake Ido” – similar to /Icomplete mode/ but retains some
+functionality from Ido mode.
+- uses ~flex~ as the default completion style
+: M-x fido-mode / (fido-mode 1)
+
+Keybindings in the /minibuffer/:
+- ~RET / C-m~ to confirm & autocomplete
+- ~M-j~ to confirm /without/ autocomplete (e.g. to create a new buffer)
+- ~C-.~ and ~C-,~ to rotate the list
+- ~DEL~ to move up in path/directory
+- ~C-k~ to delete files and kill buffers in-list
+
+*Recommended:* IDO for Emacs 26-, FIDO for Emacs 27+.
+*** vertico.el
+:PROPERTIES:
+:CUSTOM_ID: vertico
+:END:
+VERTical Interactive COmpletion
+- https://github.com/minad/vertico
+*** consult.el
+Consulting completing-read. Provides search and navigation commands based
+on the Emacs completion function ~completing-read~.
+- https://github.com/minad/consult
+- compatible with [[#vertico]] and [[#icomplete]], among other completion
+  frameworks
+*** Ivy (& Counsel)
+:PROPERTIES:
+:CUSTOM_ID: ivy
+:END:
+Generic completion mechanism similar to ~icomplete-mode~, but more
+efficient, smaller, simpler, highly customizable.
+- https://github.com/abo-abo/swiper
+
+**** Counsel
+:PROPERTIES:
+:CUSTOM_ID: counsel
+:END:
+Collection of [[#ivy]]-enhanced versions of common Emacs commands.
+- https://github.com/abo-abo/swiper#counsel
+
+**** Ivy-rich
+Allows to add descriptions alongside the commands in ~M-x~.
+*** Company
+Text completion framework.
+- https://company-mode.github.io
+- https://github.com/company-mode/company-mode
+
+Use ~M-n~ and ~M-p~ to select, ~<return>~ to complete or ~<tab>~ to complete the
+common part.
+
+** Snippets
+*** Yasnippet
+Template system for Emacs to type abbreviations and have them expand into
+function templates.
+- https://github.com/joaotavora/yasnippet
+- https://www.emacswiki.org/emacs/Yasnippet
+** Structural editing
+*** paredit
+:PROPERTIES:
+:CUSTOM_ID: paredit
+:END:
+Classic structural editing package for Emacs.
+- https://paredit.org
+*** evil-paredit
+Evil extension to integrate nicely with paredit.
+:PROPERTIES:
+:CUSTOM_ID: evil-paredit
+:END:
+- https://github.com/roman/evil-paredit
+*** smartparens
+:PROPERTIES:
+:CUSTOM_ID: smartparens
+:END:
+Popular alternative to [[#paredit]].
+- https://github.com/Fuco1/smartparens
+*** evil-smartparens
+:PROPERTIES:
+:CUSTOM_ID: evil-smartparens
+:END:
+[[#evil]] integration for [[#smartparens]].
+- https://github.com/expez/evil-smartparens
+
+Alternative: [[#evil-cleverparens]]
+
+*** evil-cleverparens
+:PROPERTIES:
+:CUSTOM_ID: evil-cleverparens
+:END:
+[[#evil]] normal-state minor-mode for editing Lisp-like languages.
+- uses functions from both [[#smartparens]] and [[#paredit]] (neither one required
+  by default, but highly recommended)
+- https://github.com/emacs-evil/evil-cleverparens
+
+For [[#smartparens]], ~smartparens-strict-mode~ is recommended.
+
+Alternative: [[#evil-smartparens]]
+- “has more features and opinions, and probably more bugs :)”
+*** lispy
+:PROPERTIES:
+:CUSTOM_ID: lispyville
+:END:
+vi-like [[#paredit]].
+- https://github.com/abo-abo/lispy
+- http://oremacs.com/lispy/
+*** lispyville
+:PROPERTIES:
+:CUSTOM_ID: lispyville
+:END:
+A minor mode for integrating [[#evil]] with [[#lispy]].
+- https://github.com/noctuid/lispyville
+- similar intent to [[#evil-cleverparens]] and related packages
+*** symex
+:PROPERTIES:
+:CUSTOM_ID: symex
+:END:
+An [[#evil]] way to edit Lisp symbolic expressions as trees.
+- https://github.com/drym-org/symex.el
+- at the moment, uses [[#paredit]], [[#lispy]], and [[#evil-cleverparens]] to provide
+  much of its low level functionality
+*** Parinfer
+- https://github.com/justinbarclay/parinfer-rust-mode
+- https://shaunlebron.github.io/parinfer/
+** Programming
+*** dumb-jump
+:PROPERTIES:
+:CUSTOM_ID: dumb-jump
+:END:
+“jump to definition” package for 50+ languages.
+- uses file searchers like ~grep~, ~ack~, ~ag~ or ~ripgrep~ to find matches
+  relevant to the major mode (contrary to /xref/, which uses /TAGS/ files)
+- https://github.com/jacktasia/dumb-jump
+*** Flycheck (linter)
+:PROPERTIES:
+:CUSTOM_ID: flycheck
+:END:
+Syntax checking.
+- https://www.flycheck.org
+- replacement for older /Flymake/ extension
+- install =luacheck= for flycheck to work correctly with *lua* files
+- install =python-pylint= for flycheck to work with *python* files
+- *Haskell* works with flycheck as long as =haskell-ghc= or =haskell-stack-ghc=
+  is installed
+
+More information on language support:
+- https://www.flycheck.org/en/latest/languages.html
+
+** OrgMode
+*** [built-in] ORG mode
+- see my [[file:orgMode.org][Docs/OrgMode]]
+- https://orgmode.org
+- [[https://orgmode.org/orgcard.pdf][Org-Mode Reference Card]]
+
+Navigate quickly by using single keys at the beginning of an Org headline:
+: (setq org-use-speed-commands t)
+- see https://orgmode.org/manual/Speed-Keys.html
+- to show currently active Speed Keys: ~M-x org-speed-command-help~ or ~?~
+  when point is at the beginning of an org headline
+
+To indent text according to outline structure:
+: (org-indent-mode)
+
+To adapt indentation to outline node level:
+: (setq org-adapt-indentation t)
+- indents text to align with headings
+- actually adds space, unlike ~org-indent-mode~
+
+*** toc-org
+Generates a table of contents for Org-mode.
+- https://github.com/snosov1/toc-org
+*** org-appear
+Toggle visibility of hidden Org mode element parts upon entering and
+leaving an element.
+- https://github.com/awth13/org-appear
+** Files
+*** [built-in] Dired (file-/directory manager)
+*** sudo-edit
+Enables editing a file with sudo privileges or switch to editing with such
+privileges on an open buffer.
+- https://github.com/nflath/sudo-edit
+*** Tramp (remote file editing)
+** Icons
+*** all-the-icons
+:PROPERTIES:
+:CUSTOM_ID: all-the-icons
+:END:
+A utility package to collect various Icon Fonts and propertize them within
+Emacs.
+- https://github.com/domtronn/all-the-icons.el
+*** all-the-icons-nerd-fonts
+/Nerd font/ integration for [[#all-the-icons]].
+- https://github.com/mohkale/all-the-icons-nerd-fonts
+*** all-the-icons-dired
+Adds dired support to [[#all-the-icons]].
+- https://github.com/wyuenho/all-the-icons-dired
+*** all-the-icons-ibuffer
+Display icons for all buffers in ibuffer.
+- https://github.com/seagle0128/all-the-icons-ibuffer
+*** all-the-icons-completion
+Add icons to completion candidates using the built in completion metadata
+functions.
+- https://github.com/iyefrat/all-the-icons-completion
+*** all-the-icons-ivy-rich
+Icons for [[#ivy]].
+- https://github.com/seagle0128/all-the-icons-ivy-rich
+** Styling/Themes
+*** ThemeCreator
+- https://github.com/mswift42/themecreator
+- https://mswift42.github.io/themecreator/
+*** rainbow-mode
+Sets background color to strings that match color names.
+- https://elpa.gnu.org/packages/rainbow-mode.html
+
+** Terminal / Shell
+*** [built-in] Shell Mode
 :PROPERTIES:
 :CUSTOM_ID: shell-mode
 :END:
@@ -1112,7 +1773,7 @@ underlying shell through Emacs.
 | ~C-c C-z~           | (?) send stop sub job                      |
 | ~TAB~               | complete at the point                      |
 
-** ansi-term (Terminal Emulator)
+*** [built-in] ansi-term (Terminal Emulator)
 :PROPERTIES:
 :CUSTOM_ID: ansi-term
 :END:
@@ -1135,7 +1796,7 @@ typical Emacs buffer.
 | ~C-c C-j~ | switch to /line mode/      |
 | ~C-c C-k~ | switch to /character mode/ |
 
-** Eshell (Emacs Shell written in elisp)
+*** [built-in] Eshell (Emacs Shell written in elisp)
 :PROPERTIES:
 :CUSTOM_ID: eshell
 :END:
@@ -1146,20 +1807,20 @@ To open a file in an Emacs buffer:
 : $ find-file <filename>
 To open a dired session for the current directory:
 : $ dired .
-
-* Extensions
-** Magit (Git manager)
-** Tramp (remote file editing)
-** Symbolic Calculator
-** Undo Tree
-Alternative /undo/ implementation.
-- https://www.emacswiki.org/emacs/UndoTree
-** Evil mode (vi for Emacs)
+*** vterm
 :PROPERTIES:
-:CUSTOM_ID: evil-mode
+:CUSTOM_ID: vterm
 :END:
-- https://github.com/emacs-evil/evil
-- https://www.emacswiki.org/emacs/Evil
+Emacs-libvterm (vterm) is fully-fledged terminal emulator inside GNU Emacs
+based on [[https://github.com/neovim/libvterm][libvterm]], a C library. As a result of using compiled code
+(instead of elisp), emacs-libvterm is fully capable, fast, and it can
+seamlessly handle large outputs.
+- https://github.com/akermu/emacs-libvterm
+*** vterm-toggle
+Toggles between the [[#vterm]] buffer and whatever buffer you are editing.
+- https://github.com/jixiuf/vterm-toggle
+
 ** Other
 - [[https://emacspeak.sourceforge.net][Emacspeak]] (speech interface for visually impaired people)
 - EMMS (Emacs multimedia system) (interactive media browser & music player)
+
