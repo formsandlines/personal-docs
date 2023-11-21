@@ -241,19 +241,7 @@ backup files (~nil~ by default, since Emacs does not save backup files for
 files under version control).
 
 * Keybindings
-
-Guides and infos:
-- [[https://www.masteringemacs.org/article/mastering-key-bindings-emacs][Mastering Key Bindings in Emacs]] /(Mastering Emacs)/
-- [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Key-Bindings.html][Customizing Key Bindings]] /(GNU Emacs Manual)/
-- [[https://github.com/noctuid/evil-guide#keybindings-and-states][Keybindings and States]] /(Evil guide)/
-
-The most important functions to set keybindings are ~define-key~ and
-~global-set-key~. For [[#evil-mode]], they are ~evil-define-key~ and
-~evil-define-minor-mode-key~.
-
-[[#general.el]] is a more convenient, unified interface for key definitions that
-supports additional functionality (e.g. for /vim-style/ keybindings with a
-leader key).
+** Modifier keys
 
 | Notation | Key                                               |
 |----------+---------------------------------------------------|
@@ -273,17 +261,141 @@ Mostly obsolete/historic keys:
 
 Personal mapping (MacOS):
 #+begin_src elisp
-(setq mac-command-modifier 'meta)       ;; left cmd
-(setq mac-right-command-modifier 'meta) ;; right cmd
-(setq mac-right-option-modifier nil)
-(setq mac-option-modifier nil)
+(setq mac-command-modifier 'meta)          ;; left cmd = right cmd
+(setq mac-right-command-modifier 'left)
+(setq mac-option-modifier nil)             ;; keeps Umlauts, etc. accessible
+(setq mac-right-option-modifier 'left)
+(setq mac-control-modifier 'hyper)         ;; in case hyper is needed
+(setq mac-right-control-modifier 'control) ;; also works for caps-lock as ctrl
 #+end_src
 - no OPT bindings because the interfere with European umlaut chars, etc.
 - left/right CTRL = CAPS-LOCK = ~C~ (map in MacOS keyboard settings)
 
+** Prefix keys
 Common prefix keys:
 - ~C-x~ is the prefix for Emacs’ primary key bindings
 - ~C-c~ is the prefix for active major or minor modes and user key bindings
+  - Emacs itself will never bind these, extensions should avoid binding them
+
+See [[Keymaps]] for prefix keymaps.
+
+** (Re)binding keys
+Guides and infos:
+- [[https://www.masteringemacs.org/article/mastering-key-bindings-emacs][Mastering Key Bindings in Emacs]] /(Mastering Emacs)/
+- [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Key-Bindings.html][Customizing Key Bindings]] /(GNU Emacs Manual)/
+- [[https://github.com/noctuid/evil-guide#keybindings-and-states][Keybindings and States]] /(Evil guide)/
+
+The most important functions to set keybindings are ~define-key~ and
+~global-set-key~. For [[#evil-mode]], they are ~evil-define-key~ and
+~evil-define-minor-mode-key~.
+
+To (re)bind a key in the *global keymap*:
+: (keymap-global-set <key> <command>)
+- ~key~ must be a string, e.g. ~"C-z"~
+  - *keys* are separated by spaces
+  - *modifiers* are prepended on a key with a dash, e.g. ~M-~, ~C-~, etc.
+  - *special keys* can be specified in angle brackets, e.g. ~<tab>~, ~<ret>~
+- ~command~ must be specified as a /constant symbol/, e.g. ~'shell~
+  - otherwise, Emacs tries to evaluate it as a variable
+
+To (re)bind a key in a given ~keymap~:
+: (keymap-set <keymap> <key> <definition>)
+- ~definition~ can be a …
+  - *command*
+  - *string* as a keyboard macro or seq. of input events
+  - *keymap* to define a /prefix key/
+  - *symbol* for a /function definition/ (one of the above or another symbol)
+  - *cons* ~(<string> . <defn>)~ where ~defn~ is a valid definition and ~string~ is
+    the menu item name (for menu names in keymaps)
+  - *cons* ~(<map> . <char>)~ meaning use definition of ~char~ in keymap ~map~
+  - *extended menu item definition*
+
+To *unset/remove* a ~key~ sequence from a ~keymap~:
+: (keymap-unset <keymap> <key> <?remove>)
+- ~key~: a /string/ that satisfies ~key-valid-p~
+- if ~remove~ is /non-nil/, removes the binding instead of unsetting it (only
+  makes a difference if there is a /parent keymap/)
+  - when /unsetting/ the key in ~keymap~ or just setting its definition to ~nil~,
+    it will still /shadow/ the same key in the parent keymap
+  - ~remove~ allows the parent keymap to still use its own binding for the
+    same key
+
+Keymaps are not constructed until the mode is loaded for the first time in a
+session, so use a *mode hook* to delay evaluation of the binding code, e.g.:
+#+begin_src elisp
+(add-hook 'texinfo-mode-hook
+          (lambda ()
+            (keymap-set texinfo-mode-map "C-c p" 'backward-paragraph)
+            (keymap-set texinfo-mode-map "C-c n" 'forward-paragraph)
+            (keymap-set texinfo-mode-map "C-c C-x x" nil))) ; removes the bind.
+#+end_src
+
+To *specify key sequences* for /low-level functions/ (such as ~define-key~ and
+~global-set-key~):
+: (kbd <string>)
+- e.g. ~(kbd "C-z")~
+
+To define a ~key~ (sequence) as a ~def~'inition in a ~keymap~:
+: (define-key <keymap> <key> <definition> <?remove>)
+- ~key~ can be a /string/ or a /vector/ of symbols and characters (representing a
+  sequence of keystrokes and events)
+  - non-ASCII chars with codes > 127 can be represented by /vectors/
+  - see ~kbd~ to define key sequences conveniently
+- *Vectors* with special meaning:
+  - ~[remap <command>]~ remaps any key binding to ~command~
+  - ~[t]~ creates a default definition, which applies to any event with no
+    other definition in ~keymap~
+- ~definition~ → see ~keymap-set~
+- ~remove~: see ~keymap-unset~
+
+To give a ~key~ a /global binding/ as ~command~:
+: (global-set-key <key> <command>)
+- *legacy function* (use ~keymap-global-set~ instead)
+
+Keybinding packages:
+- [[#general.el]] is a more convenient, unified interface for key definitions
+  that supports additional functionality (e.g. for /vim-style/ keybindings
+  with a leader key)
+
+** Keymaps
+- [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Keymaps.html][Keymaps]] /(GNU Emacs Manual: Customizing Key Bindings)/
+- [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Keymaps.html][Keymaps]] /(GNU Emacs Manual: Emacs Lisp)/
+
+The *global keymap* is always in effect.
+
+To rebind keys in the /global keymap/:
+: M-x keymap-global-set
+
+A *local keymap* is used by major and minor modes to provide custom bindings.
+
+*Keymap overrides:*
+- /local keymaps/ override /global keymap/ bindings
+- /minor mode/ local keymaps override /major mode/ ones
+- /portions of text/ in a buffer can specify their own keymaps, which override
+  all others
+
+*Prefix keymaps* store bindings for multiple events (as a /key sequence/) by
+/chaining/ keymaps. The first keymap defines the /prefix key/ by looking up the
+second event in the next keymap, which may itself point to another keymap
+for the third event and so on.
+- the definition can also be a /Lisp symbol/ whose function definition is the
+  following keymap, the effect is the same
+  - e.g. in the /global map/, ~C-x~ is bound to the symbol ~Control-X-prefix~,
+    whose function definition is the keymap for ~C-x~ commands
+
+If a /local keymap/ defines a /prefix key/ that is already being used as a
+prefix key (e.g. ~C-c~), both /prefix keymaps/ will effectively *combine* in key
+lookups, keeping the usual precedence for overrides.
+
+Variable names for some common prefix keymaps:
+- ~ctl-x-map~ is for characters following ~C-x~
+- ~help-map~ is for characters following ~C-h~
+- ~esc-map~ is for characters following ~ESC~
+  - thus, all *Meta* characters are actually defined by this map
+- ~ctl-x-4-map~ is for characters following ~C-x 4~
+- ~mode-specific-map~ is for characters following ~C-c~
+- ~project-prefix-map~ is for characters following ~C-x p~
+  - used for project-related commands
 
 * Terminology
 Keybindings:
@@ -452,9 +564,23 @@ Split /active window/ vertically:
 Split /active window/ horizontally:
 : C-x 3 : split-window-right
 
+Make selected window ~delta~ lines /taller/ (or columns /wider/, if ~horizontal~ or
+/smaller/ if ~delta~ is /negative/):
+: C-x ^ : (enlarge-window <delta> <?horizontal>)
+
+Balance the sizes of windows:
+: balance-windows
+
 Toggle popups (e.g. for help):
 : C-` : +popup/toggle
 - requires ~popup.el~
+
+Undo changes in window arrangement:
+- see [[#winner-mode]]
+
+** Frames
+To create a new /frame/ (OS-level window):
+: M-x make-frame-command
 
 ** Buffers
 Buffers need not be for files, but can also be /transient buffers/ for e.g.
@@ -612,10 +738,20 @@ Weird screensaver:
 : M-x zone
 Text adventure game:
 : M-x dunnet
-Tetris clone:
+Tetris/Pong/Snake clone:
 : M-x tetris
+: M-x pong
+: M-x snake
 Psychotherapist:
 : M-x doctor
+Tower of Hanoi:
+: M-x hanoi : M-x hanoi-unix : M-x hanoi-unix-64
+Game of Life:
+: M-x life
+- initial patterns in variable ~life-patterns~
+
+Also see:
+- https://www.masteringemacs.org/article/fun-games-in-emacs
 
 * Text editing
 ** General
@@ -1157,7 +1293,11 @@ Evaluate top-level /form/ around /point/:
 
 Evaluate /sexp/ before /point/:
 : C-x C-e : eval-last-sexp
-
+** Variables
+#+begin_src elisp
+(defvar foo/x (list 1 2 3 4))
+(setf (cadr foo/x) 'boo) ;=> (1 boo 3 4)
+#+end_src
 ** Xref (cross-references)
 *Xref* is a unified platform to match symbols to their definitions.
 - backend uses a /TAGS/ table by default to generate and store identifiers in
@@ -1187,6 +1327,8 @@ Find symbols matching a pattern:
 | C-o              | Show definition                   |
 | . and ,          | Navigate up or down               |
 | r                | Query search and replace regexp   |
+** Projects
+See [[#project.el]]
 
 * Built-in modes
 ** Repeat mode
@@ -1263,6 +1405,16 @@ On-the-fly reindentation of text lines.
 
 Insert a /newline/:
 : C-j : electric-newline-and-maybe-indent
+** Winner mode
+:PROPERTIES:
+:CUSTOM_ID: winner-mode
+:END:
+: (winner-mode 1)
+
+Undo changes to a window arrangement:
+: C-c <left> : winner-undo
+Redo undone changes:
+: C-c <right> : winner-redo
 
 * Packages list
 ** Version Control
@@ -1336,7 +1488,7 @@ revert them selectively.
 | ~C-x v S~ | ~diff-hl-stage-current-hunk~  |
 |         | ~diff-hl-set-reference-rev~   |
 |         | ~diff-hl-reset-reference-rev~ |
-|         | ~diff-hl-unstage-file~      |
+|         | ~diff-hl-unstage-file~        |
 
 *** git-gutter (diff in fringe)
 :PROPERTIES:
@@ -1442,7 +1594,74 @@ Hooks example:
 :PROPERTIES:
 :CUSTOM_ID: straight-el
 :END:
-** Vim Emulation
+** Project manager
+*** [built-in] project.el
+:PROPERTIES:
+:CUSTOM_ID: project.el
+:END:
+
+A project is automatically recognized by its *version-control repository*,
+which determines its /root folder/ and /indexed files/.
+
+There are specialized commands like ~project-switch-to-buffer~ or
+~project-find-file~ that are scoped to project files/dirs.
+
+Prefix keymap ~C-x p~ (Emacs 28+):
+
+| Keys    | Description                     |
+|---------+---------------------------------|
+| ~C-x p p~ | Switch to other known projects  |
+| ~C-x p b~ | Switch to buffer                |
+| ~C-x p f~ | Find file in project            |
+| ~C-x p k~ | Kill project buffers            |
+| ~C-x p g~ | Search by regexp                |
+| ~C-x p r~ | Query regexp search and replace |
+| ~C-x p c~ | Compile project                 |
+| ~C-x p v~ | Open VC Dialog                  |
+| ~C-x p s~ | Open a Shell                    |
+| ~C-x p d~ | Open a Dired buffer             |
+
+*** Projectile
+- https://github.com/bbatsov/projectile
+- integrates with built-in [[#project.el]] library
+** Popup window manager
+*** Popper
+Just works. Use this instead of [[#popwin]], since it is a lot less buggy.
+- https://github.com/karthink/popper
+- can toggle popups and cycle through popup buffers
+*** popwin
+Keeps buffers like ~*Help*~, ~*Completions*~, ~*compilation*~ out of existing
+windows.
+- https://github.com/emacsorphanage/popwin
+- seems to have some [[https://github.com/emacsorphanage/popwin/issues/147][issues]] which mess up window arrangements
+*** shackle
+Inspired by [[#popwin]], but simpler and more debugger-friendly, although less
+customizable and more rough edges, according to developer.
+- https://depp.brause.cc/shackle/
+
+** Modal editing / Vim Emulation
+*** Meow
+Aims to blend modal editing into Emacs with minimal interference with its
+original key-bindings, avoiding most of the hassle introduced by
+key-binding conflicts.
+- inspired by Kakoune
+- https://github.com/meow-edit/meow
+
+[[https://github.com/meow-edit/meow/discussions/215#discussioncomment-2589474][Discussion of trade-offs between Evil/vi and Meow]]
+- Meow is a minimalist system designed around the symmetry between
+  movement and selection commands
+- its emphasis is on consistency (/not/ efficiency), so anything that does
+  not fit the overall idea should be added by the user via customization
+
+[[https://esrh.me/posts/2021-12-18-switching-to-meow.html][Some interesting thoughts on Meow vs vi]]
+
+*** Boon
+- https://github.com/jyp/boon
+*** God mode
+Lightweight package to make normal Emacs bindings more convenient to use,
+without having to hold down modifiers.
+- https://github.com/emacsorphanage/god-mode
+
 *** Evil mode
 :PROPERTIES:
 :CUSTOM_ID: evil-mode
@@ -1469,6 +1688,9 @@ See [[https://github.com/noctuid/evil-guide#what-overrides-evil][What Overrides 
 When modes are messed up, execute ~evil-normal-state~.
 
 *** evil-surround
+:PROPERTIES:
+:CUSTOM_ID: evil-surround
+:END:
 surround.vim for [[#evil-mode]].
 - https://github.com/emacs-evil/evil-surround
 *** evil-collection
@@ -1505,6 +1727,54 @@ Now part of [[#evil-collection]]
 :END:
 - https://github.com/justbur/emacs-which-key
 ** Completion frameworks
+*** [built-in] Minibuffer completions
+
+_Config:_
+
+Appearance and sorting of completions:
+: completions-format :: vertical | horizontal | one-column
+
+Wrap around when selecting completion options:
+: completion-auto-wrap :: nil | t
+- Emacs 29.1+
+
+Automatically provide help (opens ~*Completions*~ buffer) for invalid
+completion input:
+: completion-auto-help :: nil | t | lazy | always | visible
+
+Maximum height of completions buffer:
+: completions-max-height :: nil | <num>
+
+Format heading line in ~*Completions*~ buffer:
+: completions-header-format :: …
+
+Show/hide the help message in ~*Completions*~ buffer:
+: completions-show-help :: nil | t
+
+
+_Minibuffer commands:_
+
+Show ~*Completions*~ window:
+: ? : minibuffer-completion-help
+
+Complete match or show ~*Completions*~ window:
+: TAB : minibuffer-complete
+
+Switch to ~*Completions*~ window:
+: M-v : switch-to-completions
+
+Exit if minibuffer contains a valid completion:
+: RET / C-m : minibuffer-complete-and-exit
+
+Complete the next word /(context-dependent)/:
+: SPC : minibuffer-complete-word
+
+Complete history match:
+: C-x <up> : minibuffer-complete-history
+
+Just autocomplete without selecting:
+: C-M-i : complete-symbol
+
 *** [built-in] Icomplete / IDO / FIDO
 :PROPERTIES:
 :CUSTOM_ID: icomplete
@@ -1520,27 +1790,49 @@ in the list the first one, either:
 1. type some initial letters (can be anywhere in the string)
 2. use ~C-.~ and ~C-,~ to rotate the list
 
-~C-M-i~ will just autocomplete without selecting.
+Rotate the list:
+: C-. : icomplete-forward-completions
+: C-, : icomplete-backward-completions
+
+Force-complete minibuffer with +longest+ possible match and exit:
+: C-j : icomplete-force-complete-and-exit
+- immediately enters a directory instead of completing it
+
+Force-complete minibuffer with +longest+ possible match:
+: M-<TAB> / C-M-i : icomplete-force-complete
 
 **** Ido mode / Fido mode
 
+*Recommended:* IDO for Emacs 26-, FIDO for Emacs 27+
+
 *Ido mode:* “Interactively DO things”
 - https://www.masteringemacs.org/article/introduction-to-ido-mode
+- https://www.masteringemacs.org/article/understanding-minibuffer-completion
 
 *Fido mode:* “Fake Ido” – similar to /Icomplete mode/ but retains some
 functionality from Ido mode.
 - uses ~flex~ as the default completion style
+- has special commands for ~find-file~
 : M-x fido-mode / (fido-mode 1)
 
-Keybindings in the /minibuffer/:
-- ~RET / C-m~ to confirm & autocomplete
-- ~M-j~ to confirm /without/ autocomplete (e.g. to create a new buffer)
-- ~C-.~ and ~C-,~ to rotate the list
-- ~DEL~ to move up in path/directory
-- ~C-k~ to delete files and kill buffers in-list
+Exit minibuffer with match /or/ complete directory:
+: RET : icomplete-fido-ret
+- use as /default confirm/ and ~C-j~ / ~C-M-i~ for special cases
 
-*Recommended:* IDO for Emacs 26-, FIDO for Emacs 27+.
-*** vertico.el
+Confirm /without/ autocomplete (e.g. to create a new buffer):
+: M-j : icomplete-fido-exit
+- does not exit for incomplete commands
+
+Move up in path/directory:
+: DEL : icomplete-fido-backward-updir
+
+Delete files and kill buffers in-list:
+: C-k : icomplete-fido-kill
+
+: icomplete-fido-delete-char
+
+*** helm (completion system)
+*** vertico.el (completion UI)
 :PROPERTIES:
 :CUSTOM_ID: vertico
 :END:
@@ -1576,7 +1868,16 @@ Text completion framework.
 
 Use ~M-n~ and ~M-p~ to select, ~<return>~ to complete or ~<tab>~ to complete the
 common part.
-
+*** marginalia (annotations for completions)
+Adds annotations (/marginalia/) like function descriptions, etc. to
+minibuffer completions.
+- https://github.com/minad/marginalia
+** Search
+*** Swiper (regex search, uses [[#ivy]])
+:PROPERTIES:
+:CUSTOM_ID: swiper
+:END:
+- https://github.com/abo-abo/swiper
 ** Snippets
 *** Yasnippet
 Template system for Emacs to type abbreviations and have them expand into
@@ -1649,6 +1950,10 @@ An [[#evil]] way to edit Lisp symbolic expressions as trees.
 *** Parinfer
 - https://github.com/justinbarclay/parinfer-rust-mode
 - https://shaunlebron.github.io/parinfer/
+*** embrace.el
+About Add/Change/Delete pairs based on ~expand-region~, similar to
+[[#evil-surround]].
+- https://github.com/cute-jumper/embrace.el
 ** Programming
 *** dumb-jump
 :PROPERTIES:
