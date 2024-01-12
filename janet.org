@@ -74,7 +74,7 @@ To install dependencies of a project:
 
 ** Executables
 
-#+begin_src janet
+#+begin_src janet-ts
 (declare-executable
   :name "myexec"
   :entry "main.janet"
@@ -87,9 +87,9 @@ Compilation to native code:
 
 * Packages
 
-To install a package:
+To install a package (globally):
 : $ sudo jpm install [pkg-name …]
-To uninstall a package:
+To uninstall a package (globally):
 : $ sudo jpm uninstall [pkg-name …]
 
 Installation directory: =/opt/homebrew/Cellar/janet/<version>/lib=
@@ -173,7 +173,7 @@ typedef enum JanetType {
 } JanetType;
 #+end_src
 
-#+begin_src janet
+#+begin_src janet-ts
 (type <expr>)  # to check the type of an expression
 
 (struct <item …>) = {…}
@@ -193,7 +193,7 @@ typedef enum JanetType {
 - ~nil~ is not allowed as a key in tables or structs
 
 Numeric literals:
-#+begin_src janet
+#+begin_src janet-ts
 0
 +0.0
 -10_000
@@ -206,7 +206,7 @@ Numeric literals:
 #+end_src
 
 String literals:
-#+begin_src janet
+#+begin_src janet-ts
 "Hello, this is a string."
 
 # Add escape characters for newlines, double quotes, backslash, tabs, etc.
@@ -258,7 +258,7 @@ invoke “methods” defined as entries on the prototype that may operate on
 “methods” are just functions
 - they can have a ~self~ parameter, which is not special in any way
 - in invocation, ~self~ must be passed the table/struct itself
-#+begin_src janet
+#+begin_src janet-ts
 # defining an “object”:
 (def obj @{:get-foo (fn [self] (self :_foo))
            :_foo 123})
@@ -282,7 +282,7 @@ To get the prototype of a table or struct:
 - returns ~nil~ if no prototype available
 
 *** Using prototypes for class-like constructs:
-#+begin_src janet
+#+begin_src janet-ts
 # “class”
 (def my-prototype
   @{:my-getter (fn [self] (self :_x))
@@ -297,7 +297,7 @@ To get the prototype of a table or struct:
 #+end_src
 
 More compact approach:
-#+begin_src janet
+#+begin_src janet-ts
 (def My-class
   (let [proto @{:my-getter (fn …)
                 :my-setter (fn …)}]
@@ -307,7 +307,7 @@ More compact approach:
 #+end_src
 
 Explicit “first-class” class approach:
-#+begin_src janet
+#+begin_src janet-ts
 (def My-class
   {:proto @{:my-getter (fn …)
             :my-setter (fn …)}
@@ -334,7 +334,7 @@ built-in functions that can be overloaded with a method.
   to use /polymorphic compare/ (see [[Comparators]])
 
 Overloading examples:
-#+begin_src janet
+#+begin_src janet-ts
 # math & bitwise operators:
 (def addable @{:+ (fn [a b] (printf "adding %q %q" a b) 10)})
 (+ addable "foo") # adding @{:+ <function …>} "foo" => 10
@@ -366,9 +366,9 @@ Value semantics on immutable data structures.
 * Syntax / Special Forms
 - https://janet-lang.org/docs/specials.html
 - https://janet-lang.org/docs/syntax.html
-
+  
 ** Bindings
-#+begin_src janet
+#+begin_src janet-ts
 # Constant/immutable:
 (def <name> <?meta …> <?docstring> <value>)
 
@@ -401,7 +401,7 @@ Value semantics on immutable data structures.
 #+end_src
 
 ** Functions
-#+begin_src janet
+#+begin_src janet-ts
 # Anonymous function:
 (fn <?name> [<param …>] <body …>)
 
@@ -440,8 +440,12 @@ Value semantics on immutable data structures.
 (get <seq> <idx>)
 #+end_src
 
+Multi-arity functions are not supported out of the box, but can apparently
+be realized using macros:
+- https://github.com/janet-lang/janet/pull/887
+
 ** Control structures
-#+begin_src janet
+#+begin_src janet-ts
 # like in Clojure:
 (do
   <form …>)
@@ -482,7 +486,7 @@ Value semantics on immutable data structures.
 #+end_src
 
 *** Pattern matching
-#+begin_src janet
+#+begin_src janet-ts
 (match <expr>
   <pattern> <when-matched>
   …
@@ -514,7 +518,7 @@ More infos:
 - https://janet.guide/control-flow/
 
 ** Loops
-#+begin_src janet
+#+begin_src janet-ts
 (while <condition>
   <form …>
   ?(break))  # early exit (only innermost loop, avoid outside of macros)
@@ -547,15 +551,18 @@ More infos:
 #+end_src
 
 Flexible general purpose loop macros:
-#+begin_src janet
+#+begin_src janet-ts
 # for side-effects
 # - (similar to Common Lisp loop macro)
-(loop <head> & <body>)
+(loop <rules> & <body>)
 
 # for data
 # - like loop, but accumulates the loop body into an array
 # - (similar to Clojure’s `for`)
-(seq <head> & <body>)
+(seq <rules> & <body>)
+
+# like `seq`, but concatenates results of `body` in the array
+(catseq <rules> & <body>)
 #+end_src
 - see https://janetdocs.com/loop / https://janetdocs.com/seq
 
@@ -570,9 +577,9 @@ Iteration is based on the function ~next~.
 - ~eachk~ just iterates over the keys from ~next~
 - ~map~, ~reduce~, ~filter~, etc. also use ~next~ under the hood
 - custom ~JANET_ABSTRACT~ types can receive a custom implementation of ~next~
-
+  
 ** Macros
-#+begin_src janet
+#+begin_src janet-ts
 # Macro definition
 (defmacro <name> [<param …>]
   <form …>)
@@ -585,7 +592,7 @@ Iteration is based on the function ~next~.
 #+end_src
 
 AST transformation:
-#+begin_src janet
+#+begin_src janet-ts
 (quote <form>)
 '<form>  # shorthand
 
@@ -605,7 +612,7 @@ AST transformation:
 #+end_src
 
 ** Threading macros
-#+begin_src janet
+#+begin_src janet-ts
 (->> <form …>) # thread last
 (-> <form …>)  # thread first
 
@@ -623,7 +630,7 @@ AST transformation:
 #+end_src
 
 ** Arithmetic
-#+begin_src janet
+#+begin_src janet-ts
 # Basic arithmetic operators:
 (+ <n …>)  (* <n …>)  (/ <n …>)  (- <n …>)
 # Remainder operator:
@@ -632,7 +639,7 @@ AST transformation:
 - https://janet-lang.org/docs/numbers.html
 
 ** Comparators
-#+begin_src janet
+#+begin_src janet-ts
 # Comparators:
 (< <expr …>) (<= <expr …>) (= <expr …>) (>= <expr …>) (> <expr …>)
 
@@ -666,7 +673,7 @@ with keywords. The keywords can be referenced in all sub-patterns.
 - nested grammars can access keys from outside
 
 Example grammar:
-#+begin_src janet
+#+begin_src janet-ts
 (def my-grammar
  '{:a (* "a" :b "a")
    :b (* "b" (+ :a 0) "b")
@@ -706,7 +713,6 @@ To replace (the first match / all matches) of a PEG:
 - returns a new /buffer/ with the replaced match
 - if no matches found, returns the input ~text~ in a new buffer
 - the PEG does not need to make captures
-
 
 ** Patterns
 
@@ -908,7 +914,6 @@ User signals:
 | ~:8~ -> ~:interrupt~ | interrupt one fiber from another fiber | yes        |
 | ~:9~ -> ~:await~     | Something with async and event loop    | yes        |
 
-
 ** Error handling
 
 Fibers are used internally by Janet for error handling
@@ -916,7 +921,7 @@ Fibers are used internally by Janet for error handling
 - the ~try~ macro wraps its body in a new fiber, ~resume~'s the fiber and checks
   if it results in an error, in which case the error clause is evaluated
 
-#+begin_src janet
+#+begin_src janet-ts
 # evaluates to nil and prints "got error: 1"
 (try
   (error 1)
@@ -938,7 +943,7 @@ Janet generators are similar to JS generators, but they don’t need a special
 Janet generators will throw an error if the resumed fiber has already returned
 (unlike JS generators, which return ~undefined~ on the ~.next()~ call).
 
-#+begin_src janet
+#+begin_src janet-ts
 # generators can be normal (0-arity) functions that `yield` intermediate values
 (defn my-generator []
   (yield <expr>))
@@ -972,7 +977,7 @@ To set a label point that is lexically scoped:
 - cannot be returned to in called functions
 
 Usage:
-#+begin_src janet
+#+begin_src janet-ts
 (defn my-function []
   (prompt :a
           (print "before return")
@@ -1245,20 +1250,48 @@ Get or append ~n~ bytes of good quality random data provided by the OS:
 
 ** Functions
 Like in Clojure:
-: (partial <f> <args …>)
-: (comp <f …>)
+: (partial <fn> <args …>)
+: (comp <fn …>)
+: (juxt <fn …>)
 
 ** Primitive DS
 *** Numbers
-To parse a number from a string:
+Parse a number from a string:
 : (scan-number <string> <?base>)
+
+Increment/decrement a number (no mutation):
+: (inc <n>)
+: (dec <n>)
+
+Increment/decrement variable ~var~ by ~n~ (mutates ~var~):
+: (+= <var> <?n>)
+: (-= <var> <?n>)
+- if no ~n~ is given, ~-=~ changes the sign of ~var~, ~+=~ does nothing
 
 *** Booleans
 Checks for truthyness:
 : (truthy? <expr>)
 
-** Indexed/sequential DS
+** Complex DS
 *** Common
+Check if data-structure ~ds~ contains the value ~val~:
+: (has-value? <ds> <val>)
+
+Sort, using an optional comparator function or ~<~ by default:
+: (sort <ds> <?comp>)
+
+Sort by calling given ~fn~ on each element and comparing the result with ~<~:
+: (sort-by <fn> <ds>)
+
+Find least/greatest element in ~ds~:
+: (min <ds>)
+: (max <ds>)
+
+Return most extreme value in ~ds~ based on given ~order-fn~ (e.g. ~<~):
+: (extreme <order-fn> <ds>)
+
+*** Indexed/sequential DS
+**** Common
 
 Select elements:
 : (first <xs>)
@@ -1276,6 +1309,12 @@ Higher-order sequence functions (no mutation):
 : (filter <pred> <xs>)
 : (reduce <fn> <init> <xs>) (reduce2 <fn> <xs>)
 : (partition <n> <xs>)
+
+Like ~reduce~, but accumulates intermediate values into an array:
+: (accumulate <fn> <init> <xs>) (accumulate2 <fn> <xs>)
+- ~init~ is not added to the array
+- the last element in the array is what would be the return value from
+  ~reduce~
 
 Map & concat:
 : (mapcat <fn> <xs>)
@@ -1302,14 +1341,23 @@ Reverse the elements:
 : (reverse <xs>)
 - returns a new array
 
-*** Tuple
+Return an array of the deduplicated values in ~xs~:
+: (distinct <xs>)
+
+Return an array of the most deeply nested values in ~xs~ (depth-first
+traversal):
+: (flatten <xs>)
+Append flattened ~xs~ to (returned) array ~into~:
+: (flatten-into <into> <xs>)
+
+**** Tuple
 
 To take a sub-seq of an array/tuple from ~start~ (incl.) to ~end~ (excl.) index:
 : (tuple/slice <seq> <?start> <?end>)
 : (tuple/slice @[1 2 3])  # creates an immutable copy
 - https://janetdocs.com/tuple%2fslice
-
-*** Array
+  
+**** Array
 
 To insert an element to the end of an array (mutation):
 : (array/push <arr> <elem>)
@@ -1324,11 +1372,15 @@ Concatenate a variable number of elements/arrays/tuples into the first array:
 : (array/concat <arr> <x …>)
 - mutates ~arr~!
 
+Create a new array with a pre-allocated ~capacity~:
+: (array/new <capacity>)
+- *note:* there will be no (not even ~nil~) elements in the array!
+
 Create a new array of ~count~ elements, all set to ~value~ (default: ~nil~)
 : (array/new-filled <count> <?val>)
 - returns a new array
 
-*** Buffer
+**** Buffer
 
 Append bytes to a buffer:
 : (buffer/push-byte <buff> <byte …>)
@@ -1336,7 +1388,7 @@ Append bytes to a buffer:
 Remove last ~n~ bytes from a buffer:
 : (buffer/popn <buff> <n>)
 
-*** String
+**** String
 
 Trim leading and trailing whitespace:
 : (string/trim <string> <?set>)
@@ -1364,7 +1416,7 @@ To reverse (the /bytes/ of) a string/buffer:
 - will reverse all bytes from UTF-8 encoding → *breaks unicode chars!*
 
 Examples:
-#+begin_src janet
+#+begin_src janet-ts
 (string/format "Hello %s, you are %02d years old." "Peter" 35)
 #=> "Hello Peter, you are 35 years old."
 (string/format "This %q is an expression." [1 2 3])
@@ -1372,9 +1424,8 @@ Examples:
 (map string/from-bytes "hello")
 #=> @["h" "e" "l" "l" "o"]
 #+end_src
-
-** Associative DS
-*** Common
+*** Associative DS
+**** Common
 
 Return an array of key-value pairs from a table/struct:
 : (kvs <dict>)
@@ -1384,7 +1435,18 @@ Merge multiple tables/structs into one new table:
 - similar to Clojure: later values with equal keys replace earlier ones
 - returns a new table
 
-*** Table
+Return a new /table/ where the keys and values are swapped:
+: (invert <dict>)
+- if multiple keys are mapped to the same value, only one value will
+  become a key in the returned table
+
+Create a table from given key-value pairs:
+: (from-pairs <pairs>)
+
+Create key-value pairs from given table:
+: (pairs <table>)
+
+**** Table
 
 Associate a key with a value:
 : (put <table/…> <key> <val>)
@@ -1392,7 +1454,7 @@ Associate a key with a value:
 Convert to struct:
 : (table/to-struct <tbl>)
 
-*** Struct
+**** Struct
 
 ** Exceptions
 To throw an exception
@@ -1405,7 +1467,7 @@ To catch an exception
 :     <catch-expr>))
 - ~fiber-binding~ is an optional binding for the fiber wrapping the ~body~
 
-#+begin_src janet
+#+begin_src janet-ts
 (try …
   ([e] (print e)))
 #+end_src
@@ -1430,6 +1492,42 @@ of ~y~:
 : (math/next <x> <y>)
 - returned number may appear the same as ~x~ but this is due to printing
   truncation (see examples: https://janetdocs.com/math/next)
+
+Raise number ~x~ to the power ~n~:
+: (math/pow <x> <n>)
+
+*** Prime numbers
+*Using ~spork/math~ lib:*
+
+Return the prime-factorization of ~n~ as an array:
+: (math/factor <n>)
+
+Return the next prime number strictly larger than ~n~:
+: (math/next-prime <n>)
+
+Test if ~n~ is a prime number:
+: (math/prime? <n>)
+- deterministic for all ~n~ < 2^63
+
+Generate prime numbers /(boundless)/:
+: (math/primes)
+
+*** Permutation
+*Using ~spork/math~ lib:*
+
+Generate a random permutation (shuffled in place) of given array:
+: (shuffle-in-place <xs>)
+
+Return permutations of length ~k~ from members of ~s~:
+: (permutations <s>  <?k>)
+
+Permutation test to determine if ~xs~ and ~ys~ are *significantly* different
+from each other:
+: (permutation-test <xs> <ys>  <?a> <?k>)
+- ~a~: alternative hypothesis (defaults to ~:two-side~)
+  - other two options are ~:greater~ and ~:lesser~
+- ~k~: number of values in permutation distribution
+- see https://janet-lang.org/api/spork/math.html#math/permutation-test
 
 *** Random numbers
 
@@ -1479,7 +1577,7 @@ Return value of ~x~ bit shifted left/right by the sum of all ~shifts~:
   -> always positive for positive shifts
 
 Examples:
-#+begin_src janet
+#+begin_src janet-ts
 (bnot 0) #=> -1
 (bnot 1) #=> -2
 
@@ -1522,7 +1620,7 @@ This will generate the files in =jpm_tree/lib/=:
   - contains metadata ~jpm~ uses in order to statically link =set.a=
 
 In =project.janet=:
-#+begin_src janet
+#+begin_src janet-ts
 # …
 (declare-native
   :name "mylib"
@@ -1578,7 +1676,7 @@ void _janet_init(JanetTable *env) {
 *** Example
 
 In =project.janet=:
-#+begin_src janet
+#+begin_src janet-ts
 (declare-project :name "set")
 
 (declare-native
@@ -1607,7 +1705,7 @@ JANET_MODULE_ENTRY(JanetTable *env) {
 #+end_src
 
 In =main.janet=:
-#+begin_src janet
+#+begin_src janet-ts
 (import set)
 
 (set/hello)
