@@ -1402,6 +1402,8 @@ To start and stop ~sort~ at the first column of the input:
 To sort numerically in reverse order:
 : $ sort -rn
 
+*** Compare difference
+See [[diff]]
 *** Filter unique lines
 ~uniq~ takes a sorted list of lines and prints only those that are unique.
 : $ uniq <text>
@@ -1695,6 +1697,11 @@ Tutorials:
 - https://www.howtoforge.com/linux-ed-command/
 - https://wiki.bash-hackers.org/howto/edit-ed
 
+*** CSV/table manipulation
+External tools:
+- [[#miller]]
+- [[#qsv]]
+
 ** Numeric expressions
 *** Calculate
 **** Integer arithmetic
@@ -1885,6 +1892,12 @@ Examples:
 Substitute =.cljc= extension with =.clj= for all files beginning with ~"day"~:
 : $ rename -s .cljc .clj day*
 
+** diff
+Finds difference between two files.
+- https://www.gnu.org/software/diffutils/
+
+: diff <old-file> <new-file>
+
 ** Inkscape
 
 CLI path:
@@ -1986,6 +1999,7 @@ GPG (GNU Privacy Guard) is a free open source version of PGP (Pretty Good Privac
 : -i                : ignore case
 : -., --hidden      : don’t ignore hidden files
 : -C <n>            : adds `n` lines of context around the matching line
+: -g --glob <GLOB>  : in-/exclude files/dirs that match given GLOB pattern
 : -t <type>         : only files matching `type` (see `--type-list`)
 : --type-list       : show all supported file types
 : --files-without-match
@@ -2000,7 +2014,15 @@ GPG (GNU Privacy Guard) is a free open source version of PGP (Pretty Good Privac
 
 Respects =.gitignore= by default, IF git repo is initialized!
 
+
 Examples:
+
+To include ~.org~ files:
+: $ rg --glob '*.org' <pattern>
+to exclude them instead:
+: $ rg --glob '!*.org' <pattern>
+to exclude ~.info~ files too:
+: $ rg --glob '!*.org' --glob '!*.info' <pattern>
 
 Find ~"import requests"~ occurrences in Python files within the =~/scratch= dir
 and add 5 lines of context around results:
@@ -2078,6 +2100,22 @@ Simple static HTTP server to serve static files.
 - https://tldr.inbrowser.app/pages/common/http-server
 
 : http-server <path> --port <port>
+** mpv
+Free, open source, and cross-platform media player.
+- https://mpv.io
+
+Install with Homebrew:
+- https://formulae.brew.sh/formula/mpv
+
+Great to watch EmacsConf livestreams.
+** miller
+Like awk, sed, cut, join, and sort for name-indexed data such as CSV, TSV,
+and tabular JSON.
+- https://github.com/johnkerl/miller
+
+** qsv
+CSVs sliced, diced & analyzed.
+- https://github.com/jqnatividad/qsv
 
 * Shell services
 ** Weather

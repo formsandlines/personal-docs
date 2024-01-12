@@ -23,11 +23,16 @@ Enter 2 lines in 1 by separation with colon ~:~.
 Run the program:
 : RUN
 
+Delete from memory:
+: NEW
+
 Go to line ~n~:
 : GOTO <n>
 
 Comments (remarks):
 : REM …
+
+*Note:* Applesoft BASIC had no ~RENUM~ command! (third-party utilities?)
 
 * Subroutines
 

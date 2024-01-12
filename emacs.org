@@ -91,6 +91,10 @@ effect at the start of Emacs startup process.
 - it must be created by the user, e.g. inside =~/.emacs.d=
 - its location is determined implicitly by the value of ~user-emacs-directory~
 
+** Compilation flags
+To see which compilation flags have been set in the installation:
+: C-h v system-configuration-options
+
 ** using the /Customize/ interface
 Recommended for beginners who are not yet comfortable writing elisp.
 : M-x customize
@@ -1133,9 +1137,47 @@ To jump to a specific symbol (named or at /point/), see [[#imenu]].
 - ~C-g~ will return the /point/ to the starting position
 - … (see docs)
 
-Replace ~from-str~ with ~to-str~ (in the current /region/):
-: M-x (replace-string <from-str> <to-str> …)
+
+Replace (non-regex) ~from-str~ with ~to-str~ (in the current /region/):
+: M-x (replace-string <from-str> <to-str>
+:      <?delimited> <?start> <?end> <?backward> <?region-noncontiguous?>)
 - if no /region/ (selection) is visible, searches the entire /buffer/
+
+Replace (regex) things after point matching ~regexp~ with ~to-str~:
+: M-x (replace-regexp <regexp> <to-str>
+:      <?delimited> <?start> <?end> <?backward> <?region-noncontiguous?>)
+- if no /region/ (selection) is visible, searches the entire /buffer/
+
+
+Replace (non-regex) some occurrences of ~from-str~ with ~to-str~:
+: M-% (query-replace <from-str> <to-str>
+:      <?delimited> <?start> <?end> <?backward> <?region-noncontiguous?>)
+
+Replace (regex) some things after point matching ~regexp~ with ~to-str~:
+: C-M-% (query-replace-regexp <regexp> <to-str>
+:        <?delimited> <?start> <?end> <?backward> <?region-noncontiguous?>)
+- type replacement string after query, then either:
+  - replace match with ~SPC~ / ~y~
+  - replace all remaining matches with ~!~ (no questions asked)
+  - skip or go to next match with ~DEL~ / ~n~
+  - move back to previous match with ~^~
+  - undo replacement with ~u~, undo all with ~U~
+  - exit with ~RET~ / ~q~, replace one and exit with ~.~
+  - for more directions, type ~?~ / ~C-h~
+- in query string:
+  - type ~\(…\)~ for capture-groups
+  - interactively, matching ~\n~ will not work; use ~C-q C-j~ instead
+  - to match a tab character ~\t~, press ~TAB~ 
+- in replace string:
+  - type ~\1~ , ~\2~ , … to refer to capture-groups
+  - type ~\&~ to refer to the whole match
+  - type Elisp expressions with unquote ~\,…~ e.g.:
+    - ~\,(upcase \&)~ converts the match to uppercase
+    - ~\,(* 2 \#1)~ replaces a numerical match with its double
+    - type ~\#1~ , ~\#&~ etc. to cast the match as a /number/
+- also see https://susam.net/maze/elisp-in-replacement-string.html
+
+Query commands also work inside *i-search* to replace matches.
 
 ** Other text objects
 
@@ -1498,6 +1540,9 @@ revert them selectively.
 - https://github.com/emacsorphanage/git-gutter (~git-gutter~)
 - https://github.com/nonsequitur/git-gutter-plus (~git-gutter+~)
 ** Symbolic Calculator
+** Persistent =*scratch*= buffer
+Preserve the scratch buffer across Emacs sessions.
+- https://github.com/Fanael/persistent-scratch
 ** Undo Tree
 Alternative /undo/ implementation.
 - https://www.emacswiki.org/emacs/UndoTree
@@ -1583,7 +1628,11 @@ Hooks example:
 :PROPERTIES:
 :CUSTOM_ID: package-vc
 :END:
-
+Integration into [[#use-package]] as a standalone package:
+- https://tony-zorman.com/posts/vc-use-package.html
+- https://github.com/slotThe/vc-use-package
+Since /Emacs 30/ it is built-in:
+- https://tony-zorman.com/posts/use-package-vc.html
 *** Elpaca
 :PROPERTIES:
 :CUSTOM_ID: elpaca
@@ -1721,6 +1770,8 @@ Now part of [[#evil-collection]]
 :CUSTOM_ID: general.el
 :END:
 - https://github.com/noctuid/general.el
+*** hydra
+- https://github.com/abo-abo/hydra
 *** which-key
 :PROPERTIES:
 :CUSTOM_ID: which-key
@@ -1954,7 +2005,10 @@ An [[#evil]] way to edit Lisp symbolic expressions as trees.
 About Add/Change/Delete pairs based on ~expand-region~, similar to
 [[#evil-surround]].
 - https://github.com/cute-jumper/embrace.el
-** Programming
+** Documentation
+*** [built-in] eldoc
+Show function arglist or variable docstring in echo area
+- https://elpa.gnu.org/packages/eldoc.html
 *** dumb-jump
 :PROPERTIES:
 :CUSTOM_ID: dumb-jump
@@ -1963,6 +2017,18 @@ About Add/Change/Delete pairs based on ~expand-region~, similar to
 - uses file searchers like ~grep~, ~ack~, ~ag~ or ~ripgrep~ to find matches
   relevant to the major mode (contrary to /xref/, which uses /TAGS/ files)
 - https://github.com/jacktasia/dumb-jump
+** Syntax
+*** [built-in] tree-sitter
+:PROPERTIES:
+:CUSTOM_ID: tree-sitter
+:END:
+- built-in since Emacs 29
+- https://www.masteringemacs.org/article/how-to-get-started-tree-sitter
+- [obsolete] https://github.com/emacs-tree-sitter/elisp-tree-sitter
+*** tree-sitter-langs (language bundle)
+Language bundle for Emacs’s [[#tree-sitter]] package. 
+- https://github.com/emacs-tree-sitter/tree-sitter-langs
+** LSP
 *** Flycheck (linter)
 :PROPERTIES:
 :CUSTOM_ID: flycheck
@@ -1977,12 +2043,18 @@ Syntax checking.
 
 More information on language support:
 - https://www.flycheck.org/en/latest/languages.html
-
+*** [built-in] eglot
+Emacs Client for LSP servers ("Emacs Polyglot")
+- https://github.com/joaotavora/eglot/
 ** OrgMode
 *** [built-in] ORG mode
+:PROPERTIES:
+:CUSTOM_ID: org-mode
+:END:
 - see my [[file:orgMode.org][Docs/OrgMode]]
 - https://orgmode.org
 - [[https://orgmode.org/orgcard.pdf][Org-Mode Reference Card]]
+- [[https://orgmode.org/worg/][Worg (Org-Mode community)]]
 
 Navigate quickly by using single keys at the beginning of an Org headline:
 : (setq org-use-speed-commands t)
@@ -1997,7 +2069,7 @@ To adapt indentation to outline node level:
 : (setq org-adapt-indentation t)
 - indents text to align with headings
 - actually adds space, unlike ~org-indent-mode~
-
+  
 *** toc-org
 Generates a table of contents for Org-mode.
 - https://github.com/snosov1/toc-org
@@ -2005,6 +2077,48 @@ Generates a table of contents for Org-mode.
 Toggle visibility of hidden Org mode element parts upon entering and
 leaving an element.
 - https://github.com/awth13/org-appear
+*** org-noter
+Document annotator.
+- https://github.com/weirdNox/org-noter
+*** org-bullets
+utf-8 bullets for [[#org-mode]].
+- https://github.com/sabof/org-bullets
+*** org-sidebar
+Helpful customizable sidebar for [[#org-mode]] buffers.
+- https://github.com/alphapapa/org-sidebar
+*** org-transclusion
+Insert a copy of text content via a file link or ID link within an
+[[#org-mode]] file.
+- https://github.com/nobiot/org-transclusion
+*** org-xlatex
+Instant LaTeX preview using xwidget and MathJax.
+- https://github.com/ksqsf/org-xlatex
+*** orglink
+Use [[#org-mode]] links in other modes.
+- https://github.com/tarsius/orglink
+** Knowledge work
+*** org-ref
+Citations, cross-references, indexes, glossaries and bibtex utilities for
+[[#org-mode]].
+- https://github.com/jkitchin/org-ref
+*** org-brain
+/TheBrain/ (graph-based PKM & concept mapping), but in [[#org-mode]].
+- https://github.com/Kungsgeten/org-brain
+- [[https://www.youtube.com/watch?v=3EGOwfWok5s][org-brain: Concept mapping in Emacs - Introduction]] (YouTube)
+*** org-roam
+/Roam/ (nested-bullets-style PKM), but in [[#org-mode]].
+- https://github.com/org-roam/org-roam
+*** org-zettelkasten
+/Zettelkasten/ (PKM system invented by Niklas Luhmann), but in [[#org-mode]].
+- https://github.com/l3kn/org-zettelkasten
+*** org-wiki
+Manage and build a personal /Wiki/ using [[#org-mode]].
+- https://github.com/caiorss/org-wiki
+*** org-mind-map
+Creates graphviz directed graphs from [[#org-mode]] files.
+- https://github.com/the-ted/org-mind-map
+*** …also see
+- https://www.emacswiki.org/emacs/WikiModes
 ** Files
 *** [built-in] Dired (file-/directory manager)
 *** sudo-edit
