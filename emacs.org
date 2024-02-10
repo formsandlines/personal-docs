@@ -1127,6 +1127,10 @@ To check for unbalanced parentheses:
 
 To jump to a specific symbol (named or at /point/), see [[#imenu]].
 ** Search / Replace
+*** isearch
+:PROPERTIES:
+:CUSTOM_ID: isearch
+:END:
 
 : C-r : isearch-backward
 : C-s : isearch-forward
@@ -1137,6 +1141,11 @@ To jump to a specific symbol (named or at /point/), see [[#imenu]].
 - ~C-g~ will return the /point/ to the starting position
 - … (see docs)
 
+See https://www.emacswiki.org/emacs/RegularExpression for a regex reference.
+
+*** Replace commands
+
+*NOTE:* Query commands also work inside [[#isearch]] to replace matches.
 
 Replace (non-regex) ~from-str~ with ~to-str~ (in the current /region/):
 : M-x (replace-string <from-str> <to-str>
@@ -1147,6 +1156,7 @@ Replace (regex) things after point matching ~regexp~ with ~to-str~:
 : M-x (replace-regexp <regexp> <to-str>
 :      <?delimited> <?start> <?end> <?backward> <?region-noncontiguous?>)
 - if no /region/ (selection) is visible, searches the entire /buffer/
+- see [[#regex-syntax]] for reference
 
 
 Replace (non-regex) some occurrences of ~from-str~ with ~to-str~:
@@ -1164,20 +1174,67 @@ Replace (regex) some things after point matching ~regexp~ with ~to-str~:
   - undo replacement with ~u~, undo all with ~U~
   - exit with ~RET~ / ~q~, replace one and exit with ~.~
   - for more directions, type ~?~ / ~C-h~
-- in query string:
-  - type ~\(…\)~ for capture-groups
-  - interactively, matching ~\n~ will not work; use ~C-q C-j~ instead
-  - to match a tab character ~\t~, press ~TAB~ 
-- in replace string:
-  - type ~\1~ , ~\2~ , … to refer to capture-groups
-  - type ~\&~ to refer to the whole match
-  - type Elisp expressions with unquote ~\,…~ e.g.:
-    - ~\,(upcase \&)~ converts the match to uppercase
-    - ~\,(* 2 \#1)~ replaces a numerical match with its double
-    - type ~\#1~ , ~\#&~ etc. to cast the match as a /number/
+- see [[#regex-syntax]] for reference
+
+*** Regex syntax for replace commands
+:PROPERTIES:
+:CUSTOM_ID: regex-syntax
+:END:
+
+*Query string* syntax:
+- *meta characters* need to be escaped:
+  - ~\(…\)~ for capture-groups, ~\{…\}~ for repetitions
+  - ~\|~ for alternatives
+- interactively, matching ~\n~ will not work; use ~C-q C-j~ instead
+- to match a *tab character* ~\t~, press ~TAB~
+- *character classes* are different → see syntax class tables below
+- emacs-specific:
+  - ~\<, \>~ matches beginning/end of word
+  - ~\_<, \_>~ matches beginning/end of symbol
+  - ~\scode~ matches any character whose syntax table code is ~code~
+  - ~\Scode~ matches any character whose syntax table code is *not* ~code~
+- missing:
+  - no /lookahead/ or /lookbehind/
+  - no /possessive quantifiers/ such as ~?+, *+, ++~
+
+*Replace string* syntax:
+- type ~\1~ , ~\2~ , … to refer to capture-groups
+- type ~\&~ to refer to the whole match
+- type Elisp expressions with unquote ~\,…~ e.g.:
+  - ~\,(upcase \&)~ converts the match to uppercase
+  - ~\,(* 2 \#1)~ replaces a numerical match with its double
+  - type ~\#1~ , ~\#&~ etc. to cast the match as a /number/
+- type ~\?~ to prompt for text input 
 - also see https://susam.net/maze/elisp-in-replacement-string.html
 
-Query commands also work inside *i-search* to replace matches.
+*Syntax classes* to use with ~\scode~ or ~\Scode~:
+| ~-~ | whitespace character      | ~/~ | character quote character |
+| ~w~ | word constituent          | ~$~ | paired delimiter          |
+| ~_~ | symbol constituent        | ~'~ | expression prefix         |
+| ~.~ | punctuation character     | ~<~ | comment starter           |
+| ~(~ | open delimiter character  | ~>~ | comment ender             |
+| ~)~ | close delimiter character | ~!~ | generic comment delimiter |
+| ~"~ | string quote character    | ~\vbar~ | generic string delimiter  |
+| ~\~ | escape character          |   |                           |
+- [[https://www.emacswiki.org/emacs/RegularExpression][Source]]
+
+*Syntax classes*, square-bracket-delimited:
+| ~[:digit:]~    | a digit, same as ~[0-9]~                                  |
+| ~[:alpha:]~    | a letter (an alphabetic character)                      |
+| ~[:alnum:]~    | a letter or a digit (an alphanumeric character)         |
+| ~[:upper:]~    | a letter in uppercase                                   |
+| ~[:lower:]~    | a letter in lowercase                                   |
+| ~[:graph:]~    | a visible character                                     |
+| ~[:print:]~    | a visible character plus the space character            |
+| ~[:space:]~    | a whitespace character, as defined by the syntax table, |
+|              | but typically ~[ \t\r\n\v\f ]~,                           |
+|              | which includes the newline character                    |
+| ~[:blank:]~    | a space or tab character                                |
+| ~[:xdigit:]~   | an hexadecimal digit                                    |
+| ~[:cntrl:]~    | a control character                                     |
+| ~[:ascii:]~    | an ascii character                                      |
+| ~[:nonascii:]~ | any non ascii character                                 |
+- [[https://www.emacswiki.org/emacs/RegularExpression][Source]]
 
 ** Other text objects
 
