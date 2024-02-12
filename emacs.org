@@ -488,6 +488,7 @@ Get help/description:
 - ~m~: ~describe-mode~ (lookup (current) mode)
 - ~C~: ~describe-coding-system~ (display infos about coding system)
 - ~F~: ~Info-goto-emacs-command-node~ (find documentation for command)
+- ~R~: ~info-display-manual~ (display info buffer for selected manual)
 
 Get information about prefixed bindings (global and for Major mode):
 : C-x C-h : C-c C-h : …
@@ -1134,14 +1135,15 @@ To jump to a specific symbol (named or at /point/), see [[#imenu]].
 
 : C-r : isearch-backward
 : C-s : isearch-forward
+: C-M-r : isearch-backward-regexp
+: C-M-s : isearch-forward-regexp
 - repeat ~C-r~ or ~C-s~ to go to next match in backward/forward direction
 - ~M-s M-<~ to go to first, ~M-s M->~ to go to last match
 - ~RET~ exits search, leaving /point/ at location found
 - ~C-j~ (or type LFD) to match end of the line
 - ~C-g~ will return the /point/ to the starting position
+- see [[#regex-syntax]] for regex reference
 - … (see docs)
-
-See https://www.emacswiki.org/emacs/RegularExpression for a regex reference.
 
 *** Replace commands
 
@@ -1159,11 +1161,11 @@ Replace (regex) things after point matching ~regexp~ with ~to-str~:
 - see [[#regex-syntax]] for reference
 
 
-Replace (non-regex) some occurrences of ~from-str~ with ~to-str~:
+Replace (non-regex) queried occurrences of ~from-str~ with ~to-str~:
 : M-% (query-replace <from-str> <to-str>
 :      <?delimited> <?start> <?end> <?backward> <?region-noncontiguous?>)
 
-Replace (regex) some things after point matching ~regexp~ with ~to-str~:
+Replace (regex) queried things after point matching ~regexp~ with ~to-str~:
 : C-M-% (query-replace-regexp <regexp> <to-str>
 :        <?delimited> <?start> <?end> <?backward> <?region-noncontiguous?>)
 - type replacement string after query, then either:
@@ -1180,6 +1182,8 @@ Replace (regex) some things after point matching ~regexp~ with ~to-str~:
 :PROPERTIES:
 :CUSTOM_ID: regex-syntax
 :END:
+
+Also see [[https://www.emacswiki.org/emacs/RegularExpression][Emacs Wiki]] for a regex reference.
 
 *Query string* syntax:
 - *meta characters* need to be escaped:
@@ -1207,7 +1211,7 @@ Replace (regex) some things after point matching ~regexp~ with ~to-str~:
 - type ~\?~ to prompt for text input 
 - also see https://susam.net/maze/elisp-in-replacement-string.html
 
-*Syntax classes* to use with ~\scode~ or ~\Scode~:
+*Syntax/character classes* to use with ~\scode~ or ~\Scode~:
 | ~-~ | whitespace character      | ~/~ | character quote character |
 | ~w~ | word constituent          | ~$~ | paired delimiter          |
 | ~_~ | symbol constituent        | ~'~ | expression prefix         |
@@ -1216,9 +1220,12 @@ Replace (regex) some things after point matching ~regexp~ with ~to-str~:
 | ~)~ | close delimiter character | ~!~ | generic comment delimiter |
 | ~"~ | string quote character    | ~\vbar~ | generic string delimiter  |
 | ~\~ | escape character          |   |                           |
+- also see ~C-h s~ for the current [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Syntax-Tables.html][syntax table]], which depends on the mode
 - [[https://www.emacswiki.org/emacs/RegularExpression][Source]]
 
-*Syntax classes*, square-bracket-delimited:
+*Syntax/character classes*, square-bracket-delimited:
+- must be wrapped in outer brackets
+  - e.g. ~[[:space:]]~, ~[[:space:]]*~, ~[[:upper:]\|[:digit:]\.]~
 | ~[:digit:]~    | a digit, same as ~[0-9]~                                  |
 | ~[:alpha:]~    | a letter (an alphabetic character)                      |
 | ~[:alnum:]~    | a letter or a digit (an alphanumeric character)         |
@@ -1234,6 +1241,7 @@ Replace (regex) some things after point matching ~regexp~ with ~to-str~:
 | ~[:cntrl:]~    | a control character                                     |
 | ~[:ascii:]~    | an ascii character                                      |
 | ~[:nonascii:]~ | any non ascii character                                 |
+- see [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Char-Classes.html][Emacs manual]] for all syntax classes
 - [[https://www.emacswiki.org/emacs/RegularExpression][Source]]
 
 ** Other text objects
@@ -1348,39 +1356,7 @@ VHDL.
 Other languages will require the installation of additional modes.
 
 ** Emacs Lisp (elisp)
-
-elisp file extension is =.el=
-
-To open [[https://www.gnu.org/software/emacs/manual/eintr.html][An Introduction to Programming in Emacs Lisp]]:
-: C-h R eintr
-- Emacs 28+
-
-elisp “cheat sheet” (short doc. summary for functions in specified group):
-: M-x shortdoc-display-group
-- [[https://www.masteringemacs.org/article/emacs-builtin-elisp-cheat-sheet][Source]]
-
-** Interactive commands
-
-To be used as a /command/ and called via a /keybinding/, a function must be made
-*interactive*, e.g.:
-#+begin_src elisp
-(defun my-command ()
-  "This is an interactive command."
-  (interactive)
-  (print "It worked!"))
-
-(global-set-key (kbd "C-x c") 'my-command)
-#+end_src
-
-*Non-interactive* functions can still be called /interactively/ with a
-keybinding using a /lambda function/:
-#+begin_src elisp
-(defun non-interactive-function ()
-  (print "It worked!"))
-
-(global-set-key (kbd "C-x c")
-                (lambda () (interactive) (non-interactive-function)))
-#+end_src
+See [[file:elisp.org][Docs/Emacs Lisp]] for reference.
 
 ** Expressions
 
@@ -1392,11 +1368,6 @@ Evaluate top-level /form/ around /point/:
 
 Evaluate /sexp/ before /point/:
 : C-x C-e : eval-last-sexp
-** Variables
-#+begin_src elisp
-(defvar foo/x (list 1 2 3 4))
-(setf (cadr foo/x) 'boo) ;=> (1 boo 3 4)
-#+end_src
 ** Xref (cross-references)
 *Xref* is a unified platform to match symbols to their definitions.
 - backend uses a /TAGS/ table by default to generate and store identifiers in
