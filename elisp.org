@@ -1,0 +1,168 @@
+#+title: Docs/Emacs Lisp
+
+See [[file:emacs.org][Docs/Emacs]] for general Emacs reference.
+
+elisp file extension is =.el=
+
+* Help / Documentation
+To open [[info:elisp#Top][Emacs Lisp reference]] ([[https://www.gnu.org/software/emacs/manual/html_node/elisp/index.html][weblink]]):
+: C-h R elisp
+
+To open [[info:eintr#Top][An Introduction to Programming in Emacs Lisp]] ([[https://www.gnu.org/software/emacs/manual/eintr.html][weblink]]):
+: C-h R eintr
+- Emacs 28+
+
+elisp “cheat sheet” (short doc. summary for functions in specified group):
+: M-x shortdoc-display-group
+- [[https://www.masteringemacs.org/article/emacs-builtin-elisp-cheat-sheet][Source]]
+
+* Types
+** Primitive Types
+“integer”, “float”, “cons”, “symbol”, “string”, “vector”, “hash-table”,
+“subr”, “byte-code function”, and “record”, plus several special types, such
+as “buffer”, that are related to editing
+
+*** Programming Types
+General Lisp types.
+- see [[info:elisp#Programming Types][elisp#Programming Types]]
+
+*** Editing Types
+Specific to Emacs Lisp.
+- see [[info:elisp#Editing Types][elisp#Editing Types]]
+
+** Representation
+Generate printed representation:
+: (print <form>)
+Read syntax:
+: (read <string>)
+
+Objects without a read syntax are printed in hash notation: ~#<…>~
+- this notation cannot be processed by the reader
+
+** Type Predicates
+- see [[info:elisp#Type Predicates][elisp#Type Predicates]]
+
+Check the /primitive type/ of an object:
+: (type-of <obj>)
+
+Check for a specific type (incomplete list):
+: atom : symbolp
+: arrayp : listp : vectorp : sequencep
+: integerp : floatp : numberp : wholenump
+: markerp : integer-or-marker-p : number-or-marker-p
+: booleanp : bool-vector-p
+: stringp : char-or-string-p : string-or-null-p
+: functionp : commandp
+: keywordp
+: keymapp
+: bufferp : windowp : window-live-p : framep : threadp
+
+** Equality Predicates
+- see [[info:elisp#Equality Predicates][elisp#Equality Predicates]]
+
+_General_
+
+Referential equality (same /Lisp object/):
+: (eq <obj1> <obj2>)
+- use to compare symbols
+
+Structural equality (similar /contents/ and same /data type/):
+: (equal <obj1> <obj2>)
+- use to compare lists, vectors, strings, etc.
+- integers are compared via ~eql~, so integers != floats
+- symbols must match exactly
+
+
+_Numbers_
+
+Numeric identity (~eq~ and indistinguishable numbers):
+: (eql <obj1> <obj2>)
+- integers and floats are always different
+
+Numeric equality (all numbers and markers):
+: (= <n1> <n2>)
+- integers and floats can be equal
+
+Other comparators:
+: (/= <n1> <n2>)
+: (< <n> …) : (<= <n> …) : (> <n> …) : (>= <n> …)
+
+
+_Strings_
+
+String equality:
+: (string-equal <s1> <s2>)
+case-insensitive:
+: (string-equal-ignore-case <s1> <s2>)
+
+Compare strings by lexicographical order:
+: (string-lessp <s1> <s2>)
+: (string-greaterp <s1> <s2>)
+
+Compare strings by version number:
+: (string-version-lessp <s1> <s2>)
+- examples:
+  - ~(string-version-lessp "pic4.png" "pic32.png") => t~
+  - ~(string-version-lessp "1.9.3" "1.10.2") => t~
+
+Compare strings by collation order:
+: (string-collate-lessp <s1> <s2>)
+- examples:
+  - ~(string-collate-lessp "abc" "abd") => t~
+
+* Syntax
+** Special Read Syntax
+- see [[info:elisp#Special Read Syntax][elisp#Special Read Syntax]]
+** Comments
+: ; <comment>
+
+** Boolean values
+- ~nil~ is FALSE, ~t~ is TRUE
+- ~nil~ and ~()~ are the same, it is just a syntactic difference
+- any non-~nil~ value is considered TRUE (prefer ~t~)
+
+#+begin_src elisp
+;;; nil = false
+(eq t (not nil))
+;;; nil = empty list
+(eq nil '())
+;;; empty list != true
+(eq nil (eq '() t))
+
+;;; '()' is just a convention, there is no distinction to nil
+(eq nil (cdr '(foo)))
+
+(equal (cons 'foo ())
+       (cons 'foo nil))
+
+#+end_src
+** Variables
+#+begin_src elisp
+(defvar foo/x (list 1 2 3 4))
+(setf (cadr foo/x) 'boo) ;=> (1 boo 3 4)
+#+end_src
+
+* Emacs-specific
+** Interactive commands
+
+To be used as a /command/ and called via a /keybinding/, a function must be made
+*interactive*, e.g.:
+#+begin_src elisp
+(defun my-command ()
+  "This is an interactive command."
+  (interactive)
+  (print "It worked!"))
+
+(global-set-key (kbd "C-x c") 'my-command)
+#+end_src
+
+*Non-interactive* functions can still be called /interactively/ with a
+keybinding using a /lambda function/:
+#+begin_src elisp
+(defun non-interactive-function ()
+  (print "It worked!"))
+
+(global-set-key (kbd "C-x c")
+                (lambda () (interactive) (non-interactive-function)))
+#+end_src
+
