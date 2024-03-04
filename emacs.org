@@ -674,11 +674,20 @@ To remember the last place visited in a file:
 
 To automatically revert a buffer when the underlying file has changed:
 - [[#auto-revert-mode]]
+*** Search in files
+Recursively grep for ~regexp~ in ~files~ (shell pattern) from root ~dir~:
+: (rgrep <regexp>  <?files> <?dir> <?confirm>)
+- e.g. use in [[#dired]]
+- to jump to the first/next occurrence:
+  : C-x ` : next-error
 
 ** History of input
-
 To save the history of commands, etc., see:
 [[#savehist-mode]]
+
+Show a previously entered command in its elisp form in the redo-buffer:
+: C-x ESC ESC : repeat-complex-command
+- can be used to modify a previously executed command
 
 ** Shell commands
 
@@ -757,7 +766,7 @@ Game of Life:
 
 Also see:
 - https://www.masteringemacs.org/article/fun-games-in-emacs
-
+  
 * Text editing
 ** General
 *** Line wrapping /(truncation, filling)/
@@ -1081,6 +1090,11 @@ Capitalize/Uppercase/Lowercase the next word:
 : M-u : upcase-word
 : M-l : downcase-word
 - work with digit and negative commands
+** Sorting
+Sort lines in region lexicographically by the ~arg~'th field in each line:
+: (sort-fields <field> <beg> <end>)
+Sort lines in region numerically by the ~arg~'th field in each line:
+: (sort-numeric-fields <field> <beg> <end>)
 
 ** imenu
 :PROPERTIES:
@@ -1485,6 +1499,18 @@ Undo changes to a window arrangement:
 : C-c <left> : winner-undo
 Redo undone changes:
 : C-c <right> : winner-redo
+** Lisp interaction mode
+Mode to interact with elisp:
+: (lisp-interaction-mode 1)
+- show results below with ~C-j : eval-print-last-sexp~
+
+** elisp REPL
+Interactively evaluate Emacs Lisp expressions in a REPL.
+: M-x ielm
+
+** GNU Emacs Calculator
+Invoke the GNU Emacs Calculator:
+: C-x * : calc-dispatch
 
 * Packages list
 ** Version Control
@@ -2149,6 +2175,10 @@ Creates graphviz directed graphs from [[#org-mode]] files.
 - https://www.emacswiki.org/emacs/WikiModes
 ** Files
 *** [built-in] Dired (file-/directory manager)
+:PROPERTIES:
+:CUSTOM_ID: dired
+:END:
+
 *** sudo-edit
 Enables editing a file with sudo privileges or switch to editing with such
 privileges on an open buffer.
