@@ -1402,6 +1402,10 @@ To start and stop ~sort~ at the first column of the input:
 To sort numerically in reverse order:
 : $ sort -rn
 
+*** Format lines
+Format lines to a certain character limit:
+: fmt -w80
+
 *** Compare difference
 See [[diff]]
 *** Filter unique lines

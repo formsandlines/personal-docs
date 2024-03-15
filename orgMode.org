@@ -1,4 +1,4 @@
-#+TITLE: OrgMode Reference
+#+TITLE: Docs/OrgMode
 
 - Manuals: https://orgmode.org/manuals.html
 - [[https://www.youtube.com/watch?v=SzA2YODtgK4][Getting Started With Org Mode]] (YouTube presentation)
@@ -16,29 +16,89 @@
 
 - to automatically add custom ids: https://writequit.org/articles/emacs-org-mode-generate-ids.html
 
-* Headings / Tree
+* Headlines / Outline Tree
 
-  | Shortcut        | Action                                             |
-  |-----------------+----------------------------------------------------|
-  | C ENTER         | create node below (same lvl) + insert              |
-  | C-SHIFT ENTER   | create node above (same lvl) + insert              |
-  | C-M ENTER       | create child-node                                  |
-  | M-(←/→)         | outdent / indent node                              |
-  | M-SHIFT-(←/→)   | outdent / indent node + subtrees                   |
-  | M-(↑/↓)         | reorder nodes                                      |
-  | M-S-(↑/↓)       | reorder lines                                      |
-  | C-c (C-n / C-p) | previous / next node                               |
-  | C-c (C-f / C-b) | forward / back same level                          |
-  | M-{ / M-}       | backward / forwared by one element                 |
-  | C-c C-u         | up parent node                                     |
-  | C-c C-j         | jump to node                                       |
-  | TAB             | cycle CURRENT: top-level -> first-sublevel         |
-  | SHIFT TAB       | cycle ALL: top-level -> first-sublevel -> all -> … |
-  | z R             | ~+org/open-all-folds~                                |
-  | C-<n> Shift-TAB | show <n> headline levels                           |
-  | C-x n s / , s n | ~org-narrow-to-subtree~                              |
-  | C-x n w / , s N | ~widen~                                              |
-  | <none>          | ~org-toggle-narrow-to-subtree~                       |
+| Shortcut        | Action                                             |
+|-----------------+----------------------------------------------------|
+| C ENTER         | create node below (same lvl) + insert              |
+| C-SHIFT ENTER   | create node above (same lvl) + insert              |
+| C-M ENTER       | create child-node                                  |
+| M-(←/→)         | outdent / indent node                              |
+| M-SHIFT-(←/→)   | outdent / indent node + subtrees                   |
+| M-(↑/↓)         | reorder nodes                                      |
+| M-S-(↑/↓)       | reorder lines                                      |
+| C-c (C-n / C-p) | previous / next node                               |
+| C-c (C-f / C-b) | forward / back same level                          |
+| M-{ / M-}       | backward / forwared by one element                 |
+| C-c C-u         | up parent node                                     |
+| C-c C-j         | jump to node                                       |
+| TAB             | cycle CURRENT: top-level -> first-sublevel         |
+| SHIFT TAB       | cycle ALL: top-level -> first-sublevel -> all -> … |
+| z R             | ~+org/open-all-folds~                                |
+| C-<n> Shift-TAB | show <n> headline levels                           |
+| C-x n s / , s n | ~org-narrow-to-subtree~                              |
+| C-x n w / , s N | ~widen~                                              |
+| <none>          | ~org-toggle-narrow-to-subtree~                       |
+
+Headlines define the structure of an outline tree.
+
+An empty line after the end of a subtree is considered part of it and is
+hidden when the subtree is folded. Leaving at least two empty lines, one of
+them remains visible after folding the subtree.
+- see variable ~org-cycle-separator-lines~ to modify this behavior
+
+Example:
+: * Top level headline
+: ** Second level
+: *** Third level
+:     some text
+: *** Third level
+:     more text
+: * Another top level headline
+
+** Visibility Cycling
+
+Cycle subtree at point:
+: <TAB> : org-cycle
+- states:
+  :          ,-> FOLDED -> CHILDREN -> SUBTREE --.
+  :          '-----------------------------------'
+- with ~C-u~ prefix, behaves like ~org-global-cycle~ 
+- with ~C-u C-u~ prefix, switches to startup visibility
+- with ~C-u C-u C-u~ prefix, behaves like ~org-fold-show-all~
+- on an empty headline or list item promotes/demotes it
+  - useful to quickly create document structure
+
+Cycle globally through all subtrees:
+: S-<TAB> : org-shifttab → org-cycle-global / org-global-cycle
+- states:
+  :          ,-> OVERVIEW -> CONTENTS -> SHOW ALL --.
+  :          '--------------------------------------'
+
+Show all contents in the visible part of the buffer:
+: M-x org-fold-show-all
+- by default, shows headings, blocks and drawers
+
+(?) Reveal context around point (current entry, following headings and the
+hierarchy above):
+: C-c C-r : org-reveal
+- (?) with ~C-u~, shows, on each level, all sibling headings
+- (?) with ~C-u C-u~, goes to parent and shows the entire tree
+- (?) useful for working near a location exposed by a sparse tree or an
+  agenda command
+- [ ] TODO: figure this out
+
+Expose all the headings of the subtree, but not their bodies:
+: C-c C-k : org-kill-note-or-show-branches → org-fold-show-branches
+
+Expose all direct children of the subtree:
+: C-c <TAB> : org-fold-show-children
+- binding overwritten on Mac by ~mac-previous-tab-or-toggle-tab-bar~
+
+Show current subtree in an indirect buffer:
+: C-c C-x b : org-tree-to-indirect-buffer
+- see [[file:emacs.org::#indirect-buffer][Docs/Emacs → Indirect buffer]] or [[info:emacs#Indirect Buffers][emacs#Indirect Buffers]]
+- this takes various prefix args -> see docs
 
 * Special characters / Entities
 
@@ -101,21 +161,137 @@ Escape characters:
 | My   | Stuff |
 | is   | Here  |
 
-| Shortcut        | Action                         |
-|-----------------+--------------------------------|
-| Tab / Shift-Tab | Move cursor to next/prev field |
-| Enter           | Edit/replace field text        |
-| C-Enter         | Create row below               |
-| C-c C-c         | Re-align table                 |
-| M-a/e           | Move to beginning/end of field |
-| M-left/right    | Move current column left/right |
-| M-up/down       | Move current row up/down       |
-| M-Shift-left    | Remove current column          |
-| M-Shift-right   | Insert new column to the left  |
-| M-Shift-up      | Remove current row/line        |
-| M-Shift-down    | Insert new row above           |
-| C-c -           | Insert horizontal line below   |
+Convert region to table or (if no region) create an empty table with a given
+size (e.g. 3x6):
+: C-c | : org-table-create-or-convert-from-region
+- if at least one ~TAB~ on every line, assumes /tab-separation/ (TSV)
+  - force with ~C-u C-u …~
+- if at least one ~,~ on every line, assumes /comma-separation/ (CSV)
+  - force with ~C-u …~
+- ~C-u C-u C-u~ prompts for a regex to match a custom separator
+- otherwise, lines are split at whitespace into fields
+  - if whitespace-separator should be /at least/ ~n~ spaces: ~C-<n> …~
+  - e.g. select "A  B C  D E F", type ~C-2 …~, result "| A | B C | D E F |"
 
+*** Display / Alignment
+
+_Indentation_
+
+The *indentation* of the table is set by the indentation of the first line.
+
+---
+_Alignment_
+  
+Re-align *table*:
+: C-c C-c : org-ctrl-c-ctrl-c → org-table-align
+
+~org-table-next-row~ and ~org-cycle~ also re-align the table.
+
+---
+_Visibility_
+
+Shrink/expand current column:
+: C-c <TAB> : org-table-toggle-column-width
+- mouse hovering shows a tooltip with the full text of a shrunk field
+- ~C-h . : display-local-help~ will also reveal the contents
+
+Expand all columns:
+: C-u C-u C-c <TAB> : org-table-expand
+
+See [[info:org#Column Width and Alignment][org#Column Width and Alignment]] for more infos about column shrinking.
+- column visibility can customized persistently on a per file basis
+
+---
+_Sorting_
+
+Sort table lines:
+: C-c ^ : org-sort → org-table-sort-lines
+
+---
+_Coordinates / Meta information_
+
+Toggle coordinate overlay:
+: C-c } : org-table-toggle-coordinate-overlays
+
+Get infos about the current *field*:
+: C-c ? : org-table-field-info
+
+*** Rows
+
+Move to next row and re-align table:
+: RET : org-return → org-table-next-row
+- creates new rows at the end of the table or before /h-lines/
+
+Insert *row* above:
+: M-S-<down> : org-table-insert-row
+Delete current *row*:
+: M-S-<up> : org-table-kill-row
+
+Swap/move current *row* up/down:
+: M-<up> : org-table-move-row-up
+: M-<down> : org-table-move-row-down
+
+*** Columns
+
+Insert *column* to the left:
+: M-S-<right> : org-table-insert-column
+Delete current *column*:
+: M-S-<left> : org-table-delete-column
+
+Swap/move current *column* left/right:
+: M-<left> : org-table-move-column-left
+: M-<right> : org-table-move-column-right
+
+*** Horizontal lines /(h-lines)/
+
+Automatically filled when ~|-~ with one or more dashes is present and the
+table gets re-aligned.
+
+Rows before the first horizontal rule are *header lines*.
+
+Insert *h-line* below (or above with ~C-u~):
+: C-c - : org-table-insert-hline
+Insert *h-line* and move to line below it:
+: C-c RET : org-ctrl-c-ret → org-table-hline-and-move
+
+*** Fields
+
+Move to next *field* and re-align *table*:
+: TAB : org-cycle → org-table-next-field & org-table-align
+- creates new rows at the end of the table
+- skips /h-lines/
+Move to previous *field*:
+: <backtab> : org-shifttab → org-table-previous-field
+- skips /h-lines/
+Move to beginning/end of *field*:
+: M-a : org-table-beginning-of-field
+: M-e : org-table-end-of-field
+
+Delete *field* content:
+: C-SPC : org-table-blank-field
+Copy *field* to next row:
+: S-<return> : org-table-copy-down
+Edit current *field* in edit buffer:
+: C-` : org-table-edit-field
+
+Move cell up by swapping with adjacent cell:
+: S-<up> : org-table-move-cell-up
+Move cell down by swapping with adjacent cell:
+: S-<down> : org-table-move-cell-down
+Move cell left by swapping with adjacent cell:
+: S-<left> : org-table-move-cell-left
+Move cell right by swapping with adjacent cell:
+: S-<right> : org-table-move-cell-right
+
+Cut *region/field(s)*:
+: C-c C-x C-w : org-cut-special → org-table-cut-region
+Copy *region/field(s)*:
+: C-c C-x M-w : org-copy-special → org-table-copy-region
+Paste rectangular *region/field(s)* (ignores separator lines):
+: C-c C-x C-y : org-paste-special → org-table-paste-rectangle
+
+Wrap region/field(s) in a column like a paragraph:
+: (overwritten?) C-c C-w : org-table-wrap-region
 
 * Links
 
@@ -159,6 +335,10 @@ xxx
 
 [[id:xyz][Some alias]]
 
+To be able to store and insert links with ~ID~ properties, the variable
+~org-id-link-to-org-use-id~ must be set t a non-nil value.
+- see [[https://emacs.stackexchange.com/a/64240][Emacs StackExchange answer]]
+
 **** Headline 2
 :PROPERTIES:
 :ID:       xyz
@@ -187,7 +367,151 @@ xxx
 
 ** Link to file
 
+** Custom links
+Register custom link types for ~org-insert-link~:
+: (org-link-set-parameters …)
 
+Example which just copies the link:
+- [[https://www.youtube.com/watch?v=Pc2kpqgg8pU][Source]]
+#+begin_src elisp
+(org-link-set-parameters
+ "copy"
+ :follow (lambda (link) (kill-new link))
+ :export (lambda (_ desc &rest _) desc))
+#+end_src
+
+Example to handle links with a custom URI scheme (such as ~brain://~ in
+TheBrain):
+#+begin_src elisp
+(org-link-set-parameters
+ "brain"
+ :follow (lambda (path) (shell-command (concat "open brain:" path))))
+#+end_src
+
+* Tags
+A tag name is surrounded by colons (like ~:foo:~).
+
+Tags are specified at the end of a headline. Multiple tags are chained
+together:
+: * My books :collection:personal:
+
+Set tags from anywhere in the document:
+: C-c C-q : org-set-tags-command
+- when point is in a headline, ~C-c C-c~ can be used equivalently
+
+Special keys in tag selection interface:
+| Key | Description                                |
+|-----+--------------------------------------------|
+| ~TAB~ | enter a tag, even if it is not in the list |
+| ~SPC~ | clear all tags for this line               |
+| ~RET~ | accept the modified set                    |
+| ~q~   | aborts (if not assigned to a tag)          |
+| ~!~   | turns off groups (as an exception)         |
+| ~C-c~ | toggle auto-exit after next change         |
+
+** Tags list
+
+By default, Org constructs a *list of tags* /dynamically/, which contains all
+tags currently used in the buffer.
+
+The tags list can also be /fixed/ instead – either by defining default tags
+for a given file, using the ~TAGS~ keyword, e.g.:
+: #+TAGS: laptop car pc sailboat
+Or by defining the list /globally/ by setting ~org-tag-alist~.
+- the ~TAGS~ keyword overwrites the global list
+- to still use a dynamic list despite globally defined tags, add an empty
+  ~TAGS~ keyword to the file:
+  : #+TAGS: 
+
+To use globally defined tags in addition to the per-file ~TAGS~ keyword list,
+add them to ~org-tag-persistent-alist~.
+- if no ~TAGS~ are set on a file, this will add to ~org-tag-alist~ defined tags,
+  but *NOT* to the dynamic list
+- to turn it off on a per-file basis, add this to the file:
+  : #+STARTUP: noptag
+
+NOTE: the buffer has to be reloaded to switch between tag list preferences
+
+** Fast Tag Selection
+
+Set unique letters to quickly select/toggle commonly used tags.
+
+Either globally in the ~org-tag-alist~, e.g.:
+: (setq org-tag-alist '(("@work" . ?w) ("@home" . ?h)))
+Or on a single file using the ~TAGS~ keyword, e.g.:
+: #+TAGS: @work(w)  @home(h)
+
+Set ~org-fast-tag-selection-single-key~ for fast tag selection after the first
+key (no need to press ~RET~ to confirm).
+- pressing ~C-c C-c C-c~ to set tags now toggles auto-exit off instead of on
+
+** Tag grouping
+
+_XOR group_
+
+Tags can be organized into *mutually exclusive groups*. Within which they
+become either-or choices, while those outside can be combined at will.
+
+Locally with ~TAGS~, use ~{ … }~ to define groups, e.g.:
+: #+TAGS: { @office(o) @home(h) } { wine(w) coffee(c) } milk(m) sugar(s)
+
+Globally in ~org-tag-alist~, use ~:startgroup~ and ~:endgroup~ dummy tags, e.g.:
+: (setq org-tag-alist '((:startgroup . nil)
+:                       ("@wine" . ?w) ("@coffee" . ?c)
+:                       (:endgroup . nil)
+:                       ("milk" . ?m) ("sugar" . ?s)))
+
+_Tag hierarchy_
+
+A tag can be defined as a *group tag* for a set of other tags.
+
+Locally, use ~[ <grouptag> : <subtags …> ]~ form to define a tag hierarchy …
+: #+TAGS: [ GTD : Control Persp ]
+… in which member tags can themselves become group tags:
+: #+TAGS: [ Control : Context Task ]
+
+Globally use ~:startgrouptag~, ~:grouptags~ and ~:endgrouptag~ keywords when
+setting ~org-tag-alist~ directly, e.g.:
+: (setq org-tag-alist '((:startgrouptag)
+:                       ("GTD")
+:                       (:grouptags)
+:                       ("Control")
+:                       ("Persp")
+:                       (:endgrouptag)
+:                       (:startgrouptag)
+:                       ("Control")
+:                       (:grouptags)
+:                       ("Context")
+:                       ("Task")
+:                       (:endgrouptag)))
+
+The tags in a group can also be mutually exclusive, using the same syntax as
+in the *XOR group*:
+: #+TAGS: { Context : @Home @Work @Call }
+Likewise, for ~org-tag-alist~, use ~:startgroup~ and ~:endgroup~ instead.
+
+Group tag members can also be regular expressions, see: [[info:org#Tag Hierarchy][org#Tag Hierarchy]]
+
+** Searching
+Create a sparse tree with all headlines matching a tags search:
+: C-c \ : org-match-sparse-tree
+: C-c / → m : org-sparse-tree → org-match-sparse-tree
+- prefix ~C-u~ to ignores non-TODO headlines
+
+Also see agenda tag search commands [[info:org#Tag Searches][here]].
+
+~M-x org-remove-occur-highlights~ to remove the match highlights.
+
+_Matching syntax:_
+
+| Syntax | Description |
+|--------+-------------|
+| ~+a+b~   | a AND b     |
+| ~+a-b~   | a and NOT b |
+| ~a\vbar b~   | a OR b      |
+
+- see [[info:org#Matching tags and properties][org#Matching tags and properties]] for a complete reference
+  
 * Images
 
   | Shortcut    | Action                   |
@@ -287,6 +611,10 @@ Some quoted line.
 To use ~<s + TAB~, eval this in config:
 : (require 'org-tempo)
 
+To modify how the dedicated buffer is opened from ~C-c '~:
+: (setq org-src-window-setup …)
+- e.g. set to ~'current-window~ to use the same window
+
 #+begin_src java
 for (int i=0; i<5; i++) {
     System.out.println("Counting "+i);
@@ -304,21 +632,49 @@ using emacs lisp.
 
 * Todo
 
-  | Shortcut          | Action                       |
-  |-------------------+------------------------------|
-  | SHIFT-M ENTER     | create new todo item below   |
-  | C-c C-t / SPC-M t | change todo state            |
-  | ENTER             | cycle through states         |
-  | SPC-M x           | mark checkbox                |
-  | C-c C-d           | insert deadline              |
-  | SPC o a a         | open agenda (normally C-c a) |
+:    ,-> (unmarked) -> TODO -> DONE --.
+:    '--------------------------------'
 
-- [-] List TODO
+Changing TODO states can also trigger tag changes. See the docstring of the
+option ~org-todo-state-tags-triggers~ for details.
 
-** DONE Heading TODO
 
-** TODO cycle through states
-DEADLINE: <2021-08-21 Sat>
+Rotate the TODO state of an item:
+: C-c C-t : org-todo
+
+Select the following/preceeding TODO state (cycling):
+: S-<right> : org-shiftright
+: S-<left>  : org-shiftleft
+- bypass logging of TODO state changes with this command by setting
+  ~org-treat-S-cursor-todo-selection-as-state-change~ to nil
+
+Toggle the state of a checkbox:
+: C-c C-c : org-ctrl-c-ctrl-c
+
+Insert a new TODO heading or checkbox (when on a list item) below:
+: S-M-<return> : org-insert-todo-heading
+
+Insert a ~DEADLINE:~ string with a timestamp to make a deadline:
+: C-c C-d : org-deadline
+
+View all TODO items of the buffer in a *sparse tree*:
+: C-c /  → t : org-sparse-tree → org-show-todo-tree
+- use ~T~ instead to search for a specific TODO keyword
+  - ~KWD1|KWD2|…~ as input will match any keywords in that list
+- ~M-x org-remove-occur-highlights~ to remove the match highlights.
+
+Examples:
+
+: - [-] List todo
+
+: * DONE Heading todo
+
+: ** TODO Heading with deadline
+:    DEADLINE: <2024-03-14 Thu>
+
+** Todo keywords
+
+
 
 * Agenda
 
