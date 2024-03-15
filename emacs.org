@@ -127,16 +127,37 @@ the customization variables to a separate file (and load it):
 #+end_src
 
 ** Packages
-*** Standard Emacs package manager
+*** Standard Emacs package manager (package.el)
 :PROPERTIES:
 :CUSTOM_ID: standard-package-manager
 :END:
 - [[https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#Package-Installation][Package Installation (GNU Emacs Manual)]]
 
-To retrieve package listings from configured repos:
+To retrieve package listings from configured repositories:
 : M-x package-list-packages
 - opens a buffer to browse packages and install them from the detail page
   that opens from a hyperlink
+- set ~package-install-upgrade-built-in~ to non-nil to also upgrade built-in
+  packages (which will not be upgraded by default)
+
+Important keys in package menu buffer:
+- see [[info:emacs#Package Menu][emacs#Package Menu]] for a complete list
+
+| Key | Description                                                   |
+|-----+---------------------------------------------------------------|
+| ~i~   | mark for installation (adds ~I~ to the line)                    |
+| ~d~   | mark for deletion (adds ~D~ to the line)                        |
+| ~x~   | ‘execute’ →                                                   |
+|     | - downloads and installs all ~I~-marked packages and            |
+|     | deletes all ~D~-marked packages, removing the marks             |
+|     | - if no marks, installs or deletes package under point,       |
+|     | depending on whether it is already installed or not           |
+| ~U~   | mark all packages with newer available versions for upgrading |
+|     | - sets ~I~ on new version and ~D~ on old installed version        |
+| ~u~   | remove any ~I~ or ~D~ mark on the current line                    |
+| ~h~   | quick help (usage summary)                                    |
+| ~w~   | open website of package on current line                       |
+| ~r~   | refresh package list (fetches it again from archive)          |
 
 To refresh the packages catalog for updates:
 : M-x package-refresh-contents
@@ -219,6 +240,34 @@ https://github.com/hlissner/doom-emacs/blob/develop/docs/getting_started.org#on-
 - [[https://github.com/purcell/emacs.d][.emacs.d]] (Steve Purcell)
 - [[https://github.com/bbatsov/prelude][Prelude]] (Bozhidar Batzov)
 - [[https://spacemacs.org][Spacemacs]]
+** Improving Performance
+Source: [[https://www.youtube.com/watch?v=SOxlQ7ogplA][Modern Emacs: all those new tools that make Emacs better and faster]]
+
+- *lexical bindings* (since Emacs 28)
+  - makes compiler optimization much easier.
+  - can also speed up =init.el=.
+
+  Add this line to the top of =.el= files:
+  : ;;; -*- lexical-binding: t; -*-
+
+  To enable it globally in =.org= file tangling:
+  : #+PROPERTY: header-args:elisp :lexical t :tangle yes
+  then add the above line to the first source block.
+
+- *JIT native compilation* (since Emacs 28)
+  - faster startup
+  - speedup of 2.5 to 5 compared to corresponding byte-compiled code
+  - requires ~libgccjit~
+
+  When building Emacs, use ~--with-native-compilation~ flag.
+  - see [[https://www.emacswiki.org/emacs/GccEmacs][Emacs Wiki / Gcc Emacs]] for instructions per OS
+
+  Packages can also be compiled natively.
+  - built-in ~package.el~ supports aot native compilation when installing a
+    package. To enable it:
+    : (setq package-native-compile t)
+  - automatic with [[#straight-el]] package manager
+
 * Version Control
 ** VC (Emacs’ version control system)
 :PROPERTIES:
@@ -528,6 +577,17 @@ Info mode navigation:
 | ~RET~   | Open selected link                      |
 | ~m~     | Prompt for a menu item name and open it |
 | ~q~     | Close INFO                              |
+| ~s~     | Search INFO                             |
+
+Search inside an Info-mode manual:
+: M-x Info-search
+- recommended keybindings for prev/next result:
+  : (keymap-set Info-mode-map "M-{" #'Info-search-backward)
+  : (keymap-set Info-mode-map "M-}" #'Info-search-next)
+
+Link to a specific page in Info-mode:
+: M-x org-store-link
+: C-c C-l : org-insert-link
 
 ** Modes
 
@@ -583,6 +643,18 @@ Toggle popups (e.g. for help):
 Undo changes in window arrangement:
 - see [[#winner-mode]]
 
+---
+
+Control how buffers are opened in windows:
+: (add-to-list 'display-buffer-alist '(…))
+
+Example:
+#+begin_src elisp
+(add-to-list 'display-buffer-alist
+	     '("^\\*eldoc" display-buffer-at-bottom
+	       (window-height . 4)))
+#+end_src
+
 ** Frames
 To create a new /frame/ (OS-level window):
 : M-x make-frame-command
@@ -611,12 +683,25 @@ Kill buffer (current buffer or named):
 Reload buffer (replaces buffer with file on disk, undoing all changes):
 : M-x revert-buffer
 
-*Mini buffer* / *minibuffer*: interactive buffer that appears in the /echo area/
-and displays errors and general information or acts as an interface (e.g.
-for buffer selection or input of pathnames).
-
 Completion frameworks for buffer switching:
 - [[#icomplete][Icomplete / IDO / FIDO]]
+
+*** Mini buffer / minibuffer
+Interactive buffer that appears in the /echo area/ and displays errors and
+general information or acts as an interface (e.g. for buffer selection or
+input of pathnames).
+
+*** Indirect buffer
+:PROPERTIES:
+:CUSTOM_ID: indirect-buffer
+:END:
+An indirect buffer contains the entire buffer, but narrowed down to the
+selected subtree.
+
+Editing the indirect buffer will also change the original buffer, without
+affecting its visibility.
+
+More infos: [[info:emacs#Indirect Buffers][emacs#Indirect Buffers]]
 
 ** Files
 
@@ -743,6 +828,20 @@ GUI browser using webkit (for MacOS).
 
 : M-x xwidget-webkit-browse-url
 
+** Diagnostics
+_Emacs profiler_
+
+Records events in Emacs and reports a sorted breakdown of *CPU and/or memory
+usage* by each function that has been called while recording.
+
+Use in this order:
+: M-x profiler-start
+: M-x profiler-stop
+: M-x profiler-report
+
+Explanation and examples:
+- [[https://www.youtube.com/watch?v=eyDGeVvnHgo][Why is My Emacs Slow?]] (YouTube)
+
 ** Other things
 
 Show a calendar:
@@ -795,6 +894,9 @@ be /filled/.
 If a line /is/ continuous, it can wrap into multiple /visual lines/ or
 stretch out in full horizontally, which can be toggled using:
 : M-x toggle-truncate-lines
+- truncates lines by character
+- truncation might conflict with ~visual-line-mode~, which wraps by word
+  boundary instead
 
 *** Line movement
 By default, Emacs movement is by *visual lines*.
@@ -806,6 +908,8 @@ more like a traditional word processor, e.g. by wrapping by word boundary
 and disabling the fringe indicators.
 - will also change some movement and editing commands to act on /visual
   lines/ instead
+- hard line-breaks will still be preserved and can be distinguished by a
+  line number on each line instead of just the first one
 - set ~global-visual-line-mode~ variable to enable globally
 
 *** Line numbers
@@ -1147,17 +1251,59 @@ To jump to a specific symbol (named or at /point/), see [[#imenu]].
 :CUSTOM_ID: isearch
 :END:
 
+Search in buffer forwards/backwards:
 : C-r : isearch-backward
 : C-s : isearch-forward
+… with regex:
 : C-M-r : isearch-backward-regexp
 : C-M-s : isearch-forward-regexp
-- repeat ~C-r~ or ~C-s~ to go to next match in backward/forward direction
-- ~M-s M-<~ to go to first, ~M-s M->~ to go to last match
-- ~RET~ exits search, leaving /point/ at location found
-- ~C-j~ (or type LFD) to match end of the line
-- ~C-g~ will return the /point/ to the starting position
+
+_isearch-mode bindings:_
+
+- repeat ~C-r~ or ~C-s~ : go to next match in backward/forward direction
+- ~M-s M-<  /  M-s M->~ : go to first/last match
+- ~RET~ : exit search, leaving /point/ at location found
+- ~C-g~ : return the /point/ to the starting position or, if the characters in
+  the search string don’t match, remove those characters
+- ~C-j~ (or type ~LFD~) : match end of the line
+- ~C-M-d~ : remove one character in the search string
+  - triggers the dictionary in MacOS; remap ~isearch-del-char~
+- ~M-e~ : activate minibuffer edit mode for search string
+  - confirm with ~RET~ or ~C-s~ / ~C-r~ to continue search
+  - enables usage of more editing commands in minibuffer
 - see [[#regex-syntax]] for regex reference
 - … (see docs)
+
+_Search for /things/:_
+
+Specific search for /things/ at point (when in isearch):
+- ~… C-w~ : search /word/ or (sometimes) /character/ at point (Emacs decides →
+  heuristic search)
+- ~… C-M-w~ : search /symbol/ at point
+- ~… C-M-y~ : search /one character/ at a time
+  - ~C-M-d~ to remove the character from search string (remap in MacOS)
+- … (see docs)
+- some can be used with numeric args to add more /things/
+
+General search for /thing/ at point /(since Emacs 28)/:
+: M-s M-. : isearch-forward-thing-at-point
+- works for e.g. symbol, list, sexp, defun, number, filename, url, email,
+  uuid, word, sentence, whitespace, line, page
+- also works on regions
+- the order of things being searched can be modified, e.g.:
+  : (setq isearch-forward-thing-at-point '(region url email symbol sexp))
+
+_Useful settings:_
+
+Remove “pause” when changing directions:
+: (setq isearch-repeat-on-direction-change t)
+Do not wrap isearch when reaching the end of a buffer:
+: (setq isearch-wrap-pause nil)
+Set max length of search ring (default: 16):
+: (setq search-ring-max 4)
+Do not allow scrolling commands (e.g. ~C-v~) to exit isearch:
+: (setq isearch-allow-scroll t)
+- mouse scrolling will still exit
 
 *** Replace commands
 
@@ -1878,7 +2024,7 @@ Complete history match:
 : C-x <up> : minibuffer-complete-history
 
 Just autocomplete without selecting:
-: C-M-i : complete-symbol
+: C-M-i / M-<TAB> : complete-symbol
 
 *** [built-in] Icomplete / IDO / FIDO
 :PROPERTIES:
@@ -1904,7 +2050,7 @@ Force-complete minibuffer with +longest+ possible match and exit:
 - immediately enters a directory instead of completing it
 
 Force-complete minibuffer with +longest+ possible match:
-: M-<TAB> / C-M-i : icomplete-force-complete
+: C-M-i / M-<TAB> : icomplete-force-complete
 
 **** Ido mode / Fido mode
 
@@ -2123,7 +2269,13 @@ To adapt indentation to outline node level:
 : (setq org-adapt-indentation t)
 - indents text to align with headings
 - actually adds space, unlike ~org-indent-mode~
-  
+*** [built-in] org-tempo
+Expands snippets, e.g. ~<s~ + ~<TAB>~ to create a code block.
+- see [[info:org#Structure Templates][org#Structure Templates]]
+
+To enable:
+: (require 'org-tempo)
+
 *** toc-org
 Generates a table of contents for Org-mode.
 - https://github.com/snosov1/toc-org
@@ -2137,6 +2289,11 @@ Document annotator.
 *** org-bullets
 utf-8 bullets for [[#org-mode]].
 - https://github.com/sabof/org-bullets
+*** org-modern
+Modern style for Org buffers using font locking and text properties.
+Styles headlines, keywords, tables and source blocks.
+- https://github.com/minad/org-modern
+
 *** org-sidebar
 Helpful customizable sidebar for [[#org-mode]] buffers.
 - https://github.com/alphapapa/org-sidebar
@@ -2150,6 +2307,9 @@ Instant LaTeX preview using xwidget and MathJax.
 *** orglink
 Use [[#org-mode]] links in other modes.
 - https://github.com/tarsius/orglink
+*** org-auto-tangle
+Tangles org files (asynchronously) on save.
+- https://github.com/yilkalargaw/org-auto-tangle
 ** Knowledge work
 *** org-ref
 Citations, cross-references, indexes, glossaries and bibtex utilities for
@@ -2212,10 +2372,19 @@ Icons for [[#ivy]].
 *** ThemeCreator
 - https://github.com/mswift42/themecreator
 - https://mswift42.github.io/themecreator/
+*** doom-themes
+Megapack of themes from the Doom Emacs distribution.
+- https://github.com/doomemacs/themes
 *** rainbow-mode
 Sets background color to strings that match color names.
 - https://elpa.gnu.org/packages/rainbow-mode.html
-
+*** rainbow-delimiters
+"rainbow parentheses"-like mode which highlights delimiters such as
+parentheses, brackets or braces according to their depth.
+- https://github.com/Fanael/rainbow-delimiters
+*** hl-todo
+Highlights TODO keywords.
+- https://github.com/tarsius/hl-todo
 ** Terminal / Shell
 *** [built-in] Shell Mode
 :PROPERTIES:
@@ -2300,4 +2469,7 @@ Toggles between the [[#vterm]] buffer and whatever buffer you are editing.
 ** Other
 - [[https://emacspeak.sourceforge.net][Emacspeak]] (speech interface for visually impaired people)
 - EMMS (Emacs multimedia system) (interactive media browser & music player)
-
+- [[https://github.com/Malabarba/beacon][beacon]] (light that follows the cursor when jumping around)
+- [[https://github.com/larstvei/Focus][focus]] (dims the font color of surrounding paragraphs)
+  
+  
