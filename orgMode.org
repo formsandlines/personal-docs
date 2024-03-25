@@ -4,17 +4,245 @@
 - [[https://www.youtube.com/watch?v=SzA2YODtgK4][Getting Started With Org Mode]] (YouTube presentation)
 - https://gist.github.com/drj42/1755992 (Keybinding Cheatsheet)
 
+* General
+** Prerequisites
+In order for Org mode to work properly, make sure the following modes are
+activated:
+- ~font-lock-mode~
+- ~transient-mark-mode~
+  - can also be a hook to use only in Org mode:
+    : (add-hook 'org-mode-hook #'turn-on-font-lock)
+
+** Keywords
+Main types:
+- ~TODO~
+- tags, e.g. ~:work:~ /(user-defined)/, ~:ARCHIVE:~ /(reserved)/
+- property names
+
+Other types:
+- option keywords, e.g. ~#+title:~
+- environment keywords, e.g. ~#+BEGIN_EXPORT html~
+
 * Properties / Metadata
 
-  | Shortcut            | Action                  |
-  |---------------------+-------------------------|
-  | C-c C-x p / SPC M o | Set property            |
-  | C-c C-x P           | Set property-value pair |
+Properties are /key-value pairs/. They can be associated with a node in the
+heading hierarchy, with a list item or with the whole buffer.
+- keys are /case-insensitive/
+- the same property can only have /one entry per drawer/
 
-;; #+FIELDNAME: My value
-;; #+OPTIONS: toc:nil
+To apply to an /entry/ or /tree/, they need to be in a ~PROPERTIES~ *drawer*, right
+below the headline and (when applicable) its /planning line/:
+: * My headline
+:   :PROPERTIES:
+:   :My_Field: My value
+:   …
+:   :END:
+- properties are not inherited by default, see [[#property-inheritance][Property Inheritance]]
 
-- to automatically add custom ids: https://writequit.org/articles/emacs-org-mode-generate-ids.html
+To apply to the /whole buffer/, they need to be defined at the top of the buffer
+(allowing only comments above):
+: #+PROPERTY: My_Field My value
+: …
+
+A particular property ~Xyz~ can be given a set of /allowed values/, which are
+defined by setting the special property ~Xyz_ALL~, which will be /inherited/ by
+the whole tree:
+: #+PROPERTY: My_Field_ALL 1 2 3 4
+: :My_Field_ALL: Foo "My value" bar
+- makes value selection easier and less prone to typing errors
+
+To /add/ to the value of an existing property, append a ~+~ to its name:
+: #+PROPERTY: var  foo=1
+: #+PROPERTY: var+ bar=2
+- in the example, ~var~ will have the value ~foo=1 bar=2~
+
+_Commands:_
+
+*Complete property keys*, after an initial colon in a line:
+: C-M-i : complete-symbol → completion-at-point
+- all keys used in current file are possible completions
+- previously ~pcomplete~ (~M-<TAB>~), which is now obsolete
+
+*Set a property*, using the minibuffer interface:
+: C-c C-x p : org-set-property
+- creates /property drawer/, if necessary
+
+Set a *property-value pair*:
+: C-c C-x P : org-set-property-and-value
+
+*Insert a drawer* into the current entry:
+: C-c C-x d : org-insert-drawer
+- type ~C-u~ before the command to insert a ~PROPERTIES~ drawer directly
+
+*Execute property commands*, if point is in a property drawer:
+: C-c C-c : org-ctrl-c-ctrl-c → org-property-action
+- ~s~: set a property
+- ~d~: delete a property
+- ~D~: globally delete a property from all entries in current buffer
+- ~c~: compute property at point, using operator and scope from the nearest
+  /column format definition/
+
+*Switch property* to previous/next allowed value:
+: S-<left>  : org-shiftleft → org-property-previous-allowed-value
+: S-<right> : org-shiftleft → org-property-next-allowed-value
+
+** Property Inheritance
+:PROPERTIES:
+:CUSTOM_ID: property-inheritance
+:END:
+Properties can be inherited by sublevels in a tree, but this functionality
+has to be enabled first:
+: (setq org-use-property-inheritance t)
+- *Warning:* can cause significant overhead when doing a search
+- can also be given a list of properties that should have inheritance or a
+  regex maching properties that should be inherited
+
+Inherited properties can also be *added to*:
+: * Headline
+:   :PROPERTIES:
+:   :var: foo=1
+:   :END:
+: ** Subheadline
+:    :PROPERTIES:
+:    :var+: bar=2
+:    :END:
+
+Some *special properties* use inheritance by default in some circumstances
+(not in searches):
+- ~CATEGORY~ for agenda view, to apply to the entire subtree
+- ~ARCHIVE~ to define the archive location for the entire subtree
+- ~COLUMNS~ to define the [[#column-view][Column View]] format for a tree
+- ~LOGGING~ to define logging settings for an entry or a subtree
+- properties ending in ~_ALL~
+
+Property values set with the *global* variable ~org-global-properties~ can be
+inherited by all entries in all Org files.
+
+See: [[info:org#Property Inheritance][org#Property Inheritance]]
+
+** Searching
+The same commands as for [[#tag-searches][Tag Searches]] are used, plus a special command:
+
+Create a sparse tree based on a single property:
+: C-c / → p : org-sparse-tree → …
+- prompts for the name, then for the value of a property
+- enclosing the value in ~{…}~ interprets it as a regex, matching it against
+  the property values
+
+** Special Properties
+Should not be used as keys in the /property drawer/.
+
+| Property     | Description                                               |
+|--------------+-----------------------------------------------------------|
+| ~ALLTAGS~      | All tags, including inherited ones.                       |
+| ~BLOCKED~      | ~t~ if task is currently blocked by children or siblings.   |
+| ~CATEGORY~     | The category of an entry.                                 |
+| ~CLOCKSUM~     | The sum of CLOCK intervals in the subtree. ~org-clock-sum~  |
+|              | must be run first to compute the values in the current    |
+|              | buffer.                                                   |
+| ~CLOCKSUM_T~   | The sum of CLOCK intervals in the subtree for today.      |
+|              | ~org-clock-sum-today~ must be run first to compute the      |
+|              | values in the current buffer.                             |
+| ~CLOSED~       | When was this entry closed?                               |
+| ~DEADLINE~     | The deadline timestamp.                                   |
+| ~FILE~         | The filename the entry is located in.                     |
+| ~ITEM~         | The headline of the entry.                                |
+| ~PRIORITY~     | The priority of the entry, a string with a single letter. |
+| ~SCHEDULED~    | The scheduling timestamp.                                 |
+| ~TAGS~         | The tags defined directly in the headline.                |
+| ~TIMESTAMP~    | The first keyword-less timestamp in the entry.            |
+| ~TIMESTAMP_IA~ | The first inactive timestamp in the entry.                |
+| ~TODO~         | The TODO keyword of the entry.                            |
+- Source: [[info:org#Special Properties][org#Special Properties]]
+
+** Column View
+:PROPERTIES:
+:CUSTOM_ID: column-view
+:END:
+
+Allows for an overview and quick editing of property values in the buffer.
+- best used with outline visibility
+
+To define columns for a *subtree*, use the ~COLUMNS~ property on the top node:
+: :COLUMNS: %25ITEM %TAGS %PRIORITY %TODO
+For the whole *buffer*, use ~#+COLUMNS~ instead.
+
+A *column definition* sets the attributes of a column. The general definition
+looks like this:
+: %[WIDTH]PROPERTY[(TITLE)][{SUMMARY-TYPE}]
+- all items, except for ~%~ and the property name, are /optional/
+- ~WIDTH~: width of the column in number of characters
+- ~PROPERTY~: name of the property
+- ~TITLE~: header text of the column (else uses property name)
+- ~SUMMARY-TYPE~: how the column values for parent nodes are computed from
+  their children (if specified)
+  - for a list of all available types, see [[info:org#Column attributes][org#Column attributes]]
+  - set ~org-columns-summary-types~ to define custom types
+
+Example columns definition, along with allowed values:
+: :COLUMNS:  %25ITEM %9Approved(Approved?){X} %Owner %11Status \
+:                    %10Time_Estimate{:} %CLOCKSUM %CLOCKSUM_T
+: :Owner_ALL:    Tammy Mark Karl Lisa Don
+: :Status_ALL:   "In progress" "Not started yet" "Finished" ""
+: :Approved_ALL: "[ ]" "[X]"
+
+---
+
+Activate column view for the subtree at point:
+: C-c C-x C-c : org-columns
+- if point is before the first headline, activates it for the whole buffer,
+  using the ~#+COLUMNS~ definition
+- if point is somewhere else, searches the outline upwards for a ~COLUMNS~
+  property and constructs the table for the tree starting at the entry that
+  contains it
+- if no columns property is found, uses the format from the variable
+  ~org-columns-default-format~
+
+Exit column view:
+: C-c C-c : q (on a column) : org-columns-quit
+
+Refresh column view (to include recent changes):
+: r OR g (on a column) : org-columns-redo
+
+Show full value of property at point:
+: v : org-columns-show-value
+- useful if width of the column is smaller than that of the value
+
+_Navigating_
+
+: <left> / <right> / <up> / <down>
+
+Directly select the Nth allowed value (~0~ to select the 10th value):
+: 1..9 / 0
+
+Switch to next/previous allowed value in the field:
+: n : S-<right> : org-columns-next-allowed-value
+: p : S-<left>  : org-columns-previous-allowed-value
+
+_Editing values_
+
+Edit the property value at point:
+: e : org-columns-edit-value
+
+Toggle checkbox (if one exists at point):
+: C-c C-c : org-columns-toggle-or-columns-quit
+
+Edit the list of allowed values for property at point:
+: a : org-columns-edit-allowed
+- if not found in the hierarchy, creates the list for the first entry of the
+  current column view
+
+_Modifying columns view_
+
+Make column narrower/wider by one character:
+: < : org-columns-narrow
+: > : org-columns-widen
+
+Insert a new column to the left of the current column:
+: S-M-<right> : org-columns-new
+
+Delete the current column:
+: S-M-<left> : org-columns-delete
 
 * Headlines / Outline Tree
 
@@ -99,7 +327,7 @@ Show current subtree in an indirect buffer:
 : C-c C-x b : org-tree-to-indirect-buffer
 - see [[file:emacs.org::#indirect-buffer][Docs/Emacs → Indirect buffer]] or [[info:emacs#Indirect Buffers][emacs#Indirect Buffers]]
 - this takes various prefix args -> see docs
-
+  
 * Special characters / Entities
 
 Enter a special character as unicode with ~C-x 8 RET~ .
@@ -353,6 +581,9 @@ To be able to store and insert links with ~ID~ properties, the variable
 
 [[#my-headline][Some alias]]
 
+To automatically add custom ids:
+https://writequit.org/articles/emacs-org-mode-generate-ids.html
+
 **** Headline 3
 :PROPERTIES:
 :CUSTOM_ID: my-headline
@@ -493,7 +724,10 @@ Likewise, for ~org-tag-alist~, use ~:startgroup~ and ~:endgroup~ instead.
 Group tag members can also be regular expressions, see: [[info:org#Tag Hierarchy][org#Tag Hierarchy]]
 
 ** Searching
-Create a sparse tree with all headlines matching a tags search:
+:PROPERTIES:
+:CUSTOM_ID: tag-searches
+:END:
+Create a sparse tree with all matching entries/headlines:
 : C-c \ : org-match-sparse-tree
 : C-c / → m : org-sparse-tree → org-match-sparse-tree
 - prefix ~C-u~ to ignores non-TODO headlines
@@ -604,6 +838,7 @@ Some quoted line.
   | Shortcut | Action                              |
   |----------+-------------------------------------|
   | <s + TAB | quickly insert source code block    |
+  | C-c C-,  | insert a chosen block structure     |
   | C-c '    | edit source block in specified mode |
   | C-c '    | exit edit mode and return to org    |
   | C-c C-c  | evaluate source block               |

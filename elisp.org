@@ -57,6 +57,9 @@ Represented by its *character code*, an integer.
 - e.g. ~A~ is represented by ~65~
 - can also be written with the char after a ~?~, e.g. ~?A~
 
+To turn a char code into a string:
+: (char-to-string <code>)
+
 Limited to the range of 0 … 4194303 (22 bits).
 
 _strings_ → see [[#seq-types]] (array subtypes)
