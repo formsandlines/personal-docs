@@ -268,6 +268,13 @@ Source: [[https://www.youtube.com/watch?v=SOxlQ7ogplA][Modern Emacs: all those n
     : (setq package-native-compile t)
   - automatic with [[#straight-el]] package manager
 
+- *[[#tree-sitter][Tree sitter]]* (since Emacs 29)
+  - better syntax highlighting, indentation, navigation
+  - faster
+
+  Simplest setup with [[#treesit-auto]].
+    
+
 * Version Control
 ** VC (Emacs’ version control system)
 :PROPERTIES:
@@ -531,6 +538,7 @@ Get help/description:
 - ~a~: ~apropos-command~ (regex search for Lisp symbols)
 - ~i~: ~info~ (INFO mode / Emacs manual)
 - ~k~: ~describe-key~ (lookup a key binding)
+- ~b~: ~describe-bindings~ (lookup bindings for buffer minor/major modes)
 - ~v~: ~describe-variable~
 - ~f~: ~describe-function~
 - ~o~: ~describe-symbol~
@@ -1265,12 +1273,16 @@ _isearch-mode bindings:_
 - ~RET~ : exit search, leaving /point/ at location found
 - ~C-g~ : return the /point/ to the starting position or, if the characters in
   the search string don’t match, remove those characters
-- ~C-j~ (or type ~LFD~) : match end of the line
 - ~C-M-d~ : remove one character in the search string
   - triggers the dictionary in MacOS; remap ~isearch-del-char~
 - ~M-e~ : activate minibuffer edit mode for search string
   - confirm with ~RET~ or ~C-s~ / ~C-r~ to continue search
   - enables usage of more editing commands in minibuffer
+- ~C-j~ (or type ~LFD~) : match end of the line
+- ~M-r~ : toggle regex search
+- ~M-c~ : toggle case sensitivity
+- ~M-s SPC~ : toggle match spaces loosely
+- ~M-s _~ : toggle symbol search
 - see [[#regex-syntax]] for regex reference
 - … (see docs)
 
@@ -1414,6 +1426,7 @@ programming languages or text):
 Move forward/backward one /page/:
 : C-x ] : forward-page
 : C-x [ : backward-page
+
 * Appearance
 ** Faces
 Different styles applied to text are called *faces*. Each face can specify
@@ -2225,6 +2238,21 @@ Show function arglist or variable docstring in echo area
 - built-in since Emacs 29
 - https://www.masteringemacs.org/article/how-to-get-started-tree-sitter
 - [obsolete] https://github.com/emacs-tree-sitter/elisp-tree-sitter
+*** treesit-auto
+:PROPERTIES:
+:CUSTOM_ID: treesit-auto
+:END:
+Automatic installation, usage, and fallback for [[#tree-sitter]] major modes
+in Emacs 29
+- https://github.com/renzmann/treesit-auto
+
+Setup:
+#+begin_src elisp
+(use-package treesit-auto
+  :config
+  (treesit-auto-add-to-auto-mode-alist 'all))
+  #+end_src
+
 *** tree-sitter-langs (language bundle)
 Language bundle for Emacs’s [[#tree-sitter]] package. 
 - https://github.com/emacs-tree-sitter/tree-sitter-langs
