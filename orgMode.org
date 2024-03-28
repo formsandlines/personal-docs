@@ -23,6 +23,90 @@ Other types:
 - option keywords, e.g. ~#+title:~
 - environment keywords, e.g. ~#+BEGIN_EXPORT html~
 
+* Headlines / Outline Tree
+
+| Shortcut        | Action                                             |
+|-----------------+----------------------------------------------------|
+| C ENTER         | create node below (same lvl) + insert              |
+| C-SHIFT ENTER   | create node above (same lvl) + insert              |
+| C-M ENTER       | create child-node                                  |
+| M-(←/→)         | outdent / indent node                              |
+| M-SHIFT-(←/→)   | outdent / indent node + subtrees                   |
+| M-(↑/↓)         | reorder nodes                                      |
+| M-S-(↑/↓)       | reorder lines                                      |
+| C-c (C-n / C-p) | previous / next node                               |
+| C-c (C-f / C-b) | forward / back same level                          |
+| M-{ / M-}       | backward / forwared by one element                 |
+| C-c C-u         | up parent node                                     |
+| C-c C-j         | jump to node                                       |
+| TAB             | cycle CURRENT: top-level -> first-sublevel         |
+| SHIFT TAB       | cycle ALL: top-level -> first-sublevel -> all -> … |
+| z R             | ~+org/open-all-folds~                                |
+| C-<n> Shift-TAB | show <n> headline levels                           |
+| C-x n s / , s n | ~org-narrow-to-subtree~                              |
+| C-x n w / , s N | ~widen~                                              |
+| <none>          | ~org-toggle-narrow-to-subtree~                       |
+
+Headlines define the structure of an outline tree.
+
+An empty line after the end of a subtree is considered part of it and is
+hidden when the subtree is folded. Leaving at least two empty lines, one of
+them remains visible after folding the subtree.
+- see variable ~org-cycle-separator-lines~ to modify this behavior
+
+Example:
+: * Top level headline
+: ** Second level
+: *** Third level
+:     some text
+: *** Third level
+:     more text
+: * Another top level headline
+
+** Visibility Cycling
+
+Cycle subtree at point:
+: <TAB> : org-cycle
+- states:
+  :          ,-> FOLDED -> CHILDREN -> SUBTREE --.
+  :          '-----------------------------------'
+- with ~C-u~ prefix, behaves like ~org-global-cycle~ 
+- with ~C-u C-u~ prefix, switches to startup visibility
+- with ~C-u C-u C-u~ prefix, behaves like ~org-fold-show-all~
+- on an empty headline or list item promotes/demotes it
+  - useful to quickly create document structure
+
+Cycle globally through all subtrees:
+: S-<TAB> : org-shifttab → org-cycle-global / org-global-cycle
+- states:
+  :          ,-> OVERVIEW -> CONTENTS -> SHOW ALL --.
+  :          '--------------------------------------'
+
+Show all contents in the visible part of the buffer:
+: M-x org-fold-show-all
+- by default, shows headings, blocks and drawers
+
+(?) Reveal context around point (current entry, following headings and the
+hierarchy above):
+: C-c C-r : org-reveal
+- (?) with ~C-u~, shows, on each level, all sibling headings
+- (?) with ~C-u C-u~, goes to parent and shows the entire tree
+- (?) useful for working near a location exposed by a sparse tree or an
+  agenda command
+- [ ] TODO: figure this out
+
+Expose all the headings of the subtree, but not their bodies:
+: C-c C-k : org-kill-note-or-show-branches → org-fold-show-branches
+
+Expose all direct children of the subtree:
+: C-c <TAB> : org-fold-show-children
+- binding overwritten on Mac by ~mac-previous-tab-or-toggle-tab-bar~
+
+Show current subtree in an indirect buffer:
+: C-c C-x b : org-tree-to-indirect-buffer
+- see [[file:emacs.org::#indirect-buffer][Docs/Emacs → Indirect buffer]] or [[info:emacs#Indirect Buffers][emacs#Indirect Buffers]]
+- this takes various prefix args -> see docs
+  
 * Properties / Metadata
 
 Properties are /key-value pairs/. They can be associated with a node in the
@@ -244,90 +328,6 @@ Insert a new column to the left of the current column:
 Delete the current column:
 : S-M-<left> : org-columns-delete
 
-* Headlines / Outline Tree
-
-| Shortcut        | Action                                             |
-|-----------------+----------------------------------------------------|
-| C ENTER         | create node below (same lvl) + insert              |
-| C-SHIFT ENTER   | create node above (same lvl) + insert              |
-| C-M ENTER       | create child-node                                  |
-| M-(←/→)         | outdent / indent node                              |
-| M-SHIFT-(←/→)   | outdent / indent node + subtrees                   |
-| M-(↑/↓)         | reorder nodes                                      |
-| M-S-(↑/↓)       | reorder lines                                      |
-| C-c (C-n / C-p) | previous / next node                               |
-| C-c (C-f / C-b) | forward / back same level                          |
-| M-{ / M-}       | backward / forwared by one element                 |
-| C-c C-u         | up parent node                                     |
-| C-c C-j         | jump to node                                       |
-| TAB             | cycle CURRENT: top-level -> first-sublevel         |
-| SHIFT TAB       | cycle ALL: top-level -> first-sublevel -> all -> … |
-| z R             | ~+org/open-all-folds~                                |
-| C-<n> Shift-TAB | show <n> headline levels                           |
-| C-x n s / , s n | ~org-narrow-to-subtree~                              |
-| C-x n w / , s N | ~widen~                                              |
-| <none>          | ~org-toggle-narrow-to-subtree~                       |
-
-Headlines define the structure of an outline tree.
-
-An empty line after the end of a subtree is considered part of it and is
-hidden when the subtree is folded. Leaving at least two empty lines, one of
-them remains visible after folding the subtree.
-- see variable ~org-cycle-separator-lines~ to modify this behavior
-
-Example:
-: * Top level headline
-: ** Second level
-: *** Third level
-:     some text
-: *** Third level
-:     more text
-: * Another top level headline
-
-** Visibility Cycling
-
-Cycle subtree at point:
-: <TAB> : org-cycle
-- states:
-  :          ,-> FOLDED -> CHILDREN -> SUBTREE --.
-  :          '-----------------------------------'
-- with ~C-u~ prefix, behaves like ~org-global-cycle~ 
-- with ~C-u C-u~ prefix, switches to startup visibility
-- with ~C-u C-u C-u~ prefix, behaves like ~org-fold-show-all~
-- on an empty headline or list item promotes/demotes it
-  - useful to quickly create document structure
-
-Cycle globally through all subtrees:
-: S-<TAB> : org-shifttab → org-cycle-global / org-global-cycle
-- states:
-  :          ,-> OVERVIEW -> CONTENTS -> SHOW ALL --.
-  :          '--------------------------------------'
-
-Show all contents in the visible part of the buffer:
-: M-x org-fold-show-all
-- by default, shows headings, blocks and drawers
-
-(?) Reveal context around point (current entry, following headings and the
-hierarchy above):
-: C-c C-r : org-reveal
-- (?) with ~C-u~, shows, on each level, all sibling headings
-- (?) with ~C-u C-u~, goes to parent and shows the entire tree
-- (?) useful for working near a location exposed by a sparse tree or an
-  agenda command
-- [ ] TODO: figure this out
-
-Expose all the headings of the subtree, but not their bodies:
-: C-c C-k : org-kill-note-or-show-branches → org-fold-show-branches
-
-Expose all direct children of the subtree:
-: C-c <TAB> : org-fold-show-children
-- binding overwritten on Mac by ~mac-previous-tab-or-toggle-tab-bar~
-
-Show current subtree in an indirect buffer:
-: C-c C-x b : org-tree-to-indirect-buffer
-- see [[file:emacs.org::#indirect-buffer][Docs/Emacs → Indirect buffer]] or [[info:emacs#Indirect Buffers][emacs#Indirect Buffers]]
-- this takes various prefix args -> see docs
-  
 * Special characters / Entities
 
 Enter a special character as unicode with ~C-x 8 RET~ .
@@ -738,11 +738,26 @@ Also see agenda tag search commands [[info:org#Tag Searches][here]].
 
 _Matching syntax:_
 
-| Syntax | Description |
-|--------+-------------|
-| ~+a+b~   | a AND b     |
-| ~+a-b~   | a and NOT b |
-| ~a\vbar b~   | a OR b      |
+| Syntax      | Description                                    |
+|-------------+------------------------------------------------|
+| ~…+a~ / ~+a~    | … WITH ~a~                                       |
+| ~…-a~ / ~-a~    | … WITHOUT ~a~                                    |
+| ~a&b~         | a AND b (optional with ~+~ / ~-~)                  |
+| ~a\vbar b~        | a OR b (ignore space)                          |
+|-------------+------------------------------------------------|
+| ~a~           | match tag ~a~                                    |
+| ~a=x~         | match property ~a~ with value ~x~                  |
+| ~a<x~ / ~a>x~   | match property ~a~ with less/more than ~x~         |
+| ~a<=x~ / ~a>=x~ | … as above, but also equality                  |
+| ~a<>x~        | match property ~a~ if not value ~x~                |
+|-------------+------------------------------------------------|
+| ~"…"~         | exactly match string, e.g. ~"foo bar"~           |
+| ~"<…>"~       | match Org date/time spec:                      |
+|             | - absolute time, e.g. ~"<2008-12-24 18:30>"~     |
+|             | - keywords: ~"<now>"~ / ~"<today>"~ / ~"<tomorrow>"~ |
+|             | - relative time, e.g. ~"<+5d>"~, ~"<-2m>"~         |
+|             | with units: ~d~, ~w~, ~m~, ~y~ (day/week/month/year)   |
+| ~{…}~         | perform a regex search, e.g. ~{^boss.*}~         |
 
 - see [[info:org#Matching tags and properties][org#Matching tags and properties]] for a complete reference
   

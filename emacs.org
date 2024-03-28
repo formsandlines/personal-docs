@@ -774,6 +774,68 @@ Recursively grep for ~regexp~ in ~files~ (shell pattern) from root ~dir~:
 - to jump to the first/next occurrence:
   : C-x ` : next-error
 
+** Registers
+Can be used to temporarily store various things across buffers, similar to a
+clipboard.
+
+*Store *point* in register:
+: C-x r SPC : point-to-register
+- use [[#bookmarks]] for more permanent storage of locations
+*Store window* configuration in register:
+: C-x r w : window-configuration-to-register
+*Jump to point* /or/ *restore window config* stored in register:
+: C-x r j : jump-to-register
+
+*Store/copy* text into register:
+: C-x r s : copy-to-register
+- prefix ~C-u~ to cut instead of copy
+*Insert text* stored in register:
+: C-x r i : insert-register
+
+*Store a* (~C-u <N>~ prefix) *number* in register:
+: C-x r n : number-to-register
+
+*Increment/append contents* of/to a register:
+: C-x r + : increment-register
+- adds numeric (~C-u <N>~ prefix) value to a stored /number/
+- appends text to a stored /text/ (or empty register)
+
+_Uncommon:_
+
+*Store a file* into a register:
+: (set-register ?<key> '(file . "<path>"))
+- prefer to store the /point/ instead if buffer is already open
+
+** Bookmarks
+:PROPERTIES:
+:CUSTOM_ID: bookmarks
+:END:
+Similar to registers, but only store locations in files.
+- can be persisted over restarts of Emacs
+
+*Set bookmark* from /point/ position:
+: C-x r m : bookmark-set
+
+*Open bookmark list* in a dedicated buffer:
+: C-x r l : bookmark-bmenu-list
+- close buffer with ~q~
+
+*Jump to bookmark* by its name:
+: C-x r b : bookmark-jump
+
+_Persisting bookmarks_
+
+When ~bookmark-save-flag~ is set to ~t~, bookmarks are always saved in
+~bookmark-default-file~ (e.g. =~/.emacs.d/bookmarks=) when Emacs is closed.
+- set to a number for more frequent saves (see docs)
+
+Otherwise, bookmarks have to be saved manually:
+
+*Save bookmarks* in a file, to persist across Emacs restarts:
+: M-x bookmark-save
+*Load bookmarks* from a file:
+: M-x bookmark-load
+
 ** History of input
 To save the history of commands, etc., see:
 [[#savehist-mode]]
@@ -1028,12 +1090,27 @@ Jump to a /marked/ position:
 : C-u C-SPC
 - repeated calls go further back the /mark ring/
 - does /not/ work across buffers
+- set ~(setq set-mark-command-repeat-pop t)~ to just type ~C-SPC~ for repeated
+  calls
 
 Exchange /point/ and /mark/ and /reactivate/ the last /region/:
 : C-x C-x : exchange-point-and-mark
 
 - *mark ring:* contains all marks that have been set.
 - *global mark ring:* also works across buffer boundaries
+
+_Selecting different objects:_
+
+Mark/select a word without moving the point:
+: M-@ : mark-word
+- press multiple times to select more words
+
+Mark/select a paragraph without moving the point:
+: M-h : M-H : mark-paragraph
+- press multiple times to select more words
+
+Mark/select the whole buffer:
+: C-x h : mark-whole-buffer
 
 ** Insert / Indent
 *** Lines (new/split/join)
