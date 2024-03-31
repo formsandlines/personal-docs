@@ -818,7 +818,9 @@ Similar to registers, but only store locations in files.
 
 *Open bookmark list* in a dedicated buffer:
 : C-x r l : bookmark-bmenu-list
-- close buffer with ~q~
+- ~RET~: jump to bookmark
+- ~d~ + ~x~: mark for deletion + execute (like in [[#dired]])
+- ~q~: close buffer
 
 *Jump to bookmark* by its name:
 : C-x r b : bookmark-jump
@@ -1111,6 +1113,44 @@ Mark/select a paragraph without moving the point:
 
 Mark/select the whole buffer:
 : C-x h : mark-whole-buffer
+
+*** Regions
+
+*** Rectangles
+A /rectangle/ is a rectangular area of text, specified by the positions of
+the /mark/ and the /point/, which define the corners of what is then called a
+“region-rectangle”.
+- if both are in the same /column/, the region-rectangle is empty
+- if both are on the same /line/, the region-rectangle is 1 line high
+- depending on the command, a region-rectangle is either interpreted as a
+  /region/ or a /rectangle/
+
+*Kill* the text of the /region-rectangle/:
+: C-x r k : kill-rectangle
+- saves it as the last killed rectangle
+
+*Copy* the text of the /region-rectangle/ as the last killed rectangle:
+: C-x r M-w : copy-rectangle-as-kill
+
+*Delete* the text of the /region-rectangle/:
+: C-x r d : delete-rectangle
+
+*Yank/Paste* the last killed/copied rectangle:
+: C-x r y : yank-rectangle
+
+*Clear* the text of the /region-rectangle/, filling it with spaces:
+: C-x r c : clear-rectangle
+
+
+*Push the text* of the /region-rectangle/ to the right, by a rectangle of
+blank spaces equal to its size:
+: C-x r o : open-rectangle
+
+*Insert line numbers* along the left edge of the /region-rectangle/, pushing
+its contents to the right:
+: C-x r N : rectangle-number-lines
+
+
 
 ** Insert / Indent
 *** Lines (new/split/join)
