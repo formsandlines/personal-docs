@@ -496,7 +496,7 @@ Move to beginning/end of *field*:
 : M-e : org-table-end-of-field
 
 Delete *field* content:
-: C-SPC : org-table-blank-field
+: C-c d : org-table-blank-field
 Copy *field* to next row:
 : S-<return> : org-table-copy-down
 Edit current *field* in edit buffer:
@@ -520,6 +520,53 @@ Paste rectangular *region/field(s)* (ignores separator lines):
 
 Wrap region/field(s) in a column like a paragraph:
 : (overwritten?) C-c C-w : org-table-wrap-region
+
+*** Calculations
+Type ~:=<formula>~ to enter a formula in a field, followed by ~TAB~ to apply
+the calculation. Or use the keybinding ~C-c =~.
+
+Table *formulas* are automatically added underneath the table like this:
+: #+TBLFM: <formula1>::<formula2>::…
+- ~::~ concatenates the formulas to a single string
+
+Field reference symbols:
+- ~@~ → row
+- ~$~ → column
+- ~>~ → (?) last element in a range
+- *Note:* use ~C-c }~ or ~C-c ?~ to see field reference information.
+
+A table can be referenced from another table by adding a name above it:
+: #+TBLNAME: <name>
+… and using ~remote(<name>, …)~ to apply a formula to that table
+
+Calculation functionality comes from [[info:calc#Top][Calc]] (GNU Emacs Calculator).
+
+Different functions can be used in formulas:
+| Function                | Description                         |
+|-------------------------+-------------------------------------|
+| ~<x>..<y>~                | create range from cell ~x~ to ~y~       |
+| ~vsum(<list>)~            | sum all numbers in a list           |
+| ~remote(<TBLNAME>,<fml>)~ | reference values from another table |
+
+*Ranges* are lists of numbers, e.g. ~[1, 2, 3]~
+
+_Commands_
+
+*Set a formula* for the *column* (or *field* with ~C-u~):
+: C-c = : org-table-eval-formula
+
+*Recalculate* field values:
+: C-c * : org-ctrl-c-star → org-table-recalculate
+- or ~C-u C-c C-c~ to realign table and recalculate
+
+*Call formula editor* for all fields:
+: C-' : org-edit-special → org-table-edit-formulas
+- ~C-c C-c~: save & exit
+- ~S-<arrow-keys>~: shift field reference
+
+*Toggle formula debugger*:
+: C-c C-{ : org-table-toggle-formula-debugger
+- shows debug info on recalculation
 
 * Links
 
