@@ -274,7 +274,6 @@ Source: [[https://www.youtube.com/watch?v=SOxlQ7ogplA][Modern Emacs: all those n
 
   Simplest setup with [[#treesit-auto]].
     
-
 * Version Control
 ** VC (Emacs’ version control system)
 :PROPERTIES:
@@ -1150,8 +1149,6 @@ blank spaces equal to its size:
 its contents to the right:
 : C-x r N : rectangle-number-lines
 
-
-
 ** Insert / Indent
 *** Lines (new/split/join)
 Insert a /newline/ and move to left margin of the new line:
@@ -1336,7 +1333,15 @@ Jump to a place in the buffer chosen from menu (e.g. specific symbols):
 - suggests the symbol at /point/ to jump to its definition
 
 ** S-expressions
-These commands work in any /major mode/ and on any /balanced expression/
+*Wrap inside *parentheses* the /region/ or the following /n/ (as determined by a
+number prefix) sexps:
+: M-( : insert-parentheses
+- a ~C--~ prefix encloses the /preceding n/ sexps instead
+- no argument/region just inserts ~()~ and leaves the point between
+
+---
+
+The following commands work in any /major mode/ and on any /balanced expression/
 (which can span multiple lines):
 - *strings:* ~"…"~, ~'…'~
 - *brackets:* ~[…]~, ~(…)~, ~{…}~, ~<…>~
@@ -1439,24 +1444,25 @@ Do not allow scrolling commands (e.g. ~C-v~) to exit isearch:
 *NOTE:* Query commands also work inside [[#isearch]] to replace matches.
 
 Replace (non-regex) ~from-str~ with ~to-str~ (in the current /region/):
-: M-x (replace-string <from-str> <to-str>
-:      <?delimited> <?start> <?end> <?backward> <?region-noncontiguous?>)
+: M-x (replace-string <from-str> <to-str> <?delimited>
+:      <?start> <?end> <?backward> <?region-noncontiguous?>)
 - if no /region/ (selection) is visible, searches the entire /buffer/
 
 Replace (regex) things after point matching ~regexp~ with ~to-str~:
-: M-x (replace-regexp <regexp> <to-str>
-:      <?delimited> <?start> <?end> <?backward> <?region-noncontiguous?>)
+: M-x (replace-regexp <regexp> <to-str> <?delimited>
+:      <?start> <?end> <?backward> <?region-noncontiguous?>)
 - if no /region/ (selection) is visible, searches the entire /buffer/
 - see [[#regex-syntax]] for reference
 
 
 Replace (non-regex) queried occurrences of ~from-str~ with ~to-str~:
-: M-% (query-replace <from-str> <to-str>
-:      <?delimited> <?start> <?end> <?backward> <?region-noncontiguous?>)
+: M-% : (query-replace <from-str> <to-str> <?delimited>
+:        <?start> <?end> <?backward> <?region-noncontiguous?>)
+- binding overwritten in MacOS – rebind to e.g. ~C-%~
 
 Replace (regex) queried things after point matching ~regexp~ with ~to-str~:
-: C-M-% (query-replace-regexp <regexp> <to-str>
-:        <?delimited> <?start> <?end> <?backward> <?region-noncontiguous?>)
+: C-M-% : (query-replace-regexp <regexp> <to-str> <?delimited>
+:          <?start> <?end> <?backward> <?region-noncontiguous?>)
 - type replacement string after query, then either:
   - replace match with ~SPC~ / ~y~
   - replace all remaining matches with ~!~ (no questions asked)
@@ -1783,10 +1789,6 @@ Mode to interact with elisp:
 ** elisp REPL
 Interactively evaluate Emacs Lisp expressions in a REPL.
 : M-x ielm
-
-** GNU Emacs Calculator
-Invoke the GNU Emacs Calculator:
-: C-x * : calc-dispatch
 
 * Packages list
 ** Version Control
@@ -2219,6 +2221,9 @@ Delete files and kill buffers in-list:
 :END:
 VERTical Interactive COmpletion
 - https://github.com/minad/vertico
+
+Confirm with exact minibuffer input instead of completions:
+: M-RET : vertico-exit-input
 *** consult.el
 Consulting completing-read. Provides search and navigation commands based
 on the Emacs completion function ~completing-read~.
@@ -2478,6 +2483,10 @@ Creates graphviz directed graphs from [[#org-mode]] files.
 - https://github.com/the-ted/org-mind-map
 *** …also see
 - https://www.emacswiki.org/emacs/WikiModes
+** Mathematics
+*** [built-in] calc.el (GNU Emacs Calculator)
+See [[file:emacs-calc.org][Docs / GNU Emacs Calculator]] for reference.
+
 ** Files
 *** [built-in] Dired (file-/directory manager)
 :PROPERTIES:
