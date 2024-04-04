@@ -65,6 +65,17 @@ Example:
 
 ** Visibility Cycling
 
+To fix the subtree visibility, set ~STARTUP~ to one of the following values:
+| Value                       | Description                               |
+|-----------------------------+-------------------------------------------|
+| ~#+STARTUP: fold~ / ~overview~  | show only top-level headings              |
+| ~#+STARTUP: nofold~ / ~showall~ | show all headings & content but no drawer |
+| ~#+STARTUP: content~          | show all headings /without/ the content     |
+| ~#+STARTUP: show<n>levels~    | ~<n>~ = 2..5                                |
+| ~#+STARTUP: showeverything~   | show all the text in the buffer           |
+
+For Org buffers globally, set the variable ~org-startup-folded~ instead.
+
 Cycle subtree at point:
 : <TAB> : org-cycle
 - states:
@@ -107,6 +118,13 @@ Show current subtree in an indirect buffer:
 - see [[file:emacs.org::#indirect-buffer][Docs/Emacs → Indirect buffer]] or [[info:emacs#Indirect Buffers][emacs#Indirect Buffers]]
 - this takes various prefix args -> see docs
   
+** Copying Outlines
+Copy *visible parts* of the region/outline:
+: C-c C-x v : org-copy-visible
+
+Copy current *subtree*:
+: C-c C-x M-w : org-copy-special → org-copy-subtree
+
 * Properties / Metadata
 
 Properties are /key-value pairs/. They can be associated with a node in the
@@ -342,7 +360,6 @@ Escape characters:
 - use \vbar in tables to insert a literal pipe
 
 * Markup
-
 ** Text formats
 
 *Bold*, /italic/, =verbatim=, +strikethrough+, ~code~
