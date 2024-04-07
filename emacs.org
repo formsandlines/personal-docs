@@ -2625,5 +2625,6 @@ Toggles between the [[#vterm]] buffer and whatever buffer you are editing.
 - EMMS (Emacs multimedia system) (interactive media browser & music player)
 - [[https://github.com/Malabarba/beacon][beacon]] (light that follows the cursor when jumping around)
 - [[https://github.com/larstvei/Focus][focus]] (dims the font color of surrounding paragraphs)
+- [[https://www.bobnewell.net/publish/35years/poetry.html][Poetry mode]] (“as you type” count of syllables on a line)
   
   

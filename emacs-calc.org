@@ -37,8 +37,7 @@ Calc setup:
 
 … (many more, see [[info:Calc#Other C-x * Commands][Calc#Other C-x * Commands]])
 
-* Calculation Modes
-
+** Calculator Modes
 *Quick mode* prompts for a formula in /standard notation/. The result will be
 shown in the /minibuffer/ and also appear in the /kill ring/ to be yanked into
 the editing buffer.
@@ -64,26 +63,17 @@ result copied from the stack.
 * General Commands
 - ~q : calc-quit~ → exit calculator
 - ~U : calc-undo~ → undo input
+- ~D : calc-redo~ → redo input
 - ~y : calc-copy-to-buffer~ → copy top of stack into editing buffer
 - ~' : calc-algebraic-entry~ → enter an algebraic formula
-- ~= : calc-evaluate~ → evaluate algebraic formula
-
-Saving mode settings across sessions:
-- ~m m : calc-save-modes~ → save all current mode settings
-  - the save-file is defined in the ~calc-settings-file~ variable
-  - the default save-file is =~/.emacs.d/calc.el=
-  - includes everything controlled by the ~m~ and ~d~ prefix keys, the current
-    precision and binary word size, whether or not the trail is displayed,
-    the current height of the Calc window, etc.
-- ~m R : calc-mode-record-mode~ → like ~m m~ every time a mode setting changes
-  - this “automatic mode recording” mode is also saved
-  - ~m R~ again disables it (must be saved with ~m m~ to disable permanently)
 
 Getting Help:
 : h … : calc-help-prefix
 - ~… k~: keybinding
 - ~… f~: function
 - ~… s~: summary
+- type ~?~ (repeatedly) after a prefix key to see the prefixed commands in the
+  minibuffer as a short reference
 
 * Stack Manipulation
 - ~RET / SPC : calc-enter~ (without input) → duplicate the top of the stack
@@ -94,57 +84,97 @@ Getting Help:
 - ~M-TAB / C-M-i : calc-roll-up~ → rotate top 3 elements /upwards/
   - /n/-prefixed (default: 3rd) element in stack will be moved to the top
 
+Commands to handle larger formulas or numbers:
+- ~< : calc-scroll-left~ → left horizontal scrolling
+- ~> : calc-scroll-right~ → right horizontal scrolling
+- ~` : calc-edit~ → edit the stack entry directly
+
 Numeric prefixes change stack element selection for some commands (like
 ~calc-enter~ and ~calc-pop~):
 - /numeric prefix/ operates on *all top n elements* from the stack
 - /negative numeric prefix/ operates on the *nth element* of the stack
 - /0-numbered prefix/ operates on the *entire stack*
 
-* Display Commands
-To view results in a different notation:
-- ~d N : calc-normal-language~ → normal
-- ~d B : calc-big-language~ → big math formulas
-- ~d C : calc-c-language~ → C language
-- ~d T : calc-tex-language~ → TeX typesetting
-- ~d L : calc-latex-language~ → LaTeX typesetting
+* Trail
+The /trail/ records everything that happens on the stack.
+- ~t d : calc-trail-display~ → toggle display of the trail
 
-Example of big math notation:
-:            ________                ________
-:           |  2                    |  2
-:          \| a  - 4  - a      a - \| a  - 4
-: [x = a + --------------, y = --------------]
-:                2                   2
-from normal notation:
-: [x = a + (sqrt(a^2 - 4) - a) / 2, 
-:  y = (a - sqrt(a^2 - 4)) / 2]
+The *trail pointer* is marked by a little ~>~ in front of a trail entry.
 
-Result/stack alignment:
-- ~d = : calc-center-justify~ → center results
-- ~d < : calc-left-justify~ → align results to the left
-- ~d > : calc-right-justify~ → align results to the right
+Trail pointer movement:
+- ~t [ : calc-trail-first~ → move trail pointer to /first/ entry
+- ~t ] : calc-trail-last~ → move trail pointer to /last/ entry
+- ~t p : calc-trail-previous~ → move trail pointer to /previous/ entry
+- ~t n : calc-trail-next~ → move trail pointer to /next/ entry
+- ~t s : calc-trail-isearch-forward~ → /search/ & move trail pointer to that entry
+- ~t r : calc-trail-isearch-backward~ → like ~t s~, but search backwards
 
-Annotations:
-- ~d } : calc-right-label~ → add righthand label
-- ~d { : calc-left-label~ → add lefthand label
+Trail usage:
+- ~t y : calc-trail-yank~ → /yank/ current trail entry onto stack
+  - creates new trail entry
+
+* Evaluation
+Fully interpretable formulas will always be directly evaluated on the stack.
+
+Formulas with variables are inserted uninterpreted even if their variables
+have been already assigned.
+
+To evaluate/reduce an algebraic formula with variables:
+: = : calc-evaluate
+- if a variable has no assigned value, it is left untouched
+- if a call to a function is undefined (either its name or for the arguments
+  passed), it is also left alone
+
+If the evaluation of a formula failed, an explanation can be given with:
+: w : calc-why
+
+
+A formula can be separated from its evaluation by writing the ~=>~
+(~evaluates-to~) operator at the end. On the stack, it will look like this:
+: <input formula> => <evaluated formula>
+- the evaluated formula will be updated whenever the value of one of its
+  variables changes
+
+The command ~s = : calc-evalto~ creates the same structure from a previously
+entered formula on the stack.
 
 * Algebraic Notation
+:PROPERTIES:
+:CUSTOM_ID: notation
+:END:
 Enter a formula with ~' : calc-algebraic-entry~.
+- ~$~ always enters algebraic entry
 
-To avoid having to type ~'~ every time, enter *Algebraic mode*:
+Toggle *Algebraic mode* to avoid having to type ~'~ every time:
 : m a : calc-algebraic-mode
+- if a formula starts with a function name, the ~'~ is still necessary
+
+Numbers can be entered in *different bases* by prepending ~N#~ for a base /N/.
+- entry will be converted with the users base setting (see [[#display-commands][Display Commands]])
+
+*Scientific notation* is used by Calc automatically whenever a number has too
+many extra zeros, e.g. ~2.^10000~ => ~1.99506311689e3010~ .
+- the user can also enter a number directly in this notation, but it will
+  result in a /floating-point/ number instead of an integer (e.g. ~2.^1e4~ =>
+  ~2.^10000.~ => ~1.99506311678e3010~ – note the difference!)
 
 Element types (may be incorrect):
-- Number :: e.g. ~42~, ~3.41~
+- Integer :: e.g. ~42~
+- Floating-point Number :: e.g. ~2.~ (= ~2.0~), ~3.41~
 - Complex Number :: e.g. ~(0, 2)~
 - Vector :: e.g. ~[1 2 3]~
 - Matrix :: e.g. ~[[1 5] [2 6]]~
 - Unit :: e.g. ~m/h~, have to be entered algebraically (using ~'~)
 - Date :: e.g. ~<25 dec 87>~
+- Group :: for explicit order of evaluation, e.g. ~(3*4)~
 - Operator :: e.g. ~+~, ~-~ , ~*~, ~/~, ~^~
   - ~a b~ is another way to write ~a*b~
-- Group :: for explicit order of evaluation, e.g. ~(3*4)~
+  - *NOTE:* ~a(1+2)~ will be interpreted as a function call; write ~a*(1+2)~ instead
+- Fraction :: e.g. ~1:2~
+- Variable :: e.g. ~a~, ~x~
 - Equations :: e.g. ~[x + y = a, x y = 1]~
-- Stack Reference :: ~$~ for top result, ~$$~ for second result on the stack
+- Function :: e.g. ~sqrt(36)~
+- Stack Reference :: ~$~ for 1st stack element, ~$$~ for 2nd, ~$$$~ for 3rd, etc.
   - consumes/pops the stack
 
 ** Operator Precedence
@@ -159,6 +189,176 @@ Operator precedence is not affected by spaces, so ~a/b*c~ = ~a/b * c~ = ~a/b c~.
 Evaluation of operators at the same level is /left to right/, except with ~^~,
 which is /right to left/.
 - e.g. ~2-3-4~ = ~(2-3)-4~, but ~2^3^4~ = ~2^(3^4)~
+
+** Variables
+A variable name should consist of one or more letters or digits, beginning
+with a letter.
+
+To store the top stack number in a variable, leaving it on the stack::
+: s s : calc-store
+Like above, but removes the number from the stack:
+: s t : calc-store-into
+To unstore a specific variable (unbind its value):
+: s u : calc-unstore
+
+Retrieving a variable’s value can be either by function ~calc-recall~ or by
+typing it inside a formula.
+
+To recall a variable’s value on the stack:
+: s r : calc-recall
+
+A “quick variable” (~q0~ … ~q9~) can be quickly stored and recalled by shorthand
+commands with the variable digit (using e.g. ~s 3~, ~t 3~, ~r 3~).
+
+* Display Commands
+:PROPERTIES:
+:CUSTOM_ID: display-commands
+:END:
+*Note:* display commands do not affect how a number is stored in memory, only
+how it is displayed.
+- only the current /precision/ governs the actual rounding of numbers in memory
+
+Prefix ~H~ before any display command, to prevent it from updating the stack.
+- only new entries or updated old entries (including by stack manipulation)
+  will appear in the new format
+- ~d SPC : calc-refresh~ still updates the whole stack afterwards
+
+  
+Formula display *language*:
+- ~d N : calc-normal-language~ → default
+- ~d B : calc-big-language~ → big math formulas
+- ~d C : calc-c-language~ → C language
+- ~d T : calc-tex-language~ → TeX typesetting
+- ~d L : calc-latex-language~ → LaTeX typesetting
+- …
+
+  Example of big math formulas:
+  :            ________                ________
+  :           |  2                    |  2
+  :          \| a  - 4  - a      a - \| a  - 4
+  : [x = a + --------------, y = --------------]
+  :                2                   2
+  from normal language:
+  : [x = a + (sqrt(a^2 - 4) - a) / 2, 
+  :  y = (a - sqrt(a^2 - 4)) / 2]
+
+/floating-point/ display *notation*:
+  - number of decimal places defaults to users precision setting
+  - /numeric prefix/ changes number of shown decimal places to /n/
+    - gets filled with (vanishing) 0s if precision is too small, which may
+      become “garbage digits” when viewed in other bases than 10
+  - /negative argument/ + numeric prefix changes to /default - n/ decimal places
+- ~d n : calc-normal-notation~ → default
+- ~d f : calc-fix-notation~ → fixed-point
+- ~d s : calc-sci-notation~ → scientific notation
+- ~d e : calc-eng-notation~ → engineering notation
+  
+  *Note:* rounding due to fewer decimal places shown may result in numbers that
+  look the same, but are different internally (see [[info:calc#Modes Answer
+  1][calc#Modes Answer 1]]).
+  - set ~d n~ precision a little higher than normal to avoid this
+
+Grouping of digits:
+- ~d g : calc-group-digits~ → group digits into chunks of 3 (4 in base 2 & 16)
+  - /numeric prefix/ changes chunk size
+  - /negative argument/ + numeric prefix also groups decimal places
+- ~d , : calc-group-char~ → change grouping char (default: ~,~)
+
+Base /N/ representation:
+- ~d r : calc-radix~ → change representation to given /base/
+- ~d 0 : calc-decimal-radix~ → shorthand for ~d r 10~
+- ~d 2 : calc-binary-radix~ → shorthand for ~d r 2~
+- ~d 6 : calc-hex-radix~ → shorthand for ~d r 16~
+- ~d 8 : calc-octal-radix~ → shorthand for ~d r 8~
+
+  Numbers can be entered in any base, see [[#notation][Algebraic Notation]].
+
+  *Note:* if the radix is >= 15, the letter ~e~ (for exponent) will be interpreted
+  as a digit, so it cannot be used.
+  - use /algebraic mode/ to enter the exponent explicitly (~X*B^N~) or type ~X
+    <RET> e N <RET> *~ for a number /X/ with exponent /N/ for the chosen base /B/
+
+Result/stack alignment:
+- ~d = : calc-center-justify~ → center results
+- ~d < : calc-left-justify~ → align results to the left
+- ~d > : calc-right-justify~ → align results to the right
+
+Annotations:
+- ~d } : calc-right-label~ → add righthand label
+- ~d { : calc-left-label~ → add lefthand label
+  
+* Numeric Precision
+Default mode line:
+: --%*-Calc: 12 Deg       (Calculator)----All------
+- ~12~ means floating-point precision to 12 significant figures
+
+To change floating-point precision to given number:
+: p : calc-precision
+- if the number before the decimal point is > 0, its digits will count too
+- *Note:* numbers on the stack that have more digits will be /rounded down/ to the
+  current precision before they are used in calculation
+- *Note:* when raising a number to a floating-point power, the result may be
+  /slightly less accurate/ than raising to an integer power, since the algorithm
+  Calc uses there is different (see [[info:Calc#Modes Tutorial][Calc#Modes Tutorial]])
+  - to be safe, always include a few extra /guard digits/ on top
+- *Note:* floating-point numbers are always /stored in decimal/, so even though an
+  exact number was entered, it may be rounded after being processed in decimal
+  (e.g. ~3#0.1~ becomes ~0.333…~ and as such ~3#0.022…~ in base 3)
+  - use fractions (~x:y~) to avoid imprecision
+
+To convert a floating-point to an integer:
+: F : calc-floor
+To convert an integer to a floating-point:
+: c f : calc-float
+
+To “clean” the number on the top of the stack:
+: c c : calc-clean
+- /re-rounds/ floating-point numbers to the current precision
+  - with /numeric prefix/, sets the /precision/ to that number (duration of call)
+  - a negative or zero prefix /decreases/ the precision by that number
+- /normalizes/ polar numbers, whose angular components have deviated from the
+  -180 to +180 range (use the same angular mode for best results)
+- vectors and formulas are cleaned by cleaning each component number
+- no effects on integers and fractions
+
+Shorthand for ~c c~ with a corresponding negative prefix argument:
+: c <0-9> : calc-clean-num
+- reduces the floating-point precision by /N/ digits while re-rounding
+- good to fix roundoff errors, e.g. ~c 1~ on ~1.99999~ with precision 6 rounds the
+  number to ~2~
+- turns integer-valued floats into integers (e.g. ~2.~ becomes ~2~), except for
+  very large ones
+- *Note:* decreases very small floats to zero, if the exponent <= the specified
+  precision (e.g. ~c 2~ with prec. 12 on ~1e-10~ becomes ~0~)
+  - avoid using these commands for very small numbers, use ~c c~ instead
+
+* Modes of Operation
+*Infinity mode* in which ~1 / 0~ results in a representation of infinity instead
+of being left unevaluated:
+: m i : calc-infinite-mode
+
+*Angular modes*:
+- ~m r : calc-radians-mode~ → interpret in radians
+- ~m d : calc-degrees-mode~ → interpret in degrees
+- ~c r : calc-to-radians~ → convert to radians
+- ~c d : calc-to-degrees~ → convert to degrees
+
+  Example: ~45 m d S~ yields the same number as ~P 4/ m r S~
+
+*Fraction mode* produces fractions in integer division instead of floats:
+: m f : calc-frac-mode
+- return to floating-point results by prepending the /negative argument/
+
+** Saving Mode Settings across Sessions
+- ~m m : calc-save-modes~ → save all current mode settings
+  - the save-file is defined in the ~calc-settings-file~ variable
+  - the default save-file is =~/.emacs.d/calc.el=
+  - includes everything controlled by the ~m~ and ~d~ prefix keys, the current
+    precision and binary word size, whether or not the trail is displayed,
+    the current height of the Calc window, etc.
+- ~m R : calc-mode-record-mode~ → like ~m m~ every time a mode setting changes
+  - this “automatic mode recording” mode is also saved
+  - ~m R~ again disables it (must be saved with ~m m~ to disable permanently)
 
 * Math Functions
 Can also be invoked using ~x~, which is like ~M-x~ but with ~calc-~ prefixed.
@@ -177,6 +377,8 @@ subtraction) or by changing the sign with ~n~ afterwards.
 | ~Q~              | ~sqrt(x)~    | square root                              |
 |----------------+------------+------------------------------------------|
 | ~P~              | ~pi~         | pi                                       |
+|----------------+------------+------------------------------------------|
+| ~f [~ / ~f ]~      |            | decrement/increment by 1 in last place   |
 |----------------+------------+------------------------------------------|
 | ~( r i )~        | ~(r, i)~     | enter complex number                     |
 |----------------+------------+------------------------------------------|
@@ -198,7 +400,12 @@ subtraction) or by changing the sign with ~n~ afterwards.
 |                |            | to solve the (previous) equation         |
 | ~a d <var>~      |            | take the derivative with given variable  |
 |----------------+------------+------------------------------------------|
+| ~S~ / ~s S~        |            | sine of /n/                                |
+| ~C~ / ~c C~        |            | cosine of /n/                              |
+| ~T~ / ~t T~        |            | tangent of /n/                             |
+| ~I S~ / ~I s S~    |            | arcsin (inverse sine)                    |
+| ~I C~ / ~I c C~    |            | arccos (inverse cosine)                  |
+| ~I T~ / ~I t T~    |            | arctan (inverse tangent) (slope → angle) |
 | ~f h~            |            | calculate hypothenuse                    |
-| ~I T~            |            | inverse tangent (slope → angle)          |
 | ~I H S~          | ~arcsinh(x)~ | inverse hyperbolic sine                  |
 
