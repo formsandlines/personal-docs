@@ -98,6 +98,8 @@ Numeric prefixes change stack element selection for some commands (like
 * Trail
 The /trail/ records everything that happens on the stack.
 - ~t d : calc-trail-display~ → toggle display of the trail
+- ~t i : calc-trail-in~ → move point inside trail window
+- ~t o : calc-trail-out~ → move point back to calc window
 
 The *trail pointer* is marked by a little ~>~ in front of a trail entry.
 
@@ -170,7 +172,7 @@ Element types (may be incorrect):
 - Operator :: e.g. ~+~, ~-~ , ~*~, ~/~, ~^~
   - ~a b~ is another way to write ~a*b~
   - *NOTE:* ~a(1+2)~ will be interpreted as a function call; write ~a*(1+2)~ instead
-- Fraction :: e.g. ~1:2~
+- Fraction :: e.g. ~1:2~, ~2:1:2~ (2 1/2)
 - Variable :: e.g. ~a~, ~x~
 - Equations :: e.g. ~[x + y = a, x y = 1]~
 - Function :: e.g. ~sqrt(36)~
@@ -278,6 +280,10 @@ Base /N/ representation:
   - use /algebraic mode/ to enter the exponent explicitly (~X*B^N~) or type ~X
     <RET> e N <RET> *~ for a number /X/ with exponent /N/ for the chosen base /B/
 
+Leading zeros (e.g. for binary numbers):
+- ~b w : calc-word-size~ → set /word size/ (default: 32 bits)
+- ~d z : calc-leading-zeros~ → toggle leading zeros according to /word size/
+
 Result/stack alignment:
 - ~d = : calc-center-justify~ → center results
 - ~d < : calc-left-justify~ → align results to the left
@@ -288,9 +294,10 @@ Annotations:
 - ~d { : calc-left-label~ → add lefthand label
   
 * Numeric Precision
-Default mode line:
-: --%*-Calc: 12 Deg       (Calculator)----All------
-- ~12~ means floating-point precision to 12 significant figures
+:PROPERTIES:
+:CUSTOM_ID: precision
+:END:
+The default *floating-point precision* is 12.
 
 To change floating-point precision to given number:
 : p : calc-precision
@@ -333,9 +340,16 @@ Shorthand for ~c c~ with a corresponding negative prefix argument:
   - avoid using these commands for very small numbers, use ~c c~ instead
 
 * Modes of Operation
-*Infinity mode* in which ~1 / 0~ results in a representation of infinity instead
-of being left unevaluated:
-: m i : calc-infinite-mode
+Default mode line:
+: --%*-Calc: 12 Deg       (Calculator)----All------
+- ~12~ means floating-point precision to 12 significant figures
+- ~Deg~ means angles are interpreted as degrees
+
+See [[#precision][Numeric Precision]] for details on how to change floating-point precision.
+
+*Fraction mode* produces fractions in integer division instead of floats:
+: m f : calc-frac-mode
+- return to floating-point results by prepending the /negative argument/
 
 *Angular modes*:
 - ~m r : calc-radians-mode~ → interpret in radians
@@ -345,9 +359,9 @@ of being left unevaluated:
 
   Example: ~45 m d S~ yields the same number as ~P 4/ m r S~
 
-*Fraction mode* produces fractions in integer division instead of floats:
-: m f : calc-frac-mode
-- return to floating-point results by prepending the /negative argument/
+*Infinity mode* in which ~1 / 0~ results in a representation of infinity instead
+of being left unevaluated:
+: m i : calc-infinite-mode
 
 ** Saving Mode Settings across Sessions
 - ~m m : calc-save-modes~ → save all current mode settings
@@ -375,8 +389,11 @@ subtraction) or by changing the sign with ~n~ afterwards.
 | ~^~              | ~x^n~        | power                                    |
 | ~n~              |            | change sign (positive/negative)          |
 | ~Q~              | ~sqrt(x)~    | square root                              |
+| ~k g~            |            | greatest common denominator (gcd)        |
+| ~k l~            |            | least common multiple (lcm)              |
 |----------------+------------+------------------------------------------|
 | ~P~              | ~pi~         | pi                                       |
+| ~H P~            |            | e                                        |
 |----------------+------------+------------------------------------------|
 | ~f [~ / ~f ]~      |            | decrement/increment by 1 in last place   |
 |----------------+------------+------------------------------------------|
@@ -385,7 +402,9 @@ subtraction) or by changing the sign with ~n~ afterwards.
 | ~[ x y … ]~      | ~[x y …]~    | collect numbers in a vector              |
 | ~V R <op>~       |            | reduce vector with ~<op>~                  |
 |----------------+------------+------------------------------------------|
+| ~V i~            |            | identity matrix of given dimension       |
 | ~v t~            |            | transpose matrix                         |
+| ~v D~            |            | calculate determinant                    |
 | ~v u~            |            | unpack vector/matrix as stack elements   |
 |----------------+------------+------------------------------------------|
 | ~u c <unit>~     |            | convert between units (e.g. ~m/s~)         |
@@ -408,4 +427,44 @@ subtraction) or by changing the sign with ~n~ afterwards.
 | ~I T~ / ~I t T~    |            | arctan (inverse tangent) (slope → angle) |
 | ~f h~            |            | calculate hypothenuse                    |
 | ~I H S~          | ~arcsinh(x)~ | inverse hyperbolic sine                  |
+|----------------+------------+------------------------------------------|
+| ~b t~            |            | rotate number 1 bit to the left          |
+| ~b l~ / ~b r~      |            | left/right bit shift                     |
 
+* Macros
+The built-in Emacs macro system can be used in Calc too.
+
+Record a macro (start → do stuff → end):
+: C-x ( : kmacro-start-macro
+: C-x ) : kmacro-end-macro
+
+Call the recorded macro (or end recording):
+: C-x e : kmacro-end-and-call-macro
+
+* Programming
+** Using Formulas
+Generate a user-defined command from the formula on top of the stack:
+: Z D : calc-user-define
+
+The command is given a shortcut key and can be applied just like any other
+Calc function to the stack.
+
+** Using Emacs Lisp
+The ~defmath~ macro extends the basic ~defun~ function to define math functions
+to be used by Calc.
+
+Example:
+#+begin_src elisp
+(put 'calc-define 'thing
+     '(progn
+	(defmath falld
+	  ;; define argument 't' as a scalar float
+	  ((float (scalarp t))) 
+	  ;; set command to be usable in algebraic expressions
+	  (interactive 1 "falld")
+	  ;; define the formula
+	  (/ (* 98 (/ (^ t 2)) 2) 100))))
+#+end_src
+
+The function can then be used in an algebraic formula in Calc, e.g. like
+~4*falld(5)~.
