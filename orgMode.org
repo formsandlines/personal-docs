@@ -24,29 +24,6 @@ Other types:
 - environment keywords, e.g. ~#+BEGIN_EXPORT html~
 
 * Headlines / Outline Tree
-
-| Shortcut        | Action                                             |
-|-----------------+----------------------------------------------------|
-| C ENTER         | create node below (same lvl) + insert              |
-| C-SHIFT ENTER   | create node above (same lvl) + insert              |
-| C-M ENTER       | create child-node                                  |
-| M-(←/→)         | outdent / indent node                              |
-| M-SHIFT-(←/→)   | outdent / indent node + subtrees                   |
-| M-(↑/↓)         | reorder nodes                                      |
-| M-S-(↑/↓)       | reorder lines                                      |
-| C-c (C-n / C-p) | previous / next node                               |
-| C-c (C-f / C-b) | forward / back same level                          |
-| M-{ / M-}       | backward / forwared by one element                 |
-| C-c C-u         | up parent node                                     |
-| C-c C-j         | jump to node                                       |
-| TAB             | cycle CURRENT: top-level -> first-sublevel         |
-| SHIFT TAB       | cycle ALL: top-level -> first-sublevel -> all -> … |
-| z R             | ~+org/open-all-folds~                                |
-| C-<n> Shift-TAB | show <n> headline levels                           |
-| C-x n s / , s n | ~org-narrow-to-subtree~                              |
-| C-x n w / , s N | ~widen~                                              |
-| <none>          | ~org-toggle-narrow-to-subtree~                       |
-
 Headlines define the structure of an outline tree.
 
 An empty line after the end of a subtree is considered part of it and is
@@ -63,7 +40,67 @@ Example:
 :     more text
 : * Another top level headline
 
-** Visibility Cycling
+** Tree Navigation
+
+Move to previous/next (visible) heading line:
+: C-c C-p : org-previous-visible-heading
+: C-c C-n : org-next-visible-heading
+
+Move backward/forward to previous/next (visible) heading on the same level:
+: C-c C-b : org-backward-heading-same-level
+: C-c C-f : org-forward-heading-same-level
+
+Move upwards to the (visible) heading line of the parent subtree:
+: C-c C-u : outline-up-heading
+
+Jump to a selected node in the outline, keeping current visibility:
+: C-c C-j : org-goto
+- shows a copy of the current buffer in an /indirect buffer/, in overview mode
+- with /universal argument/, uses the *alternative interface*, where headings
+  can be entered/selected in the minibuffer
+- set ~org-goto-auto-isearch~ to nil to disable automatic searching by typing
+  letters and enable many more keybindings (as shown below)
+
+Special keybindings in the *org-goto* buffer:
+| Binding               | Description                                   |
+|-----------------------+-----------------------------------------------|
+| ~RET~                   | jump to node at point (exiting org-goto)      |
+| ~q~ / ~C-g~               | cancel / exit the buffer                      |
+| ~/~                     | use ~org-occur~ & isearch to search headings    |
+| ~p~ / ~n~ (~<up>~ / ~<down>~) | move to previous/next heading                 |
+| ~b~ / ~f~                 | move backwards/forwards on same heading level |
+| ~u~                     | move upwards to parent heading                |
+| ~TAB~                   | cycle subtree visibility                      |
+
+** Tree Editing
+Insert a new heading below the point or (when point is on the first ~*~) above
+the current heading:
+: M-RET : org-meta-return → org-insert-heading
+- inserts one empty line between point and heading
+- set ~org-M-RET-may-split-line~ to nil to avoid splitting headings
+
+Insert a new heading below the current subtree (respecting content):
+: C-RET : org-insert-heading-respect-content
+
+Move current subtree (when point is on heading line) up/down:
+: M-<up> : org-metaup → org-move-subtree-up
+: M-<down> : org-metadown → org-move-subtree-down
+
+Promote/demote current heading (when point is on its line):
+: M-<left> : org-metaleft → org-do-promote
+: M-<right> : org-metaright → org-do-demote
+
+Promote/demote entire subtree (when point is on heading line):
+: M-S-<left> : org-shiftmetaleft → org-promote-subtree
+: M-S-<right> : org-shiftmetaright → org-demote-subtree
+
+Move entry/entries at point to another heading:
+: C-c C-w : org-refile
+
+Sort all child nodes of the current heading:
+: C-c ^ : org-sort → org-sort-entries
+
+** Tree Visibility
 
 To fix the subtree visibility, set ~STARTUP~ to one of the following values:
 | Value                       | Description                               |
@@ -117,13 +154,25 @@ Show current subtree in an indirect buffer:
 : C-c C-x b : org-tree-to-indirect-buffer
 - see [[file:emacs.org::#indirect-buffer][Docs/Emacs → Indirect buffer]] or [[info:emacs#Indirect Buffers][emacs#Indirect Buffers]]
 - this takes various prefix args -> see docs
-  
+
+Focus on the current subtree, hiding other parts of the tree:
+: C-x n s : org-narrow-to-subtree
+Defocus the subtree, returning to normal view:
+: C-x n w : widen
+Bind ~org-toggle-narrow-to-subtree~ to toggle between both.
+
 ** Copying Outlines
-Copy *visible parts* of the region/outline:
-: C-c C-x v : org-copy-visible
+Mark the current subtree:
+: C-c @ : org-mark-subtree
 
 Copy current *subtree*:
 : C-c C-x M-w : org-copy-special → org-copy-subtree
+
+The variable ~org-yank-folded-subtrees~ can be set to nil to avoid folding of
+yanked subtrees.
+
+Copy *visible parts* of the region/outline:
+: C-c C-x v : org-copy-visible
 
 * Properties / Metadata
 
