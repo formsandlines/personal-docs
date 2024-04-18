@@ -1,4 +1,5 @@
 #+TITLE: Docs / GNU Emacs Calculator
+#+STARTUP: align shrink
 
 Stack-based calculator in reversed polish notation (RPN).
 
@@ -74,9 +75,11 @@ Getting Help:
 - ~… s~: summary
 - type ~?~ (repeatedly) after a prefix key to see the prefixed commands in the
   minibuffer as a short reference
+- ~u v~ shows a list of all built-in units
 
 * Stack Manipulation
 - ~RET / SPC : calc-enter~ (without input) → duplicate the top of the stack
+- ~M-RET : calc-last-args~ → restores args of the last command to the stack
 - ~DEL : calc-pop~ → delete/pop top entry from stack
 - ~M-DEL : calc-pop-above~ → delete/pop second-to-top entry from stack
 - ~TAB : calc-roll-down~ → rotate top 2 elements /downwards/ (swaps them)
@@ -160,24 +163,36 @@ many extra zeros, e.g. ~2.^10000~ => ~1.99506311689e3010~ .
   result in a /floating-point/ number instead of an integer (e.g. ~2.^1e4~ =>
   ~2.^10000.~ => ~1.99506311678e3010~ – note the difference!)
 
-Element types (may be incorrect):
+Element types:
 - Integer :: e.g. ~42~
 - Floating-point Number :: e.g. ~2.~ (= ~2.0~), ~3.41~
 - Complex Number :: e.g. ~(0, 2)~
 - Vector :: e.g. ~[1 2 3]~
 - Matrix :: e.g. ~[[1 5] [2 6]]~
-- Unit :: e.g. ~m/h~, have to be entered algebraically (using ~'~)
-- Date :: e.g. ~<25 dec 87>~
+- HMS Form :: e.g. ~2@ 30' 15"~ (hours, minutes, seconds)
+- Date Form :: e.g. ~<Fri Dec 25, 1987>~, ~<6:45:18pm Sat Apr 13, 2024>~
+  - many common input formats allowed
+- Error Form :: e.g. ~8 +/- 0.2~ (mean value, standard deviation)
 - Group :: for explicit order of evaluation, e.g. ~(3*4)~
 - Operator :: e.g. ~+~, ~-~ , ~*~, ~/~, ~^~
   - ~a b~ is another way to write ~a*b~
   - *NOTE:* ~a(1+2)~ will be interpreted as a function call; write ~a*(1+2)~ instead
 - Fraction :: e.g. ~1:2~, ~2:1:2~ (2 1/2)
 - Variable :: e.g. ~a~, ~x~
+  - Unit :: e.g. ~m/h~, have to be entered algebraically (using ~'~)
 - Equations :: e.g. ~[x + y = a, x y = 1]~
 - Function :: e.g. ~sqrt(36)~
+- Nameless Function :: e.g. ~<#1 - #2>~ (corresponding to ~$$-$~)
 - Stack Reference :: ~$~ for 1st stack element, ~$$~ for 2nd, ~$$$~ for 3rd, etc.
   - consumes/pops the stack
+
+Constants:
+- Infinity :: ~inf~, ~-inf~ (e.g. from ~ln(0)~ in /infinity mode/)
+- Undirected Infinity :: ~uinf~ (e.g. from dividing by 0 in /infinity mode/)
+  - see graph of ~1 / x~ around point ~x = 0~
+- Indeterminate Number :: ~nan~ (e.g. from subtracting infinities)
+- Euler’s Number :: ~e~
+- PI :: ~pi~
 
 ** Operator Precedence
 ~^~ → ~*~ → ~/~ → ~+~ → ~-~
@@ -202,6 +217,11 @@ Like above, but removes the number from the stack:
 : s t : calc-store-into
 To unstore a specific variable (unbind its value):
 : s u : calc-unstore
+
+To edit a stored variable (in a temporary buffer):
+: s e : calc-edit-variable
+To edit the /EvalRules/, which store automatically applied rewrite rules:
+: s E : calc-edit-EvalRules
 
 Retrieving a variable’s value can be either by function ~calc-recall~ or by
 typing it inside a formula.
@@ -260,6 +280,14 @@ Formula display *language*:
   1][calc#Modes Answer 1]]).
   - set ~d n~ precision a little higher than normal to avoid this
 
+/fraction/ display:
+- ~d o : calc-over-notation~ → enter 1 or 2 fraction separators (default: ~:~)
+  - two symbols (e.g. ~+:~) for an integer plus fractional part (e.g. ~1+3:4~)
+  - when followed by a number (e.g. ~:10~, ~+/3~), Calc tries to adjust all
+    fractions to have the specified denominator or, if not possible, adjust
+    the denominator to be a multiple of that value
+  - see [[info:Calc#Fraction Formats][Calc#Fraction Formats]] for more infos
+
 Grouping of digits:
 - ~d g : calc-group-digits~ → group digits into chunks of 3 (4 in base 2 & 16)
   - /numeric prefix/ changes chunk size
@@ -317,6 +345,11 @@ To convert a floating-point to an integer:
 : F : calc-floor
 To convert an integer to a floating-point:
 : c f : calc-float
+To convert an number to a fraction:
+: c F : calc-fraction
+
+To /round/ a floating-point number:
+: R : calc-round
 
 To “clean” the number on the top of the stack:
 : c c : calc-clean
@@ -350,6 +383,7 @@ See [[#precision][Numeric Precision]] for details on how to change floating-poin
 *Fraction mode* produces fractions in integer division instead of floats:
 : m f : calc-frac-mode
 - return to floating-point results by prepending the /negative argument/
+- use ~d o ::~ to always display mixed fractions
 
 *Angular modes*:
 - ~m r : calc-radians-mode~ → interpret in radians
@@ -363,6 +397,10 @@ See [[#precision][Numeric Precision]] for details on how to change floating-poin
 of being left unevaluated:
 : m i : calc-infinite-mode
 
+*Symbolic mode* leaves formulas like ~sqrt(5)~ that can’t be evaluated exactly in
+symbolic form instead of giving an approximate answer:
+: m s : calc-symbolic-mode
+
 ** Saving Mode Settings across Sessions
 - ~m m : calc-save-modes~ → save all current mode settings
   - the save-file is defined in the ~calc-settings-file~ variable
@@ -375,61 +413,368 @@ of being left unevaluated:
   - ~m R~ again disables it (must be saved with ~m m~ to disable permanently)
 
 * Math Functions
-Can also be invoked using ~x~, which is like ~M-x~ but with ~calc-~ prefixed.
+** General
+| <16>            | <12>      | <38>                                           |
+| Command key(s)  | Formula   | Meaning                                        |
+|-----------------+-----------+------------------------------------------------|
+| ~:~               | ~a:b~       | enter rational number                          |
+| ~( r i )~         | ~(r, i)~    | enter complex number                           |
+| ~<a> M <n>~       | ~a mod n~   | enter modulo form                              |
+| ~n~               |           | change sign (positive/negative)                |
+| ~k r~             | ~random(x)~ | generate random number from top stack          |
+|-----------------+-----------+------------------------------------------------|
+| ~c f~             |           | convert rational number to float               |
+| ~c F~             |           | convert float to rational number               |
+| ~c p~             |           | convert complext number to polar form          |
+|-----------------+-----------+------------------------------------------------|
+| ~u v~             |           | show list of all built-in units                |
+| ~u c <unit>~      |           | convert between units (e.g. ~m/s~)               |
+| ~u b~             |           | convert to base units (shorthand for ~u c base~) |
+| ~u t <temp-unit>~ |           | convert betw. /absolute/ temperature units       |
+| ~u s~             |           | simplify units                                 |
+|-----------------+-----------+------------------------------------------------|
+| ~a =~             |           | compare if equal                               |
+| ~a <~ / ~a >~       |           | compare if smaller/greater                     |
 
-Some binary operations (like ~+~) can also operate on /n/ stack elements by
-using a *numeric prefix*.
+Functions can also be invoked using ~x~, which is like ~M-x~ but with ~calc-~
+prefixed.
+
+_Operators_
 
 *Negative numbers* can ether be entered with the prefix ~_~ (~-~ is bound to
 subtraction) or by changing the sign with ~n~ afterwards.
 
-| Command key(s) | Formula    | Meaning                                  |
-|----------------+------------+------------------------------------------|
-| ~+~ / ~-~ / ~*~ / ~/~  | ~x <op> y~   | add / subtract / multiply / divide       |
-| ~^~              | ~x^n~        | power                                    |
-| ~n~              |            | change sign (positive/negative)          |
-| ~Q~              | ~sqrt(x)~    | square root                              |
-| ~k g~            |            | greatest common denominator (gcd)        |
-| ~k l~            |            | least common multiple (lcm)              |
-|----------------+------------+------------------------------------------|
-| ~P~              | ~pi~         | pi                                       |
-| ~H P~            |            | e                                        |
-|----------------+------------+------------------------------------------|
-| ~f [~ / ~f ]~      |            | decrement/increment by 1 in last place   |
-|----------------+------------+------------------------------------------|
-| ~( r i )~        | ~(r, i)~     | enter complex number                     |
-|----------------+------------+------------------------------------------|
-| ~[ x y … ]~      | ~[x y …]~    | collect numbers in a vector              |
-| ~V R <op>~       |            | reduce vector with ~<op>~                  |
-|----------------+------------+------------------------------------------|
-| ~V i~            |            | identity matrix of given dimension       |
-| ~v t~            |            | transpose matrix                         |
-| ~v D~            |            | calculate determinant                    |
-| ~v u~            |            | unpack vector/matrix as stack elements   |
-|----------------+------------+------------------------------------------|
-| ~u c <unit>~     |            | convert between units (e.g. ~m/s~)         |
-|----------------+------------+------------------------------------------|
-| ~t N~            |            | enter current date and time              |
-| (~M-<1-9>~) ~t P~  |            | extract part (prefix 1-9) of a date form |
-| ~t I~            |            | increment month                          |
-| ~t +~ / ~t -~      |            | add/subtract /x/ business days             |
-|----------------+------------+------------------------------------------|
-| ~a S <var, …>~   |            | solve equation for given variable(s)     |
-| ~s l <var>~      |            | assign the top value to given variable   |
-|                |            | to solve the (previous) equation         |
-| ~a d <var>~      |            | take the derivative with given variable  |
-|----------------+------------+------------------------------------------|
-| ~S~ / ~s S~        |            | sine of /n/                                |
-| ~C~ / ~c C~        |            | cosine of /n/                              |
-| ~T~ / ~t T~        |            | tangent of /n/                             |
-| ~I S~ / ~I s S~    |            | arcsin (inverse sine)                    |
-| ~I C~ / ~I c C~    |            | arccos (inverse cosine)                  |
-| ~I T~ / ~I t T~    |            | arctan (inverse tangent) (slope → angle) |
-| ~f h~            |            | calculate hypothenuse                    |
-| ~I H S~          | ~arcsinh(x)~ | inverse hyperbolic sine                  |
-|----------------+------------+------------------------------------------|
-| ~b t~            |            | rotate number 1 bit to the left          |
-| ~b l~ / ~b r~      |            | left/right bit shift                     |
+Both, /binary/ (e.g. ~+~, ~-~, ~*~, ~/~, ~^~) and /unary operators/ (e.g. ~n~, ~Q~, ~&~) can be
+applied to /n/ stack elements by using a *numeric prefix*.
+- e.g. ~M-3 +~ adds the top 3 numbers on the stack
+
+/Binary operators/ can also be applied /pairwise/ to stack elements by adding the
+*negative prefix* to a numeric prefix.
+- e.g. ~M-- M-3 +~ adds the top number to the 3 numbers after it
+
+The pipe ~|~ “concatenates” numbers, vectors and matrices together.
+
+_Units_
+
+Calling ~u c~ on a /number/ (instead of a formula with a unit), prompts to enter
+the old and new units and converts accordingly without explicitly attaching
+any unit.
+
+When converting temperature units (like ~degF~ or ~degC~) with ~u c~, Calc
+interprets them as /changes/ of temperature. Use ~u t~ to convert between
+/absolute/ temperature units instead.
+
+_Randomness_
+
+~k r : random(x)~ can be invoked with different *argument types* (either given
+as a /numeric prefix/ or else taken from the /stack/):
+- with a positive number /n/, generates a random number in range [0 /n/)
+- with a negative number /n/, generates a random number in range (/n/ 0]
+- with ~0.~, picks a /Gaussian-distributed/ random number (mean: 0, stddev: 1)
+- with a vector /v/, selects a random element from /v/ (equal probability)
+- see [[info:Calc#Random Numbers][Calc#Random Numbers]] for details
+
+When ~random(x)~ is used in a formula applied to a vector, it will be
+evaluated once and the same number used on each element. To avoid this,
+define a *nameless function* instead.
+- a nameless function will not be evaluated until it is used
+- e.g. ~<#+random(2.0)>~ instead of ~$+random(2.0)~.
+
+** Arithmetics
+| <16>           | <12>      | <38>                                   |
+| Command key(s) | Formula   | Meaning                                |
+|----------------+-----------+----------------------------------------|
+| ~+~ / ~-~ / ~*~ / ~/~  | ~x op y~    | add / subtract / multiply / divide     |
+| ~f [~ / ~f ]~      |           | decrement/increment by 1 in last place |
+| ~^~              | ~x^n~       | power                                  |
+| ~Q~              | ~sqrt(x)~   | square root                            |
+| ~I ^~ / ~& ^~      |           | nth root                               |
+| ~&~              |           | reciprocal of a number, i.e. ~1 / x~     |
+| ~\~              |           | integer quotient, i.e. ~/ F~             |
+| ~%~              |           | remainder/modulo                       |
+|----------------+-----------+----------------------------------------|
+| ~P~              | ~pi~        | PI                                     |
+| ~H P~            | ~e~         | Euler’s number /e/                       |
+|----------------+-----------+----------------------------------------|
+| ~e~              | ~e^x~       | power of /e/                             |
+| ~H e~            | ~10^x~      | power of 10 (or write ~1e…~)             |
+| ~L~              |           | natural logarithm (base-/e/)             |
+| ~H L~            |           | base-10 logarithm                      |
+| ~<n> B~          |           | base-~n~ logarithm                       |
+|----------------+-----------+----------------------------------------|
+| ~k p~            |           | test if number is prime                |
+| ~k g~            | ~gcd(x,y)~  | greatest common denominator (gcd)      |
+| ~k l~            | ~lcm(x,y)~  | least common multiple (lcm)            |
+| ~k E~            | ~egcd(x,y)~ | extended gcd, returns ~[g, a, b]~,       |
+|                |           | where ~g = gcd(x,y) = a x + b y~         |
+
+_Modular Arithmetics_
+
+Dividing /a mod m/ by an integer /x/ actually divides by /x mod m/, where Calc
+tries to find a number which, when multiplied by /x mod m/, yields the
+original /a mod m/.
+- if /m/ is prime and the divisor /x/ is not a multiple of /m/, it is always
+  possible to find such a number
+  - for non-prime /m/ it is only sometimes possible
+
+Raising /a mod m/ to a power /x/ yields a number /b mod m/ such that /(a^x) % m/
+equals /b/.
+
+** Combinatorics
+| <16>           | <12>        | <38>                                   |
+| Command key(s) | Formula     | Meaning                                |
+|----------------+-------------+----------------------------------------|
+| ~!~              | ~fact(x)~     | factorial                              |
+| ~f g~            | ~gamma(x)~    | Euler’s Gamma function                 |
+| ~k c~            | ~choose(n k)~ | binomial coefficient (/n-choose-k/)      |
+| ~k f~            |             | prime factors                          |
+| ~k n~            |             | next prime number (prefix ~I~ for lower) |
+
+** Vector Analysis
+| <16>            | <12>    | <38>                                      |
+| Command key(s)  | Formula | Meaning                                   |
+|-----------------+---------+-------------------------------------------|
+| ~[ x y … ]~       | ~[x y …]~ | collect numbers in a vector               |
+| ~v u~             |         | unpack vector/matrix as stack elements    |
+| ~v p~             |         | pack into vector/matrix                   |
+| ~v x <n>~         |         | gen. vector of ~n~ indices                  |
+| ~<n s i> C-u v x~ |         | gen. ~n~ items, start from ~s~, increm. by ~i~  |
+| ~v b <n>~         |         | build vector from ~n~ top stack elements    |
+| ~v v~             |         | reverse vector                            |
+| ~v S~             |         | sort vector (increasing order)            |
+| ~v r <n>~         |         | extract row/col ~n~ from vector or matrix   |
+| / ~v c <n>~       |         |                                           |
+|                 |         | - with /negative argument/, deletes it      |
+|-----------------+---------+-------------------------------------------|
+| ~[ a .. b ]~      |         | create a closed interval                  |
+| ~( a .. b )~      |         | create an open interval                   |
+|-----------------+---------+-------------------------------------------|
+| ~v M <op>~        |         | map vector with ~op~ (apply to each elem.)  |
+| ~v R <op>~        |         | reduce vector with ~op~                     |
+| ~v U <op>~        |         | reduce with ~op~ while accumulating results |
+|-----------------+---------+-------------------------------------------|
+| ~A~               | ~abs(v)~  | absolute value (→ lenght of the vector)   |
+| ~+~               |         | vector addition                           |
+| ~*~               |         | dot product                               |
+| ~v C~             |         | cross product of 3-dim. vector            |
+| ~v D~             |         | calculate determinant                     |
+| ~RET A /~         |         | normalize vector (divide by length)       |
+|-----------------+---------+-------------------------------------------|
+| ~[ [ v ] … ]~     | ~[v; …]~  | collect vectors in a matrix               |
+| ~v i <dim>~       |         | gen. identity matrix of dimension ~dim~     |
+| ~v t~             |         | transpose matrix                          |
+| ~&~               |         | inverse of matrix (reciprocal)            |
+|-----------------+---------+-------------------------------------------|
+| ~*~               |         | composition (matrix multiplication)       |
+| ~/~               |         | divide matrices (multiply by the inverse) |
+
+*Note:* to speed up computation /significantly/ for very large vectors (1000+
+elements), toggle abbreviation of vector display with ~v .~ and ~t .~ (for the
+trail window).
+- using ~t .~ loses the ability to get old vectors back from the trail
+- when in ~v .~ mode, the full vector can still be seen with ~`~ (to edit)
+
+_Map / Reduce_
+
+With /binary operators/, ~v M~ applies the operation element-wise to both
+corresponding components of the top two vectors on the stack.
+- e.g. ~v M *~ on ~[2 3] [1 2]~ on the stack yields ~[2 6]~
+
+Algebraic formulas can also be plugged into mapping and reduction functions,
+where ~$~ then refers to the /current/ element in the vector (or ~$~ to the 1st,
+~$$~ to the 2nd in a two-argument function, etc.).
+- e.g. ~$$-$~ is equivalent to using the ~-~ operator
+
+To /map/ over a vector using the *formula* on top of the stack, ~v M $~ applies it
+to the vector after it, using a given /argument list/ as input to match vector
+values to the variables in the formula.
+
+_Intervals_
+
+Intervals are always ascending and will be flipped accordingly when their
+bounds values change to descending, keeping open/closed bounds.
+
+** Date & Time
+| <16>           | <12>       | <38>                                                                             |
+| Command key(s) | Formula    | Meaning                                                                          |
+|----------------+------------+----------------------------------------------------------------------------------|
+|                | ~<…>~        | enter date form (various input formats)                                          |
+| ~<h>@ <m>' <s>"~ | same       | enter HMS form                                                                   |
+|----------------+------------+----------------------------------------------------------------------------------|
+| ~t N~            |            | current date and time in date form                                               |
+| ~x time~         |            | current time of day in HMS/modulo form                                           |
+| (~M-<1-9>~) ~t P~  |            | extract part (prefix 1-9) of a date form                                         |
+| ~t I~            |            | increment month                                                                  |
+| ~t +~ / ~t -~      |            | add/subtract /x/ business days                                                     |
+| ~t W~            |            | find beginning of the week from date                                             |
+|----------------+------------+----------------------------------------------------------------------------------|
+| ~t D~            |            | date to/from number (days since Jan 1, 1 AD)                                     |
+| ~c h~            | ~hms(h,m,s)~ | convert real number(s) to HMS form (interpreted according to current angular mode) |
+
+The /trigonometric/ functions accept HMS forms directly as input.
+
+_Date Arithmetic_
+- date form ~+~ / ~-~ number :: advances date by number of days
+- date form ~-~ date form :: produces a difference measured in days
+- date form ~*~ / ~/~ number :: is /undefined/
+- HMS form ~+~ / ~-~ number ::
+  - advances HMS by hours (integer) and minutes/seconds/etc. (decimal)
+  - maps a number 0.5 to 30 minutes in the HMS form
+- HMS form ~*~ / ~/~ number :: multiplies/divides HMS by that number (as expected)
+- HMS form ~+~ / ~-~ date form :: advances date by amount of time
+
+** Algebra
+| <16>           | <12>                     | <38>                                                            |
+| Command key(s) | Formula                  | Meaning                                                         |
+|----------------+--------------------------+-----------------------------------------------------------------|
+| ~a =~            | ~eq(a,b)~ / ~a = b~ / ~a == b~ | equality check, simplifies and equates undetermined expressions |
+| ~a #~            | ~neq(a,b)~ / ~a != b~        | non-equality check, see ~a =~                                     |
+| ~a !~            |                          | swap equality or boolean value                                  |
+| ~a S <var, …>~   |                          | solve equation for given variable(s)                            |
+| ~a .~            |                          | extract righthand side of equation                              |
+| ~a r <rule>~     |                          | apply given rewrite rule                                        |
+|----------------+--------------------------+-----------------------------------------------------------------|
+| ~a x~            |                          | “expand” formula                                                |
+| ~a c <x>~        |                          | collect terms involving ~x~                                       |
+| ~a M~ ~<op>~       |                          | apply function to both sides of equation                        |
+|----------------+--------------------------+-----------------------------------------------------------------|
+| ~s l <var>~      |                          | “let”: temporarily assign the top value                         |
+|                |                          | to a given variable and evaluate (~=~)                            |
+|                |                          | the next expression on the stack                                |
+|----------------+--------------------------+-----------------------------------------------------------------|
+| ~a P <var>~      |                          | solve eq. using ~H a S~, returns vector of all solutions          |
+| ~a i <var>~      |                          | integrate with given variable                                   |
+| ~a d <var>~      |                          | take the derivative with given variable                         |
+
+~a S~ normally returns a single “princ[ ...ipal” solution and picks ~+~ if it needs
+to come up with an arbitrary sign (e.g. from a quadratic formula). If it
+needs an arbitrary integer, it picks zero.
+- a full solution can be obtained by using either ~a P~ or ~H a S~ instead
+  - ~a P~ solves the eq. using ~H a S~ and returns a vector of all solutions
+  - ~H a S~ may use a new variable ~s1~ to represent an /unknown sign/, which is
+    supposed to be either ~+1~ or ~-1~; use ~s l~ to assign one of these values
+
+If the input to ~s l~ is an equation with a variable on the lefthand side
+(e.g. ~x = 1.5~), then no variable name needs to be entered.
+
+_Rewrite rules_
+
+Write like this: ~a := b~, where the /pattern/ ~a~ gets substituted by ~b~ using
+/meta-variables/ to identify and match the relevant parts / /sub-formulas/.
+- e.g. ~a r a/x + b/x := (a+b)/x~
+- /meta-variable/ names are independent from variables in the target formula
+- *Note*: special /constant variables/ like ~pi~, ~e~ or ~i~, etc. match literally
+  (not as meta-variables)
+
+*Apply* a rewrite rule with ~a r~ to a formula on top of the stack with the
+given shape.
+
+Prefer to *store the pattern* (as a formula) in a variable using ~s t~ and apply
+it more conveniently by just typing the variable name in ~a r~.
+- Calc compiles rules stored in variables into an optimized pattern-matching
+  language and reuses that compiled version, which is much more efficient
+- storing rewrite rules in the variable ~EvalRules~ ensures that they get
+  automatically applied in a formula
+  - *Note*: all Calc operations will run somewhat slower when ~EvalRules~
+    contains any rules; unstore with ~s u EvalRules~ to un-store the variable
+
+~a r~ also accepts a *vector of rewrite rules*. It then tries all the rules in
+the vector against all parts of the given formula, repeating until no
+further change is possible.
+- the exact order of which rules are tried is rather complex
+  - for any given subformula, earlier rules in the rule set will be tried
+    before later ones
+- for more infos, see [[info:calc#Nested Formulas with Rewrite
+  Rules][calc#Nested Formulas with Rewrite Rules]]
+- Calc repeats only up to 100 times; use a /numeric prefix/ to set a different
+  repeat limit (~M-0 a r~ sets no limit at all)
+
+Rewrite rules can be *conditional* by adding ~::~ after the rule and the desired
+condition.
+- e.g. ~sin(a + k pi) := sin(a) :: k % 2 = 0~ only applies the rule if ~k~ is
+  an even number
+- the stored pattern can be edited using ~s e~
+
+Rewrite rules can be *recursive*, e.g.:
+: [ fib(1) := 1,
+:   fib(2) := 1,
+:   fib(n) := fib(n - 1) + fib(n - 2) :: integer(n) :: n > 2 :: remember ]
+storing this set of rules in a variable “fib” allows it to refer to itself
+and, in this case, find the fibonacci number by pattern-matching.
+- the conditionals on the last line ensure that ~fib(x)~ will not get caught
+  in an infinite loop and ~fib(0)~ will also remain unevaluated
+- the ~:: remember~ on the last line gets rid of needless recomputations if
+  the same rule matches a pattern that was being matched before
+  - for any successful match on a rule with ~:: remember~, Calc adds another
+    rule that describes that match to the front of the rule set
+  - e.g. if ~fib(7)~ is matched by the ~fib(n)~ rule and finally evaluates to
+    ~13~, then ~fib(7) := 13~ will be added to the rule set
+
+** Geometry
+| <16>           | <12>         | <38>                                    |
+| Command key(s) | Formula      | Meaning                                 |
+|----------------+--------------+-----------------------------------------|
+| ~f h~            |              | hypothenuse, i.e. ~sqrt(a^2 + b^2)~       |
+|----------------+--------------+-----------------------------------------|
+| ~S~ / ~s S~        | ~sin(x)~       | sine of /n/                               |
+| ~C~ / ~c C~        | ~cos(x)~       | cosine of /n/                             |
+| ~T~ / ~t T~        | ~tan(x)~       | tangent of /n/                            |
+| ~I S~ / ~I s S~    | ~arcsin(x)~    | inverse sine                            |
+| ~I C~ / ~I c C~    | ~arccos(x)~    | inverse cosine                          |
+| ~I T~ / ~I t T~    | ~arctan(x)~    | inverse tangent (slope → angle)         |
+| ~f T~            | ~arctan2(x,y)~ | inverse tangent from quotient of a pair |
+|----------------+--------------+-----------------------------------------|
+| ~H S~            | ~sinh(x)~      | hyperbolic sine                         |
+| ~H C~            | ~cosh(x)~      | hyperbolic cosine                       |
+| ~H T~            | ~tanh(x)~      | hyperbolic tangent                      |
+| ~I H S~          | ~arcsinh(x)~   | inverse hyperbolic sine                 |
+| ~I H C~          | ~arccosh(x)~   | inverse hyperbolic cosine               |
+| ~I H T~          | ~arctanh(x)~   | inverse hyperbolic tangent              |
+
+** Bitwise Operations
+| <16>           | <12>    | <38>                            |
+| Command key(s) | Formula | Meaning                         |
+|----------------+---------+---------------------------------|
+| ~b t~            |         | rotate number 1 bit to the left |
+| ~b l~ / ~b r~      |         | left/right bit shift            |
+
+** Statistics
+| <16>              | <12>            | <38>                               |
+| Command key(s)    | Formula         | Meaning                            |
+|-------------------+-----------------+------------------------------------|
+| ~<mean> p <stddev>~ | ~mean +/- stddev~ | enter an error form                |
+|                   | ~sdev(a,b)~       | build an error form from arguments |
+| ~v u~               |                 | unpack error form                  |
+|-------------------+-----------------+------------------------------------|
+| ~a F~               |                 | apply least-squares fit            |
+
+* Graph Output
+Requires *GNUPLOT* program:
+1. install ~gnuplot~ command-line app – e.g. on MacOS:
+   : $ brew install gnuplot
+2. install ~gnuplot~ Emacs package:
+   : (use-package gnuplot :ensure t)
+
+*Plotting device* may have to be set in advance to properly generate the plot.
+- ~qt~ works for viewing graphs in a separate graphics window
+  - *Note:* don’t quit the ~gnuplot_qt~ app directly, just close the window, leave
+    it open or quit GNUPLOT in Calc with ~g q~ to avoid malfunction
+
+Basic Commands:
+- ~g f : calc-graph-fast~ → quick & simple data plot
+  - takes 2 vectors of equal length from stack (1: y values, 2: x values)
+  - plots a basic line graph with points represented by symbols
+- ~g p : calc-graph-plot~ → (re)draw graph as described in ~*Gnuplot Commands*~
+- ~g a : calc-graph-add~ → add curve from top 2 values on stack to existing plot
+  - type ~g p~ again to plot the new curve on top of the existing graph
+- ~g q : calc-graph-quit~ → terminate GNUPLOT
+- ~g c : calc-graph-clear~ → clear the current plot
+- ~g D : calc-graph-device~ → set plotting device
+- ~g C : calc-graph-command~ → enter GNUPLOT command
+
+Graph Style:
+- ~g S : calc-graph-point-style~ → toggles symbols at data points on/off
+- ~g s : calc-graph-line-style~ → toggles lines between data points on/off
 
 * Macros
 The built-in Emacs macro system can be used in Calc too.
@@ -468,3 +813,16 @@ Example:
 
 The function can then be used in an algebraic formula in Calc, e.g. like
 ~4*falld(5)~.
+
+* Known Bugs/Issues
+When a different font and/or line-height has been set, the trail window might
+not follow new Calc entries, because the window height results in a
+chopped-off line at the bottom.
+
+For some reason, setting ~calc-window-height~ directly does not fix this and it
+can only be fixed by setting the frame height to a very specific pixel size
+(which needs some experimentation).
+- even changing just the font without the ~:height~ property may cause this
+- a different line-height might also mess up the cursor position, so that it
+  sometimes appears on the center of the Calc or trail window and keeps
+  jumping there when new entries are made or ~t ]~ is invoked
