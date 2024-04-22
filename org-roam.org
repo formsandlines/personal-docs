@@ -1,4 +1,4 @@
-#+TITLE: Docs / Org-roam
+#+TITLE: Docs / Org-roam (v2 only)
 
 Resources:
 - [[info:org-roam#Top][org-roam#Top]] / ~C-h R org-roam~ (Org-roam User Manual)
@@ -151,6 +151,7 @@ variable ~org-roam-db-node-include-function~ to that function.
 - see [[info:org-roam#What to cache][org-roam#What to cache]]
 
 * Graph
+** org-roam-graph
 The *org-roam-graph* generates images using [[https://graphviz.org][Graphviz]], which needs to be
 installed and available on the /PATH/.
 
@@ -171,3 +172,37 @@ graph for the current node:
 : C-c n g : org-roam-graph
 - add /numerical argument/ to limit node distance to ~N~ steps
 - ~q~ to close graph display buffer
+  
+** org-roam-ui (extension)
+- https://github.com/org-roam/org-roam-ui
+
+Org-Roam-UI is a frontend for exploring and interacting with Org-roam notes.
+It runs the UI as a web-app on a server using [[https://github.com/skeeto/emacs-web-server][simple-httpd]] and [[https://github.com/ahyatt/emacs-websocket][websocket]].
+
+Basic installation & setup:
+#+begin_src elisp
+(use-package org-roam-ui
+  :ensure t
+  :after org-roam
+  ;;         normally we'd recommend hooking orui after org-roam, but since
+  ;;         org-roam does not have a hookable mode anymore, you're advised to
+  ;;         pick something yourself if you don't care about startup time, use
+  ;;         :hook (after-init . org-roam-ui-mode)
+  :config
+  (setq org-roam-ui-sync-theme t
+	org-roam-ui-follow t
+	org-roam-ui-update-on-save t
+	org-roam-ui-open-on-start t))
+#+end_src
+
+Start/stop the web server with:
+: M-x org-roam-ui-mode
+
+Org-Roam-UI automatically follows visited nodes from Emacs.
+- set ~(setq org-roam-ui-follow nil)~ to disable this
+
+(manually) move /global view/ of the graph to current node:
+: M-x org-roam-ui-node-zoom
+
+Focus on just the /local graph/ of the current node:
+: M-x org-roam-ui-node-local
