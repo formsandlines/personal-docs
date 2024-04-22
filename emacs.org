@@ -1,4 +1,4 @@
-#+title: Docs/Emacs
+#+title: Docs / Emacs
 
 Learning resources:
 - [[https://www.youtube.com/watch?v=48JlgiBpw_I][The Absolute Beginner's Guide to Emacs]] (System Crafters)
@@ -2472,6 +2472,11 @@ Citations, cross-references, indexes, glossaries and bibtex utilities for
 *** org-roam
 /Roam/ (nested-bullets-style PKM), but in [[#org-mode]].
 - https://github.com/org-roam/org-roam
+*** Denote
+Simple, future-proof note-taking system based on a file-naming scheme.
+- https://protesilaos.com/emacs/denote
+- https://github.com/protesilaos/denote
+- https://gitlab.com/protesilaos/denote
 *** org-zettelkasten
 /Zettelkasten/ (PKM system invented by Niklas Luhmann), but in [[#org-mode]].
 - https://github.com/l3kn/org-zettelkasten
