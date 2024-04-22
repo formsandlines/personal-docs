@@ -1,0 +1,173 @@
+#+TITLE: Docs / Org-roam
+
+Resources:
+- [[info:org-roam#Top][org-roam#Top]] / ~C-h R org-roam~ (Org-roam User Manual)
+- https://www.orgroam.com
+- https://github.com/org-roam/org-roam
+
+* Basic setup
+
+The ~org-roam-directory~ must be set first in order for org-roam to work:
+: (setq org-roam-directory (file-truename "~/org-roam"))
+- org-roam searches it recursively for files and maintains a cache of all
+  links and nodes within
+
+To ensure that the database gets synced automatically on startup, tracks any
+changes and maintains cache consistency throughout the session:
+: (org-roam-db-autosync-mode)
+
+To build the cache manually:
+: M-x org-roam-db-sync
+
+Recommended config of the *Org-roam buffer* window:
+- [[info:org-roam#Configuring the Org-roam buffer
+display][org-roam#Configuring the Org-roam buffer display]].
+
+* Nodes
+
+A node is either a file with a top-level ID:
+: :PROPERTIES:
+: :ID:       <uuid-foo>
+: :END:
+: #+title: Foo
+
+… or a heading withing a file with such an ID:
+: * Bar
+: :PROPERTIES:
+: :ID:       <uuid-bar>
+: :END:
+
+To *visit* a node, which creates a new one, if it doesn’t exist:
+: C-c n f : org-roam-node-find
+
+To *capture* a node (which restores the current window config after completion),
+by editing an existing node or creating a new one:
+: C-c n f : org-roam-node-find
+- to quickly return to the captured node, use ~C-x r b : bookmark-jump~
+
+To create a node from a *heading*, use ~M-x org-id-get-create~.
+
+* Links
+
+Links between nodes use Org’s standard *ID link* (e.g. ~id:foo~).
+
+To *link to* a node at point or create one, if it doesn’t exist:
+: C-c n i : org-roam-node-insert
+
+** Completion
+
+Use ~M-x completion-at-point~ after entering ~[[~ to insert links to nodes via
+/auto-complete/.
+- the completion function is ~org-roam-complete-link-at-point~, which provides
+  as candidates the titles and aliases of all nodes
+
+To use *completion anywhere* without having to enter brackets:
+: (org-roam-completion-everywhere t)
+- the completion function is ~org-roam-complete-everywhere~
+
+Bind the command to ~C-M-i~ as a shortcut:
+: (use-package org-roam
+:   :bind (…
+:          :map org-mode-map
+:          ("C-M-i" . completion-at-point))
+:  …)
+- hit ~C-M-i~ again to cycle through nodes
+- confirm selection with ~TAB~
+
+A link inserted by /auto-complete/ at first looks like ~[[roam:My note]]~, but
+turns into ~[[id:<uuid>][My note]]~ after saving the buffer.
+
+* Org-roam buffer (Backlinks, etc.)
+
+The *Org-roam buffer* shows relationships with other notes, e.g.:
+- backlink :: ID-link to this node from another node
+- reference link :: link to this node by one of its [[#refs][Refs]]
+- unlinked reference :: text in another node that matches the title/alias of
+  this node but is not linked to it
+
+By default, /unlinked references/ are not shown, which can be changed in the
+variable ~org-roam-mode-sections~, but may be slow.
+- see [[info:org-roam#Configuring what is displayed in the buffer][org-roam#Configuring what is displayed in the buffer]]
+
+Toggle Org-roam buffer for the current node at point:
+: C-c n l : org-roam-buffer-toggle
+
+Open Org-roam buffer for a selected node, keeping it fixed on that node:
+: M-x org-roam-buffer-display-dedicated
+- can be called multiple times without replacing the buffer
+
+The buffer uses ~magit-section~ keybindings for navigation, e.g.:
+- ~q~ closes the buffer
+- ~p~ / ~n~ selects previous/next item
+- ~RET~ visits the corresponding node
+- ~TAB~ toggles section visibility
+- ~M-{N}~ adjusts section visibility to level ~N~
+
+* Tags
+
+Set commonly used tags using the variable ~org-file-tags~.
+
+Set tags per file node on top level header:
+: #+filetags: <tag1, …>
+
+Set tags on heading nodes as regular Org tags:
+: * My heading :tag1:tag2:
+- set with ~C-c C-q~ or ~C-c C-c~ (with point on headline)
+- see [[file:orgMode.org::*Tags][Docs/orgMode/Tags]] for reference
+
+Any file-level tags will be /inherited/ by heading nodes.
+- inheritance can be turned off
+
+* Aliases
+
+Aliases are added with a special property on a node:
+: :ROAM_ALIASES: <"alias 1" …>
+
+Add aliases to node at point:
+: M-x org-roam-alias-add
+Remove aliases from node at point:
+: M-x org-roam-alias-remove
+
+* Refs
+:PROPERTIES:
+:CUSTOM_ID: refs
+:END:
+
+: :ROAM_REFS: <>
+
+* Database
+The /default/ Database since Emacs 29 is *emacsql-sqlite-builtin*
+(~sqlite-builtin~). Set ~org-roam-database-connector~ to choose a different DB.
+- see [[info:org-roam#How to cache][org-roam#How to cache]] for a list
+
+If database updating is slow, set ~org-roam-db-update-on-save~ to nil, which
+prevents automatic updating on file save.
+
+Headline nodes can be excluded from the DB by setting the property:
+: :ROAM_EXCLUDE: t
+
+To exclude headlines by predicate (e.g. filter by a specific tag), set the
+variable ~org-roam-db-node-include-function~ to that function.
+- see [[info:org-roam#What to cache][org-roam#What to cache]]
+
+* Graph
+The *org-roam-graph* generates images using [[https://graphviz.org][Graphviz]], which needs to be
+installed and available on the /PATH/.
+
+The variable ~org-roam-graph-executable~ holds the path to the graphing
+executable:
+- default value is ~"dot"~
+- ~"neato"~ is an alternative, more compact graph layout
+
+The variable ~org-roam-graph-viewer~ holds the method for viewing the graph:
+- dafault is ~nil~, which uses ~view-file~
+- can take a /string/ for the path to the program used or a /function/ accepting
+  the graph file path as an argument
+
+For options, see [[info:org-roam#Graph Options][org-roam#Graph Options]].
+
+To build and (display) a graph for all nodes /or/ (with ~C-u~) just the local
+graph for the current node:
+: C-c n g : org-roam-graph
+- add /numerical argument/ to limit node distance to ~N~ steps
+- ~q~ to close graph display buffer
