@@ -399,6 +399,143 @@ Compare strings by collation order:
 ** Namespaces
 Variables and functions don’t share the same namespace.
 
+* Functions
+** Loops
+*** ~while~
+Special form that first evaluates ~condition~ and, if non-nil, evaluates
+~forms~ in order, then repeats until ~condition~ is ~nil~. Always returns ~nil~.
+: (while <condition>
+:   <forms …>)
+
+#+begin_src elisp :results output
+(setq n 5)
+
+(while (> n 0)
+  (princ (format "Iteration %d. " n))
+  (setq n (1- n)))
+#+end_src
+
+#+RESULTS:
+: Iteration 5. Iteration 4. Iteration 3. Iteration 2. Iteration 1. 
+
+Example of writing a /repeat-until/ loop, which executes the first line in
+~progn~ until the /end-test/ below is non-nil (~while~ has no body here):
+#+begin_src elisp
+(while (progn
+         (forward-line 1)
+         (not (looking-at "^$"))))
+
+#+end_src
+
+*** ~dolist~
+Macro that executes ~body~ once for each item of ~list~, binding it to ~var~
+locally. Returns ~nil~ or (if specified) the value of ~result~.
+: (dolist (<var> <list> <?result>)
+:   <body …>)
+
+*Note:* ~result~ is just a slot for a user-defined variable that ~dolist~ will
+return after its execution. ~dolist~ does not do anything else with it.
+- if omitted, ~dolist~ will return ~nil~
+
+#+begin_src elisp :results output
+(dolist (item '(1 2 3))
+  (princ item))
+#+end_src
+
+#+RESULTS:
+: 123
+
+#+begin_src elisp
+(setq numbers '(1 2 3 4 5))
+(setq sum 0)
+
+(dolist (number numbers sum)
+  (setq sum (+ sum number)))
+#+end_src
+
+#+RESULTS:
+: 15
+
+*** ~dotimes~
+Macro that executes ~body~ once for each integer from 0 (inclusive) to ~count~
+(exclusive), binding ~var~ to each integer.
+: (dotimes (<var> <count>)
+:   <body …>)
+
+*Note:* there has been a third (~result~) argument like in ~dolist~, but it is
+deprecated, as stated in the [[info:elisp#Iteration][manual]].
+
+#+begin_src elisp :results output
+(dotimes (i 3)
+  (princ i))
+#+end_src
+
+#+RESULTS:
+: 012
+
+*** ~cl-loop~
+- see [[#cl-emulation]]
+
+** Mapping
+*** ~mapcar~
+Applies ~fn~ to each item of ~seq~ in turn and returns a list of the results.
+- like a usual /map/ function
+: (mapcar <fn> <seq>)
+
+#+begin_src elisp :results verbatim
+(mapcar #'1+ '(1 2 3 4 5))
+#+end_src
+
+#+RESULTS:
+: (2 3 4 5 6)
+
+*** ~mapcan~
+Like ~mapcar~, but instead of collecting the results into a list, returns a
+single list with all the elements of the results (which must be lists).
+- like /mapcat/ in Clojure
+: (mapcan <fn> <seq>)
+
+#+begin_src elisp :results verbatim
+(mapcan (lambda (x) (list x x)) '(a b c d))
+#+end_src
+
+#+RESULTS:
+: (a a b b c c d d)
+
+*** ~mapc~
+Like ~mapcar~, but used for /side-effects only/. Returns are ignored, not
+collected into a list. Always returns ~seq~.
+: (mapc <fn> <seq>)
+
+#+begin_src elisp :results output
+(mapc (lambda (x) (princ x)) '(a b c))
+#+end_src
+
+#+RESULTS:
+: abc
+
+*** ~mapconcat~
+Applies ~fn~ to each item of ~seq~. The results must be /sequences of
+characters/ (/string/, /vector/ or /list/), which will be concatenated into a
+single /string/ return value.
+- an optional ~separator~ (/sequence of characters/) will be inserted between
+  each pair of characters
+: (mapconcat <fn> <seq> <?separator>)
+
+#+begin_src elisp :results verbatim
+(mapconcat #'symbol-name '(The cat in the hat) " ")
+#+end_src
+
+#+RESULTS:
+: "The cat in the hat"
+
+#+begin_src elisp :results verbatim
+(mapconcat (lambda (c) (char-to-string c)) "I like cookies" '(?. ?- ?.))
+#+end_src
+
+#+RESULTS:
+: "I.-. .-.l.-.i.-.k.-.e.-. .-.c.-.o.-.o.-.k.-.i.-.e.-.s"
+
 * Emacs-specific
 ** Interactive commands
 
@@ -422,4 +559,23 @@ keybinding using a /lambda function/:
 (global-set-key (kbd "C-x c")
                 (lambda () (interactive) (non-interactive-function)))
 #+end_src
+** Packages
+*** Testing local packages
+Add the directory containing the package to the ~﻿load-path~ variable. This
+tells Emacs where to look for it:
+: (add-to-list 'load-path "/my/package-directory")
 
+Then, either load the package with ~use-package~:
+: (use-package my-package
+:   :ensure nil)
+or /require/ it:
+: (require 'my-package)
+
+* Common Lisp Emulation
+:PROPERTIES:
+:CUSTOM_ID: cl-emulation
+:END:
+- see [[info:cl#Top][GNU Emacs Common Lisp Emulation]]
+
+To use, include the package:
+: (require 'cl-lib)

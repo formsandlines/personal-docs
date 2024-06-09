@@ -39,7 +39,6 @@ Complete instrumentation (not only ~:args~) in function specs:
 
 ** Instrumentation
 
-
 ** Assertions
 
 *** : *compile-asserts*
@@ -47,7 +46,6 @@ Complete instrumentation (not only ~:args~) in function specs:
 If true, compiler will enable spec asserts, which are then subject to runtime
 control via check-asserts? If false, compiler will eliminate all spec assert
 overhead.
-
 
 ** Input validation
 
@@ -90,7 +88,6 @@ Makes an entry in the registry mapping ~k~ to the ~spec~.
 Example:
 src_clojure{ (s/def :book/title string?) }
 
-
 * Spec connectives
 
 ** : (s/and & <pred>)
@@ -120,7 +117,6 @@ Validates true if either of the given predicates match.
 
 Example:
 src_clojure{ (s/or :ok ::result :err ::error) }
-
 
 * Spec maps
 
@@ -205,7 +201,6 @@ But it does work with ~s/or~ where the sequence is processed as a whole:
 #+end_src
 So in this case, ~s/coll-of~ gets ~["a" "b" "c"]~ as a whole.
 
-
 ** : (s/cat & <key-pred-forms>)
 e.g.
     : (s/cat :e even? :o odd?)
@@ -280,7 +275,6 @@ Matches 1 or 0  occurrences of a predicate/pattern.
 
 Takes a regex op and further constrains it with one or more predicates.
 ?? unclear how this works
-
 
 * Spec collections
 

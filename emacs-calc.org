@@ -511,7 +511,7 @@ define a *nameless function* instead.
 _Modular Arithmetics_
 
 Dividing /a mod m/ by an integer /x/ actually divides by /x mod m/, where Calc
-tries to find a number which, when multiplied by /x mod m/, yields the
+[8]tries to find a number which, when multiplied by /x mod m/, yields the
 original /a mod m/.
 - if /m/ is prime and the divisor /x/ is not a multiple of /m/, it is always
   possible to find such a number
@@ -534,6 +534,7 @@ equals /b/.
 | <16>            | <12>    | <38>                                      |
 | Command key(s)  | Formula | Meaning                                   |
 |-----------------+---------+-------------------------------------------|
+| ~v l~             |         | get vector length (count of elements)     |
 | ~[ x y … ]~       | ~[x y …]~ | collect numbers in a vector               |
 | ~v u~             |         | unpack vector/matrix as stack elements    |
 | ~v p~             |         | pack into vector/matrix                   |
@@ -749,6 +750,9 @@ and, in this case, find the fibonacci number by pattern-matching.
 | ~a F~               |                 | apply least-squares fit            |
 
 * Graph Output
+:PROPERTIES:
+:CUSTOM_ID: graphs
+:END:
 Requires *GNUPLOT* program:
 1. install ~gnuplot~ command-line app – e.g. on MacOS:
    : $ brew install gnuplot
@@ -775,6 +779,7 @@ Basic Commands:
 Graph Style:
 - ~g S : calc-graph-point-style~ → toggles symbols at data points on/off
 - ~g s : calc-graph-line-style~ → toggles lines between data points on/off
+- ~g g : calc-graph-grid~ → toggles grid on/off
 
 * Macros
 The built-in Emacs macro system can be used in Calc too.

@@ -220,7 +220,23 @@ Patterns:
 : <cmd>[stdin] <<< <string>
 : <cmd>[stdin] <<[word]
 
-Examples:
+Wrapped in single quotes will not interpret variables in text:
+: $ cat <<'EOF'
+
+To write the heredoc into a file:
+: $ tee foo.txt <<EOF
+: $ tee -a foo.txt <<EOF           : to append instead
+: $ tee foo.txt <<EOF > /dev/null  : to prevent output display
+
+Alternative:
+: $ cat <<EOF > foo.txt
+
+More infos:
+- https://unix.stackexchange.com/questions/80362/what-does-mean
+
+
+_Examples_
+
 #+begin_src bash
 $ cat <<< 'hi there'  # reads `hi there` as a string
 
@@ -236,19 +252,15 @@ $ echo $second $first
 # > world hello
 #+end_src
 
-Wrapped in single quotes will not interpret variables in text:
-: $ cat <<'EOF'
-
-To write the heredoc into a file:
-: $ tee foo.txt <<EOF
-: $ tee -a foo.txt <<EOF           : to append instead
-: $ tee foo.txt <<EOF > /dev/null  : to prevent output display
-
-Alternative:
-: $ cat <<EOF > foo.txt
-
-More infos:
-- https://unix.stackexchange.com/questions/80362/what-does-mean
+In a variable:
+#+begin_src bash
+foo=$(cat <<EOF
+Some
+multiline
+string.
+EOF
+)
+#+end_src
 
 ** Pipeing
 
@@ -407,7 +419,8 @@ done
 :   …
 : fi
 
-- ~if … then~ can  be written in one line separated by a semicolon
+- ~if … then~ can be written in one line separated by a semicolon before
+  ~then~, ~else~ / ~elif~ and ~fi~
 - ~[ … ]~ is a posix shell compliant condition test
   - use if script should be portable across shells
 - ~[[ … ]]~ is an extension of ~[ … ]~ and supports extra operations, e.g. ~||~
@@ -415,6 +428,16 @@ done
   - inspired from Korn shell
   - list of differences: [[http://www.gnu.org/software/bash/manual/bashref.html#Conditional-Constructs][bash manual section on conditional constructs]]
   - also see: https://stackoverflow.com/a/13542854/1204047
+
+
+_Examples_
+
+In a string:
+#+begin_src bash
+dish='Pizza'
+echo "Eat $(if [ -n "$dish" ]; then echo "$dish "; else echo ''; fi) today"
+#+end_src
+
 *** case statements
 : case <expression> in
 :   <pattern-1>)

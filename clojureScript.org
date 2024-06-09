@@ -201,6 +201,60 @@ arr ;=>  #js [1 2 3 "foo"]
 
 src_clojure{ (aget ["a" "b" "c"] 1) }
 
+*** Classes
+At the moment (05/2024), ~class~ definitions are not supported in Cljs.
+~deftype~ and ~defrecord~ should be used to write class-like behaviour.
+
+However, *shadow-cljs* has a ~defclass~ macro that generates an actual ~class~
+without trying to emulate it in any way. However, some features are not
+yet supported (e.g. defining getters/setters).
+- [[https://clojureverse.org/t/modern-js-with-cljs-class-and-template-literals/7450][Modern JS with CLJS: class and template literals]] (ClojureVerse)
+- [[https://github.com/thheller/shadow-cljs/blob/master/src/main/shadow/cljs/modern.cljc][sourcecode for the macro]]
+- more complex examples: [[https://github.com/thheller/shadow-experiments/blob/master/src/main/shadow/experiments/grove/components.cljs#L151][here]] and [[https://github.com/thheller/shadow-experiments/blob/master/src/main/shadow/experiments/grove/ui/vlist.cljs#L26][here]]
+  
+Classes are required to write web components.
+- [[https://github.com/raystubbs/zero][raystubbs/zero]] is a Cljs library to simplify building web components
+
+Example:
+#+begin_src clojurescript
+(ns my-web-component
+  (:require [shadow.cljs.modern :refer (defclass)]))
+
+(defclass MyWebComponent
+  (extends js/HTMLElement)
+
+  (field ^Object root)
+
+  (constructor
+   [this]
+   (super))
+
+  ;; This method gets called each time the element gets added to the document:
+  Object
+  (connectedCallback
+   [this]
+   (let [shadow (.. this (attachShadow #js {:mode "open"}))
+         elem (js/document.createElement "div")]
+     (aset elem "textContent"
+           (.. this (getAttribute "someProp")))
+     (set! (.-root this) elem)
+     (.. shadow (appendChild elem))))
+
+  ;; This method gets called when any of the observed attributes change:
+  (attributeChangedCallback
+   [this attr-name old-v new-v]
+   (js/console.log (str "Attribute " attr-name " has changed."))
+   (js/console.log (str "old val: `" old-v "` , new val: `" new-v "`"))
+   (when root
+     (aset root "textContent" new-v))))
+
+;; To respond to attribute changes, set them as observedAttributes:
+;; NOTE: this is a workaround to set static properties in classes
+(set! (.-observedAttributes MyWebComponent) #js ["someProp"])
+
+;; Register the component as a custom element
+(js/window.customElements.define "my-web-component" MyWebComponent)
+#+end_src
 
 ** JS methods
 

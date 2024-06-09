@@ -143,6 +143,10 @@ Tutorials:
 - [[https://clojure-doc.org/articles/ecosystem/libraries_authoring/][Library Development and Distribution]]
   (Clojure Guides)
 
+Helpful resources:
+- [[https://cljdoc.org/d/rewrite-clj/rewrite-clj/1.1.47/doc/design/merging-rewrite-clj-and-rewrite-cljs#_library_version_scheme][Library version scheme]] (observations on different schemes used by
+  Clojurians)
+
 ** To build a JAR:
 
 1. add ~:build~ alias to =deps.edn=:

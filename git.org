@@ -91,13 +91,13 @@ the merging branch forward to the last commit of the merged-in branch.
 
 #+CAPTION: Hotfix branch based on master
 #+NAME: fig_hotfix-branch
-#+ATTR_HTML: :width 80%
+#+ATTR_ORG: :width 80%
 [[./_res/git/basic-branching-4.png]]
 - [[https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging][Source]]
 
 #+CAPTION: master is fast-forwarded to hotfix
 #+NAME: fig_fast-forward
-#+ATTR_HTML: :width 80%
+#+ATTR_ORG: :width 80%
 [[./_res/git/basic-branching-5.png]]
 - [[https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging][Source]]
 
@@ -114,13 +114,13 @@ the latest commits of both branches as its two parents.
 
 #+CAPTION: Three snapshots used in a typical merge
 #+NAME: fig_merge-snapshots
-#+ATTR_HTML: :width 80%
+#+ATTR_ORG: :width 80%
 [[./_res/git/basic-merging-1.png]]
 - [[https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging][Source]]
 
 #+CAPTION: A three-way merge commit
 #+NAME: fig_three-way-merge
-#+ATTR_HTML: :width 80%
+#+ATTR_ORG: :width 80%
 [[./_res/git/basic-merging-2.png]]
 - [[https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging][Source]]
 
@@ -146,7 +146,6 @@ After resolving each conflicting section, the file can be staged and is
 thereby marked as resolved in Git.
 
 Committing the changes concludes the merge.
-
 
 *** rebasing
 Reapplies all changes/commits on one branch onto the last commit of
@@ -177,13 +176,13 @@ the pointer of the rebased-onto branch forward.
 
 #+CAPTION: Simple divergent history
 #+NAME: fig_rebase-before
-#+ATTR_HTML: :width 80%
+#+ATTR_ORG: :width 80%
 [[./_res/git/basic-rebase-1.png]]
 - [[https://git-scm.com/book/en/v2/Git-Branching-Rebasing][Source]]
 
 #+CAPTION: Rebasing the change introduced in C4 onto C3
 #+NAME: fig_rebase-after
-#+ATTR_HTML: :width 90%
+#+ATTR_ORG: :width 90%
 [[./_res/git/basic-rebase-3.png]]
 - [[https://git-scm.com/book/en/v2/Git-Branching-Rebasing][Source]]
 
@@ -278,7 +277,7 @@ There are 3 main sections in a Git project:
 
 #+CAPTION: Working tree, staging area, and Git directory
 #+NAME: fig_areas
-#+ATTR_HTML: :width 80%
+#+ATTR_ORG: :width 80%
 [[./_res/git/areas.png]]
 - [[https://git-scm.com/book/en/v2/Getting-Started-What-is-Git%3F][Source]]
 
@@ -289,7 +288,7 @@ The state of a tracked file is either:
 
 #+CAPTION: The lifecycle of the status of files in a repository
 #+NAME: fig_lifecycle
-#+ATTR_HTML: :width 90%
+#+ATTR_ORG: :width 90%
 [[./_res/git/lifecycle.png]]
 - [[https://git-scm.com/book/en/v2/Git-Basics-Recording-Changes-to-the-Repository][Source]]
 
@@ -343,7 +342,7 @@ $ git ls-files --stage
 
 #+CAPTION: Role of the index within the Git system
 #+NAME: fig_git-index
-#+ATTR_HTML: :width 90%
+#+ATTR_ORG: :width 90%
 [[./_res/git/NueSy.png]]
 - [[https://github.blog/2021-11-10-make-your-monorepo-feel-small-with-gits-sparse-index/][Source]]
 

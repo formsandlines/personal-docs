@@ -1,6 +1,16 @@
 #+title: docs/Google Closure Library
 
-- [[https://web.archive.org/web/20171207052758/http://www.closurecheatsheet.com:80/][closure cheatsheet]] ( [[https://github.com/kuzmisin/closurecheatsheet][repo in markdown]] ) ( [[https://github.com/xvilo/closurecheatsheet][more up-to-date repo]] )
+Official:
+- [[https://github.com/google/closure-library][google/closure-library]] (source)
+- [[https://github.com/google/closure-library/wiki/Getting-started-with-Closure-Library][Repo Wiki]]
+- [[https://google.github.io/closure-library/develop/][Development Information]]
+  - [[https://google.github.io/closure-library/develop/get-started][Getting started]]
+  - [[https://google.github.io/closure-library/api/][API Reference]]
+  - [[https://google.github.io/closure-library/develop/conformance_rules][JSConformance configuration documentation]]
+
+Further information:
+- [[https://clojurescript.org/about/closure][Notes from ClojureScript]]
+- [[https://github.com/xvilo/closurecheatsheet][xvilo/closurecheatsheet]] (forked from [[https://github.com/kuzmisin/closurecheatsheet][kuzmisin/closurecheatsheet]])
 
 * Useful functions
 
@@ -25,6 +35,15 @@ JS object access by successive keys in nested maps.
 (goog.object/getValueByKeys #js{"a" #js{"b" 123}} "a" "b") ;=> 123
 #+end_src
 
+** : (goog.object/set o k v)
+
+JS object set value by key.
+- like =clojure.core/set=
+
+#+begin_src clojurescript
+(goog.object/set #js{"a" 123} "a" 42)
+#+end_src
+
 ** : (goog.string/format format-str ...var-args)
 
 #+begin_src clojurescript
@@ -46,10 +65,10 @@ Can narrow down search space on provided tag, classname and/or (parent) element.
 *** : (dom.getNextElementSibling node)
 *** : (dom.getParentElement elem)
 *** : (dom.getTextContent node)
-
 *** : (dom/getDocument)
 
 Gets the document object being used by the dom library.
+
 *** : (dom/getViewportSize)
 
 Gets the dimension of the viewport (window).
@@ -86,7 +105,6 @@ Sets multiple properties on a node.
 
 *** : (dom/isElement x)
 *** : (dom/isNodeList x)
-
 ** goog.dom.classlist
 https://google.github.io/closure-library/api/goog.dom.classlist.html
 
