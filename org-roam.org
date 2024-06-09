@@ -5,6 +5,8 @@ Resources:
 - https://www.orgroam.com
 - https://github.com/org-roam/org-roam
 
+Note: ~C-c n …~ keys are recommended in the repo but must be bound by the user
+
 * Basic setup
 
 The ~org-roam-directory~ must be set first in order for org-roam to work:
@@ -42,7 +44,7 @@ To *visit* a node, which creates a new one, if it doesn’t exist:
 
 To *capture* a node (which restores the current window config after completion),
 by editing an existing node or creating a new one:
-: C-c n f : org-roam-node-find
+: C-c n c : org-roam-capture
 - to quickly return to the captured node, use ~C-x r b : bookmark-jump~
 
 To create a node from a *heading*, use ~M-x org-id-get-create~.
@@ -206,3 +208,50 @@ Org-Roam-UI automatically follows visited nodes from Emacs.
 
 Focus on just the /local graph/ of the current node:
 : M-x org-roam-ui-node-local
+
+* Citations
+** org-cite
+- see [[file:orgMode.org::#org-cite][org-cite]]
+** org-ref (extension)
+- see [[file:orgMode.org::#org-ref][org-ref (extension)]]
+** citar-org-roam (extension)
+- https://github.com/emacs-citar/citar-org-roam
+- integrates [[file:orgMode.org::#citar][citar (extension, frontend for org-cite, etc.)]] with org-roam
+
+** org-roam-bibtex (extension)
+- https://github.com/org-roam/org-roam-bibtex
+- integrates org-roam with citation systems
+- allows org-roam to recognize particular nodes as bibliographic (i.e.
+  associated with a particular =.bib= entry)
+  
+* Daily Notes
+See [[info:org-roam#org-roam-dailies][org-roam#org-roam-dailies]]
+
+Create a daily entry for /today/ / /yesterday/ / /a given date/:
+: C-c n j : org-roam-dailies-capture-today
+: M-x org-roam-dailies-capture-yesterday
+: M-x org-roam-dailies-capture-date
+- ~…yesterday~ can be given a /numeric argument/ for /n/ days in the past
+
+Goto the daily entry for /today/ / /yesterday/ / /a given date/:
+: M-x org-roam-dailies-goto-today
+: M-x org-roam-dailies-goto-yesterday
+: M-x org-roam-dailies-goto-date
+- creates the entry if it is missing
+- ~…yesterday~ can be given a /numeric argument/ for /n/ days in the future
+
+Find and open daily notes directory:
+: M-x org-roam-dailies-find-directory
+
+Find the /previous / next/ note from an open daily entry:
+: M-x org-roam-dailies-goto-previous-note
+: M-x org-roam-dailies-goto-next-note
+- can be given a /numeric argument/ to find /n/ days in the past/future
+- /negative argument/ will reverse the direction
+
+_Variables_
+
+Path to daily notes: ~org-roam-dailies-directory~
+- relative to ~org-roam-directory~
+
+Capture templates: ~org-roam-dailies-capture-templates~

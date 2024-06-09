@@ -106,7 +106,8 @@ elements of ~Element~.
 ***** : Element.lastElementChild
 - includes *only element nodes*
 ***** : Element.childElementCount
-Read-only property that returns the number of child elements of the ~Element~.
+Read-only property that returns the number of child elements of the
+~Element~.
 **** Special elements
 ***** : Document.head
 Returns the ~<head>~ element of the current ~document~.
@@ -131,7 +132,8 @@ Returns an ~HTMLCollection~ of the hyperlinks in the ~document~.
 Returns an ~HTMLCollection~ of the ~<script>~ elements in the document.
 
 ***** : Document.styleSheets
-Returns a ~StyleSheetList~ of ~CSSStyleSheet~ objects, for stylesheets explicitly linked into or embedded in a document.
+Returns a ~StyleSheetList~ of ~CSSStyleSheet~ objects, for stylesheets
+explicitly linked into or embedded in a document.
 
 ***** : Document.plugins
 Returns an ~HTMLCollection~ of the available plugins.
@@ -149,7 +151,8 @@ Inserts a set of ~Node~ or string objects in the children list of the
 - returns ~undefined~
 
 **** : Element.replaceWith( obj1, obj2, … )
-Replaces this ~Element~ in the children list of its parent with a set of Node or string objects.
+Replaces this ~Element~ in the children list of its parent with a set of
+Node or string objects.
 - multiple objects appear as multiple elements in the list
 - String objects are inserted as equivalent text nodes
 

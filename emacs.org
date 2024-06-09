@@ -277,7 +277,7 @@ Source: [[https://www.youtube.com/watch?v=SOxlQ7ogplA][Modern Emacs: all those n
 * Version Control
 ** VC (Emacs’ version control system)
 :PROPERTIES:
-:CUSTOM_ID: package-vc
+:CUSTOM_ID: vc
 :END:
 
 To always follow symlinks and visit the real files (for version control):
@@ -665,6 +665,27 @@ Example:
 ** Frames
 To create a new /frame/ (OS-level window):
 : M-x make-frame-command
+
+Select a different visible frame and raise it:
+: C-x 5 o : other-frame
+- with /numeric argument/, selects the /n'th/ next frame
+- with /negative argument/, selects the (/n'th/) previous frame
+
+Select frame with (prompted) ~name~ and raise it:
+: M-x select-frame-by-name <name>
+
+Delete (selected) frame:
+: C-x 5 0 : delete-frame
+
+*** Child Frames
+A child frame is tied to a specific regular ("parent") frame, and behaves
+somewhat like a dialog box or a tooltip. Unlike regular frames, closing a
+parent frame automatically closes its associated child frames.
+- useful for e.g. context menus, tooltips and other overlay UI components
+- see [[info:elisp#Child Frames][elisp#Child Frames]]
+
+Return the parent frame of (selected) child ~frame~:
+: (frame-parent <?frame>)
 
 ** Buffers
 Buffers need not be for files, but can also be /transient buffers/ for e.g.
@@ -1255,6 +1276,7 @@ Kill until end of sentence:
 Kill /(cut)/ text between point and mark:
 : C-w : kill-region
 - deletes up to mark
+- sets the value of ~kill-ring-yank-pointer~ equal to ~kill-ring~
 
 Save /(copy)/ the region as if it was /killed/ but don’t kill it:
 : M-w : kill-ring-save
@@ -1266,8 +1288,25 @@ Reinsert /(paste)/ the most recent /kill/ or /yank/:
 Re-insert previously /killed/ text by cycling through /kill ring/:
 : M-y : yank-pop
 - by default, will show the kill history in the minibuffer for selection
-- if ~C-y~ has been typed immediately before the command, the pasted text will
-  be replaced with the item that comes before it in the /kill ring/
+- if ~yank~ has been called immediately before the command, the pasted text
+  will be replaced with the item that comes before it in the /kill ring/
+- /rotates/ the kill ring, so subsequent yanks will continue to paste the text
+  that the variable ~kill-ring-yank-pointer~ now points to
+  - *IS THIS REALLY WHAT HAPPENS???*
+  - *SEEMS TO NOT HAPPEN SOMETIMES -> WHY?*
+- with /numeric argument/, yanks the /Nth/ item from ~kill-ring-yank-pointer~
+  /downwards/ or (with /negative argument/) /upwards/
+
+_Variables_
+
+~kill-ring~ holds the list of /killed/ text, most recently killed first.
+
+~kill-ring-yank-pointer~ indicates which element of the /kill ring/ is at the
+front of the ring for yanking. More precisely, the value is a tail of the
+value of ~kill-ring~, and its CAR is the kill string that ~yank~ should yank.
+
+~kill-ring-max~ holds the maximum length to which the /kill ring/ can grow.
+- default: 120
 
 ** Undo / Redo
 Undo changes:
@@ -1666,7 +1705,7 @@ Evaluate /sexp/ before /point/:
 : C-x C-e : eval-last-sexp
 ** Xref (cross-references)
 *Xref* is a unified platform to match symbols to their definitions.
-- backend uses a /TAGS/ table by default to generate and store identifiers in
+- backend uses a /TAGS table/ by default to generate and store identifiers in
   static lookup-tables
   - [[#dumb-jump]] is a good alternative that uses file search engines instead,
     which is recommended for most users
@@ -2215,12 +2254,16 @@ Delete files and kill buffers in-list:
 : icomplete-fido-delete-char
 
 *** helm (completion system)
+- https://emacs-helm.github.io/helm/
+- https://github.com/emacs-helm/helm
 *** vertico.el (completion UI)
 :PROPERTIES:
 :CUSTOM_ID: vertico
 :END:
 VERTical Interactive COmpletion
 - https://github.com/minad/vertico
+- performant, minimalistic vertical completion UI
+- based on Emacs’ default completion system
 
 Confirm with exact minibuffer input instead of completions:
 : M-RET : vertico-exit-input

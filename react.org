@@ -250,9 +250,10 @@ Instances of class components manage their state independent from one another.
 See [[useEffect]] and [[useRef]].
 
 *** in function components (without hooks)
-Updating the UI is only possible by creating a new element and passing it to
-~ReactDOM.render~.
-- since React compares the UI trees, only relevant components will be updated
+Updating the UI is only possible by creating a new element and passing it
+to ~ReactDOM.render~.
+- since React compares the UI trees, only relevant components will be
+  updated
 
 Examples:
 #+begin_src typescript

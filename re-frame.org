@@ -220,7 +220,7 @@ Query functions are used to realize *extractors* (layer 2, see above) and
 *materialized views* (layer 3, see below) in [[The Signal Graph]]:
 - as an extractor (only one function is provided), ~reg-sub~ provides a
   default function for the input signal, which returns the app-db
-
+  
 *** Materialized view
 
 Computes /derived data/ from other subscriptions and can be implemented by

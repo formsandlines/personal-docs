@@ -1,0 +1,350 @@
+#+title: Docs/JavaScript
+
+* Prototypical Inheritance
+- [[https://developer.mozilla.org/en-US/docs/Web/JavaScript/Inheritance_and_the_prototype_chain][Inheritance and the prototype chain (mdn guide)]]
+
+* ~new~ Operator
+- [[https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/new][new (mdn docs)]]
+
+* ECMAScript 6 Features
+
+** Classes
+- [[https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes][Classes (mdn docs)]]
+- [[https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_Classes][Using classes (mdn guide)]]
+
+Classes in js are mainly an abstraction over /prototypical inheritance/. They
+are normal js values and have their own prototype chains.
+
+Static methods are not inherited by the ~__proto__~ object of the instance.
+
+3 features of classes:
+- constructor
+- instance methods & instance fields
+- static methods & static fields
+
+Classes are instantiated with the ~new~ operator.
+
+Example:
+#+begin_src javascript
+class MyClass {
+    constructor(_arg) {
+	this.arg = _arg;
+    }
+    static myClassMethod() {
+	console.log('from Class');
+    }
+    myProtoMethod() {
+	console.log('from Class.prototype');
+    }
+}
+
+const myObj = new MyClass("foo");
+
+// Mixins:
+
+let myMixins = {
+    newProtoMethod() {
+	console.log('mixin method');
+    },
+    newProtoProp: 'mixin property'
+}
+
+Object.assign(MyClass.prototype, myMixins);
+#+end_src
+
+*** Structure
+
+The value of ~this~ points to the current instance (it will be returned as a
+result of calling ~new~).
+- never return anything from the ~constructor~, because non-primitive values
+  will become the value of ~new~, replacing ~this~
+
+/Public fields/ are /almost/ equivalent to assigning a property to ~this~ in the
+~constructor~.
+
+/Private fields/ are prefixed with ~#~. They cannot be created outside of the
+~class~ body.
+- they can by no means be accessed from outside the class, except in the
+  Chrome console
+- they can’t be deleted or declared twice with the same name
+- a class method can read the private field of other instances, but js
+  throws an error if the field does not exist
+  - use the ~in~ operator to access a private field in a method without
+    having to handle an error (e.g. ~if (#myField in otherInst) {…}~)
+
+/Methods/ are defined on the /prototype/ and thus shared between all
+instances.
+- the behaviour can still be different because ~this~ gets assigned
+  different values for each instance.
+
+#+begin_src javascript
+class MyClass {
+    // Constructor
+    constructor() {
+	// Constructor body
+    }
+    // Instance field
+    myField = "foo";
+    // Instance method
+    myMethod() {
+	// myMethod body
+    }
+    // Static field
+    static myStaticField = "bar";
+    // Static method
+    static myStaticMethod() {
+	// myStaticMethod body
+    }
+    // Static block
+    static {
+	// Static initialization code (called on execution of class definition)
+    }
+    // Fields, methods, static fields, and static methods all have
+    // "private" forms
+    #myPrivateField = "bar";
+}
+
+// can also be declared as expression:
+const MyClass = class {
+  // Class body...
+};
+
+// names are only visible to the class’s body:
+const MyClass = class MyClassLongerName {
+  // Class body. Here MyClass and MyClassLongerName point to the same class.
+};
+new MyClassLongerName(); // ReferenceError: MyClassLongerName is not defined
+
+#+end_src
+- /(source: mdn)/
+
+The above roughly translates to pre-ES6 *functions-as-constructors* pattern:
+- /private/ fields and methods are new features in classes with no trivial
+  equivalent in function constructors
+- unlike function declarations, classes cannot be used before they are
+  declared (no /declaration hoisting/)
+#+begin_src javascript
+function MyClass() {
+    this.myField = "foo";
+    // Constructor body
+}
+MyClass.myStaticField = "bar";
+MyClass.myStaticMethod = function () {
+    // myStaticMethod body
+};
+MyClass.prototype.myMethod = function () {
+    // myMethod body
+};
+
+(function () {
+    // Static initialization code
+})();
+
+#+end_src
+- /(source: mdn)/
+
+*** Accessor Fields
+Accessor fields allow access to private properties as if they could be
+accessed directly.
+
+*Note:* without a /setter/, the field is effectively /read-only/.
+
+#+begin_src javascript
+class Color {
+    constructor(r, g, b) {
+	this.values = [r, g, b];
+    }
+
+    get red() {
+	return this.values[0];
+    }
+
+    set red(value) {
+	this.values[0] = value;
+    }
+}
+
+const red = new Color(255, 0, 0);
+red.red = 0; // would do nothing or throw if there was no setter!
+console.log(red.red); // 0
+
+#+end_src
+
+*** Inheritance
+- use the ~extends~ clause to declare a /derived class/
+- ~super(…)~ in the ~constructor~ must be called before accessing ~this~, since
+  it calls the parent constructor to initialize ~this~
+- /derived/ classes have access to all public properties of the parent class
+
+All classes implicitly inherit the ~Object~ class, which defines some basic
+methods like ~toString()~.
+
+Classes can /override/ methods (instance or static) from parent classes
+without any special syntax and access the parent’s methods via the ~super~
+object.
+
+Classes can only ~extend~ from /one/ class. It is still possible to achieve
+the effect of multiple inheritance through /class composition/ and /mixins/.
+
+Instances of derived classes are also instances of the /base class/:
+: myObj instanceof MyClass        → true
+: myObj instanceof MyParentClass  → true
+
+** Template Literals
+Embed executable js expressions in ~${…}~ (expects string-like return).
+
+#+begin_src javascript
+var html = `
+  <div>
+    <span>Some HTML ${12 - 6} here</span>
+  </div>
+`;
+#+end_src
+
+** Destructuring Assignment
+
+Unpacks values from arrays or properties from objects as separate variables.
+- [[https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment][Destructuring assignment (mdn docs)]]
+- [[https://exploringjs.com/es6/ch_destructuring.html]]
+
+#+begin_src javascript
+let [a, b] = [10, 20] //=> a=10, b=20
+let [a, b, ...rest] = [10, 20, 30, 40, 50] //=> a=10, b=20, rest=[30,40,50]
+let { a, b } = { a: 10, b: 20 } //=> a=10, b=20
+let { a, b } = myObj // extracts properties with the same name from myObj
+let { b: {b1} } = { a: 10,
+		    b: { b1: 0, b2: 1 } } // extracts sub-prop b1 as variable
+
+// destructure props-array into variables (with optional default values):
+let {p1, p2='default'} = {...props};
+
+// objects can be initialized without having to explicitly write key-val pairs:
+let a=10, b=20
+let obj = {a, b} //=> {a: 10, b: 20}
+
+// variables in destructuring can be immediately used inside `[]`:
+// - example from https://twitter.com/swyx/status/1172604337366941697
+getFirstLast = array => {
+    const { 0: first,
+	    length: len,
+	    [len-1]: last } = array
+    return {first, last}
+}
+
+// destructuring arguments w. defaults:
+// - example from https://davidwalsh.name/destructuring-function-arguments
+function myFunction({ 
+    text = "", 
+    line = 0, 
+    truncate = 100 
+} = {})
+
+// destructuring for arrays and array-like objects:
+// - example from https://twitter.com/rauschma/status/984091796534910976
+let {1:year, 2:month} = /^([0-9]{4})-([0-9]{2})/.exec('2018-04-11')
+// via capture-groups:
+let {groups: {year, month}} = /^(?<year>[0-9]{4})-(?<month>[0-9]{2})/
+    .exec('2018-04-11');
+// simple:
+let {0:year, 1:month, 2:day} = '2018-04-11'.split('-');
+let [year, month, day] = '2018-04-11'.split('-');
+#+end_src
+
+** Spread Operator
+
+#+begin_src javascript
+let foo = { ...((typeof myVar != 'undefined') ? {a: myVar} : undefined), b: 10 } 
+//=> {b: 10} if myVar not defined, else {a: myVar, b: 10}
+
+// create a new object by extending another one:
+myObject = { key: 'val' }
+myObjectWithNewKey = { newKey: 'newVal', ...myObject }
+
+// use spread operator in a reduce function to reorder keys:
+let cars = [{'make':'audi', 'model':'r8', 'year':'2012'},
+	    {'make':'audi', 'model':'rs5', 'year':'2013'},
+	    {'make':'ford', 'model':'mustang', 'year':'2012'},
+	    {'make':'ford', 'model':'fusion', 'year':'2015'},
+	    {'make':'kia', 'model':'optima', 'year':'2012'}];
+cars.reduce((h, car) => ({
+    ...h, 
+    [car.make]: ( h[car.make] || [] ).concat({model: car.model, year: car.year}) 
+}), {})
+//=> { audi: [{model: "r8", year: "2012"}, {model: "rs5", year: "2013"}], 
+//     ford: [{model: "mustang", year: "2012"}, {model: "fusion", year: "2015"}],
+//     kia:  [{model: "optima", year: "2012"}] }
+
+// create a new array from keys/indices of another array:
+let ks = [...array.keys()]
+#+end_src
+
+** Arrow Functions
+- [[https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions][Arrow function expressions (mdn docs)]]
+
+#+begin_src javascript
+// multiple params: ( (n,…) => … ) , no params: ( () => … )
+[0,3,6,2].map(n => n*2)
+// <=>
+[0,3,6,2].map(n => (n*2)) // e.g. for object literals: ( n => ({key: n}) )
+// <=>
+[0,3,6,2].map(n => { return n*2; } )
+// <=>
+[0,3,6,2].map( function(n) { return n*2; } )
+#+end_src
+
+** Import/Export Statements
+- [[https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/export][export (mdn docs)]]
+- [[https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/import][import (mdn docs)]]
+
+Import syntax:
+#+begin_src javascript
+import defaultExport from "module-name";
+import * as name from "module-name";
+import { export1 } from "module-name";
+import { export1 as alias1 } from "module-name";
+import { default as alias } from "module-name";
+import { export1, export2 } from "module-name";
+import { export1, export2 as alias2, /* … */ } from "module-name";
+import { "string name" as alias } from "module-name";
+import defaultExport, { export1, /* … */ } from "module-name";
+import defaultExport, * as name from "module-name";
+import "module-name";
+
+// ONLY with Webpack loader (https://github.com/webpack-contrib/css-loader):
+import * as styles from '../styles/main.css';
+#+end_src
+
+Export syntax:
+#+begin_src javascript
+// Exporting declarations
+export let name1, name2/*, … */; // also var
+export const name1 = 1, name2 = 2/*, … */; // also var, let
+export function functionName() { /* … */ }
+export class ClassName { /* … */ }
+export function* generatorFunctionName() { /* … */ }
+export const { name1, name2: bar } = o;
+export const [ name1, name2 ] = array;
+
+// Export list
+export { name1, /* …, */ nameN };
+export { variable1 as name1, variable2 as name2, /* …, */ nameN };
+export { variable1 as "string name" };
+export { name1 as default /*, … */ };
+
+// Default exports
+export default expression;
+export default function functionName() { /* … */ }
+export default class ClassName { /* … */ }
+export default function* generatorFunctionName() { /* … */ }
+export default function () { /* … */ }
+export default class { /* … */ }
+export default function* () { /* … */ }
+
+// Aggregating modules
+export * from "module-name";
+export * as name1 from "module-name";
+export { name1, /* …, */ nameN } from "module-name";
+export { import1 as name1, import2 as name2, /* …, */ nameN } from "module-name";
+export { default, /* …, */ } from "module-name";
+export { default as name1 } from "module-name";
+#+end_src

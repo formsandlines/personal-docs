@@ -34,8 +34,7 @@ Load/run a Janet script:
 : $ janet myscript.janet
 - this will run the ~main~ function of the script, if there is any
 - ~main~ must be defined with variadic args, like ~[&]~
-
-
+  
 ** Images
 
 To create an image from a script:
@@ -611,6 +610,8 @@ AST transformation:
 (+ ;(range 100))  # sums the first 100 nat. numbers
 #+end_src
 
+Also check out the [[#libs][judge]] library to test macros by expansion.
+
 ** Threading macros
 #+begin_src janet-ts
 (->> <form …>) # thread last
@@ -768,6 +769,8 @@ To replace (the first match / all matches) of a PEG:
 | ~(backmatch <?tag>)~    | if tag: match against tagged capture   |         |
 |                       | / else: match against last capture     |         |
 |                       | / (only if it is untagged)             |         |
+|-----------------------+----------------------------------------+---------|
+| ~(split <char> <ptn>)~  | match split parts delimited by char    |         |
 
 *Built-in patterns*
 
@@ -787,28 +790,34 @@ See Docs:
 | PEG                            | Meaning                                 |
 |--------------------------------+-----------------------------------------|
 | ~(capture <ptn> <?tag>)~         | capture all text if pattern matches     |
-| / ~(<- …)~                       |                                         |
+| / ~(<- …)~ / ~(quote …)~ / ~'<ptn>~  |                                         |
 | ~(replace <ptn> <subst> <?tag>~) | replaces a capture from pattern         |
 | / ~(/ …)~                        | / with (f capture(s)) or a new value    |
 | ~(accumulate <ptn> <?tag>)~      | captures a string as the concatenation  |
 | / ~(% …)~                        | / of all captures in pattern            |
-| ~(constant <const> <?tag>)~      | captures/returns a Janet constant       |
-|                                | / useful for parsing                    |
 | ~(group <ptn> <?tag>)~           | puts captures into an array             |
-| ~(position <?tag>)~              | capture the current index               |
-| / ~($ …)~                        |                                         |
-| ~(unref <ptn> <?tag>)~           | scope tagged captures                   |
-|                                | / e.g.to backmatch in nested patterns   |
 | ~(cmt <ptn> <fun> <?tag>)~       | invoke (fun capture(s)), expr fails     |
 |                                | / if fun returns false or nil           |
+|--------------------------------+-----------------------------------------|
+| ~(position <?tag>)~              | capture the current index               |
+| / ~($ …)~                        |                                         |
+| ~(column <?tag>)~                | captures column number of current pos.  |
+| ~(line <?tag>)~                  | captures line number of current pos.    |
+|--------------------------------+-----------------------------------------|
+| ~(unref <ptn> <?tag>)~           | scope tagged captures                   |
+|                                | / e.g.to backmatch in nested patterns   |
 | ~(backref <tag> <?tag>)~         | duplicate last capture with given tag   |
-| ~(-> …)~                         | / match fails if no capture exists      |
+| / ~(-> …)~                       | / match fails if no capture exists      |
 | ~(argument <n> <?tag>)~          |                                         |
+|--------------------------------+-----------------------------------------|
+| ~(constant <const> <?tag>)~      | captures/returns a Janet constant       |
+|                                | / useful for parsing                    |
 | ~(number <ptn> <?base> <?tag>)~  | capture a number parsed from match      |
 | ~(uint <num-bytes> <?tag>)~      |                                         |
 | ~(uint-be <num-bytes> <?tag>)~   |                                         |
 | ~(int <num-bytes> <?tag>)~       |                                         |
 | ~(int-be <num-bytes> <?tag>)~    |                                         |
+|--------------------------------+-----------------------------------------|
 | ~(lenprefix <n> <ptn> <?tag>)~   |                                         |
 | ~(drop <ptn>)~                   | ignores (drops) all captures from patt. |
 | ~(error <?ptn>)~                 | throws a Janet error                    |
@@ -1427,6 +1436,10 @@ Examples:
 *** Associative DS
 **** Common
 
+*Note:* ~map~, etc. will also work with assoc. DS, but will iterate over
+their ~values~ without any guarantee about the order of entries (at least
+with tables).
+
 Return an array of key-value pairs from a table/struct:
 : (kvs <dict>)
 
@@ -1733,20 +1746,26 @@ Load the module in Janet REPL:
 - [[https://github.com/saikyun/freja][freja]] (text editor)
 
 * Libraries
+:PROPERTIES:
+:CUSTOM_ID: libs
+:END:
 
 Data structures
-- [[https://github.com/andrewchambers/janet-utf8/][janet-utf8]] (Unicode representation for strings)
-- [[https://github.com/ianthehenry/jimmy][jimmy]] (bindings for [[https://github.com/arximboldi/immer][immer]], a library for immutable data structures)
+- [[https://github.com/andrewchambers/janet-utf8/][andrewchambers/janet-utf8]] (Unicode representation for strings)
+- [[https://github.com/ianthehenry/jimmy][ianthehenry/jimmy]] (bindings for [[https://github.com/arximboldi/immer][immer]], a library for immutable ds)
   - enables *sets* in Janet
-- [[https://github.com/MikeBeller/janet-set][janet-set]] (another implementation for set types)
+- [[https://github.com/MikeBeller/janet-set][MikeBeller/janet-set]] (another implementation for set types)
 
 Web
-- [[https://joy.swlkr.com][Joy]] (web framework)
+- [[https://github.com/joy-framework/joy][joy-framework/joy]] (web framework)
 
 UI
-- [[https://github.com/kamisori/jaylib/][jaylib]] (Raylib bindings)
-- [[https://github.com/janet-lang/janetui][janetui]] (libui bindings)
+- [[https://github.com/kamisori/jaylib/][kamisori/jaylib]] (Raylib bindings)
+- [[https://github.com/janet-lang/janetui][janet-lang/janetui]] (libui bindings)
 
 Parser
-- [[https://github.com/pyrmont/remarkable][remarkable]] (CommonMark parser written in Janet)
-- [[https://github.com/pyrmont/markable][Markable]] (bindings for GitHubs fork of the CommonMark lib)
+- [[https://github.com/pyrmont/remarkable][pyrmont/remarkable]] (CommonMark parser written in Janet)
+- [[https://github.com/pyrmont/markable][pyrmont/Markable]] (bindings for GitHubs fork of the CommonMark lib)
+
+Tests
+- [[https://github.com/ianthehenry/judge][ianthehenry/judge]] (inline snapshot tests, can also test macros)

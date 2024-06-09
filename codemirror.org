@@ -1,12 +1,38 @@
 #+title: Docs/Codemirror
 
+[[https://codemirror.net]]
+- [[https://codemirror.net/docs/][Docs]] (System Guide, Reference Manual, Core Extensions, Examples, …)
+- [[https://discuss.codemirror.net/][Discussion Forum]]
+- [[https://github.com/codemirror/dev/][GitHub Repo]]
+
+Learning resources:
+- [[https://codemirror.net/docs/guide/][System Guide]] (official guide)
+- [[https://thetrevorharmon.com/blog/learning-codemirror/][Learning CodeMirror]] (2023) → in-depth walkthrough on the main concepts
+- [[https://www.raresportan.com/how-to-make-a-code-editor-with-codemirror6/][How to make a code editor with CodeMirror 6]] (2021) → not reviewed yet
+- [[https://github.com/RPGillespie6/codemirror-quickstart][RPGillespie6/codemirror-quickstart]] (GH repo) → Quickstart guide and examples
+
 * Setup
 
 ** React
+Integration tutorial:
+- [[https://dev.to/adamcollier/adding-codemirror-6-to-a-react-project-36hl][Adding Codemirror 6 to a React Project]] (2021)
 
-https://dev.to/adamcollier/adding-codemirror-6-to-a-react-project-36hl
+As a custom component:
+- [[https://github.com/uiwjs/react-codemirror][uiwjs/react-codemirror]]
+
 
 ** basic setup
 
 The ~@codemirror/basic-setup~ package is deprecated and now called ~codemirror~:
-https://www.npmjs.com/package/codemirror
+- https://www.npmjs.com/package/codemirror
+
+* External Resources
+
+Extensions:
+- [[https://github.com/eriknewland/rainbowbrackets][eriknewland/rainbowbrackets]]
+
+Languages:
+- [[https://github.com/nextjournal/lang-clojure][nextjournal/lang-clojure]] → Clojure language package
+- [[https://github.com/nextjournal/lezer-clojure/][nextjournal/lezer-clojure]] → Clojure lezer grammar
+- [[https://github.com/nextjournal/clojure-mode][nextjournal/clojure-mode]] → full Clojure/Script editor with structural
+  editing, evaluation at cursor, autoformatting, etc.

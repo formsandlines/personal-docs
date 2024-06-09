@@ -174,7 +174,42 @@ yanked subtrees.
 Copy *visible parts* of the region/outline:
 : C-c C-x v : org-copy-visible
 
+* Drawers
+Drawers allow for /sporadic/ access to general text information.
+- can contain any kind of information, but they cannot be nested
+- multiple drawers can be inserted anywhere under the same heading
+- set the variable ~org-export-with-drawers~ to include drawers in *export*
+
+: :DRAWER-NAME:
+: …
+: :END:
+
+~TAB~ toggles visibility of drawer contents.
+
+*Insert* a drawer at point:
+: C-c C-x d : org-insert-drawer
+- with an active /region/, wraps the drawer around the selected text
+- prefix ~C-u~ to insert a ~PROPERTIES~ drawer underneath the heading
+
+Example:
+:my-drawer:
+This is some sporadic information.
+:END:
+
+** PROPERTIES Drawer
+See [[#properties]]
+
+** LOGBOOK Drawer
+See [[#agenda]]
+
+* Notes
+Add a /timestamped/ note to the current heading/entry:
+: C-c C-z : org-add-note
+
 * Properties / Metadata
+:PROPERTIES:
+:CUSTOM_ID: properties
+:END:
 
 Properties are /key-value pairs/. They can be associated with a node in the
 heading hierarchy, with a list item or with the whole buffer.
@@ -221,9 +256,7 @@ _Commands:_
 Set a *property-value pair*:
 : C-c C-x P : org-set-property-and-value
 
-*Insert a drawer* into the current entry:
-: C-c C-x d : org-insert-drawer
-- type ~C-u~ before the command to insert a ~PROPERTIES~ drawer directly
+~C-u C-c C-x d : org-insert-drawer~ inserts a ~PROPERTIES~ drawer directly.
 
 *Execute property commands*, if point is in a property drawer:
 : C-c C-c : org-ctrl-c-ctrl-c → org-property-action
@@ -395,7 +428,7 @@ Insert a new column to the left of the current column:
 Delete the current column:
 : S-M-<left> : org-columns-delete
 
-* Special characters / Entities
+* Special Characters / Entities
 
 Enter a special character as unicode with ~C-x 8 RET~ .
 
@@ -645,6 +678,8 @@ Wrap region/field(s) in a column like a paragraph:
 : (overwritten?) C-c C-w : org-table-wrap-region
 
 *** Calculations
+See [[info:org#The Spreadsheet][org#The Spreadsheet]]
+
 Type ~:=<formula>~ to enter a formula in a field, followed by ~TAB~ to apply
 the calculation. Or use the keybinding ~C-c =~.
 
@@ -657,6 +692,10 @@ Field reference symbols:
 - ~$~ → column
 - ~>~ → (?) last element in a range
 - *Note:* use ~C-c }~ or ~C-c ?~ to see field reference information.
+
+Special combinations:
+- ~@#~ → current row number
+  - e.g. ~$1=@#-1~ assigns each row number to the first column
 
 A table can be referenced from another table by adding a name above it:
 : #+TBLNAME: <name>
@@ -688,8 +727,49 @@ _Commands_
 - ~S-<arrow-keys>~: shift field reference
 
 *Toggle formula debugger*:
-: C-c C-{ : org-table-toggle-formula-debugger
+: C-c C- { : org-table-toggle-formula-debugger
 - shows debug info on recalculation
+
+*** Graphs /(Org Plot)/
+See [[info:org#Org Plot][org#Org Plot]] and [[file:emacs-calc.org::#graphs][Emacs Calc / Graph Output]]
+
+Plot table at point using /Gnuplot/:
+: C-c " g : org-plot/gnuplot
+- set options using ~#+PLOT: …~ directly before or after the table
+
+Plot /ASCII-art/ bars in a new column of the table:
+: C-c " a : orgtbl-ascii-plot
+- a formula to (re)calculate the column gets added to ~#+TBLFM~
+  - it looks like: ~(orgtbl-ascii-draw <value> <min> <max> <width>)~
+  - ~value~ → the value (column) to plot
+  - ~min~ → the value to display as an empty bar
+  - ~max~ → the value filling all the ~width~
+  - ~width~ → the number of characters for the plot (default: 12)
+
+~org-plot~ options:
+- ~title:"<s>"~ → title of the plot
+- ~ind:<n>~ → index column /c/ to use for the /x-axis/
+- ~deps:(<n> …)~ → columns to graph (as a Lisp-style list)
+  - defaults to all columns except the one in ~ind~
+- ~type:<x>~ → plot type (by default one of ~2d~, ~3d~, ~radar~ or ~grid~)
+  - customize available types with ~org-plot/preset-plot-types~
+- ~with:<opt>~ → one of ~lines~, ~points~, ~boxes~, ~impulses~, ~histograms~, … for
+  every column being plotted
+  - default: ~lines~
+- ~labels:(<s> …)~ → list of labels to be used for ~deps~
+  - default: column headers (if they exist)
+- ~min:<n> / max:<n>~ → minimum/maximum axis value (assumes /y/-axis)
+  - use ~xmin / xmax~ or ~ymin / ymax~ to explicitly specify the axis
+- ~ticks:<n>~ → number of axis ticks to display
+- ~transpose:<y|yes|t>~ → attempts to transpose table data before plotting
+  - also recognizes the shorthand option ~trans~
+- ~timefmt:<fmt>~ → format of timestamps as they will be parsed by Gnuplot
+  - default: ~%Y-%m-%d-%H:%M:%S~
+- ~set:"<opt>"~ → specify any Gnuplot option to be set when graphing
+- ~file:"<path>"~ → to plot to a file
+- ~line:<?>~ → specify an entire line to be inserted in the Gnuplot script
+- ~map:<t>~ → flat mapping rather than a ‘3d’ slope in ~3d~ or ~grid~ types
+- ~script:"<path>"~ → specify a /script file/ to be used to plot
 
 * Links
 
@@ -760,7 +840,6 @@ https://writequit.org/articles/emacs-org-mode-generate-ids.html
 :END:
 
 xxx
-
 
 ** Hyperlinks
 
@@ -931,20 +1010,337 @@ _Matching syntax:_
 
 - see [[info:org#Matching tags and properties][org#Matching tags and properties]] for a complete reference
   
+* Source Code
+
+*Source code block:*
+: #+NAME: <?name>
+: #+BEGIN_SRC <language> <?switches> <?header args …>
+:   <body>
+: #+END_SRC
+Results are shown below after evaluation:
+: #+RESULTS:
+:   …
+- name is optional but allowes calling the source block like a function
+- see [[info:org#Languages][org#Languages]] for identifiers of supported languages
+
+*Inline code block:*
+: src_<language>{<body>}
+or
+: src_<language>[<header arguments>]{<body>}
+
+- the evaluation results of code blocks can be piped into other code blocks
+- functions from code blocks can be evaluated in prose text
+
+Insert a code block:
+: C-c C-, s : org-insert-structure-template → [s]rc
+or for quick insertion, type ~<s + TAB~
+- requires ~(require 'org-tempo)~ in config
+
+Edit the code block at point in a separate buffer:
+: C-c ' : org-edit-special → org-edit-src-code
+- to modify how the dedicated buffer is opened, set the variable
+  ~org-src-window-setup~
+  - e.g. to ~'current-window~ to use the same window
+
+** Evaluation
+
+To evaluate code blocks, languages must be enabled or disabled individually
+– either by setting the variable ~org-babel-load-languages~, e.g.:
+: (org-babel-do-load-languages
+:  'org-babel-load-languages
+:  '((emacs-lisp . nil)
+:    (R . t)))
+or by using the ~require~ statement, e.g.:
+: (require 'ob-clojure)
+- see the [[https://orgmode.org/worg/org-contrib/babel/languages/index.html][Worg website]] for language-specific documentation
+
+Evaluate a code block, which inserts the results underneath:
+: C-c C-c : org-ctrl-c-ctrl-c → org-babel-execute-src-block
+: C-c C-v e : org-babel-execute-maybe
+- the variable ~org-babel-no-eval-on-ctrl-c-ctrl-c~ inhibits eval with ~C-c C-c~
+- the variable ~org-confirm-babel-evaluate~ can be set to ~nil~ to disable
+  confirmation before evaluating a code block
+  - can also be set to a function for more control, see [[help:org-confirm-babel-evaluate][docs]]
+
+** Header Arguments
+Also see [[info:org#Results of Evaluation][org#Results of Evaluation]]
+  
+_Setting Header Arguments_ (highest → lowest precedence)
+
+…on /function calls/:
+: #+CALL: foo(…) :<arg> <val> …   (applied to the '#+CALL:' line)
+: #+CALL: foo[:<arg> <val> …](…)  (applied to the code block)
+
+…on /source blocks/:
+: #+BEGIN_SRC … :<arg> <val> …
+…on /inline source blocks/:
+: src_<LANG>[:<arg> <val> …]{…}
+…as multi-line header arguments:
+: #+HEADER: :<arg> <val> …
+: #+HEADER: :<arg> <val> …
+: #+BEGIN_SRC … :<arg> <val> …
+
+…at /subtree level/, using property drawers:
+: * sample header
+:   :PROPERTIES:
+:   :header-args:        :<arg> <val> …
+:   :header-args:<LANG>: :<arg> <val> …   (language-specific)
+:   :END:
+- settings are inherited by deeper subheadings (unless overwritten), the
+  variable ~org-use-property-inheritance~ gets ignored
+
+… /buffer-wide/, using properties:
+: #+PROPERTY: header-args        :<arg> <val> …
+: #+PROPERTY: header-args:<LANG> :<arg> <val> …   (language-specific)
+
+Header args set as properties apply to both, normal and inline code blocks.
+
+_Defaults_
+
+…for /source code blocks/:
+: :session => "none"
+: :results => "replace"
+: :exports => "code"
+: :cache   => "no"
+: :noweb   => "no"
+: :hlines  => "no"
+: :tangle  => "no"
+- can be customized via ~org-babel-default-header-args~
+
+…for /inline source blocks/:
+: :session => "none"
+: :results => "replace"
+: :exports => "results"
+: :hlines  => "yes"
+- can be customized via ~org-babel-default-inline-header-args~
+
+Each language can have separate default header arguments, by customizing the
+variable ~org-babel-default-header-args:<LANG>~.
+- see [[https://orgmode.org/worg/org-contrib/babel/]] for language-specific docs
+
+*** ~:results~
+:PROPERTIES:
+:CUSTOM_ID: :results
+:END:
+The primary way to determine how Org handles the results of a code block.
+It accepts 4 classes of options:
+
+- [[*Collection]] → how the results should be /collected from/ the code block
+  - either in a /functional/ (return value) or /scripting/ (stdout) manner
+  - /default:/ ~value~ for most Babel libraries
+- [[*Type]] → which type of results will be /returned by/ the code block
+  - affects how Org processes and inserts results in the Org buffer
+  - /default:/ automatically determined (depends on code language)
+- [[*Format]] → /format/ of the results
+  - affects how Org processes results
+  - /default:/ follows from the [[*Type]]
+- [[*Handling]] → how results get /inserted/ once they are properly formatted
+  - /default:/ ~replace~
+
+Only one option per class can be chosen.
+
+**** Collection
+- ~value~
+- ~output~
+**** Type
+- ~table~ / ~vector~
+- ~list~
+- ~scalar~ / ~verbatim~
+- ~file~
+**** Format
+- ~code~
+- ~drawer~
+- ~html~
+- ~latex~
+- ~link~ / ~graphics~
+- ~org~
+- ~pp~
+- ~raw~
+- ~:wrap~ header argument
+**** Handling
+- ~replace~
+- ~silent~
+- ~none~
+- ~discard~
+- ~append~
+- ~prepend~
+
+*** ~:session~
+
+*** ~:exports~
+:PROPERTIES:
+:CUSTOM_ID: :exports
+:END:
+- see [[info:org#Exporting Code Blocks][org#Exporting Code Blocks]]
+
+*** ~:var~
+:PROPERTIES:
+:CUSTOM_ID: :var
+:END:
+To bind values from outside of the code block to variables inside of it.
+
+: :var <name>=<value>
+
+*** ~:file~
+:PROPERTIES:
+:CUSTOM_ID: :file
+:END:
+
+*** ~:post~
+:PROPERTIES:
+:CUSTOM_ID: :post
+:END:
+For post-processing results from block evaluation.
+- code block results are bound to ~*this*~ variable, wich can be passed to
+  [[#:var]] header arguments of another code block
+
+*** ~:tangle~
+:PROPERTIES:
+:CUSTOM_ID: :tangle
+:END:
+
+** Switches
+
+** Tangling
+Code blocks in an =.org= file can be “tangled” together using ~org-babel-tangle~
+to write them to one or more source file(s).
+- useful to generate an =init.el= file from a literate Emacs config in Org
+- see [[info:org#Extracting Source Code][org#Extracting Source Code]]
+
+** Export & Publish
+
+** Examples
+#+BEGIN_SRC emacs-lisp
+(message "Yeah!")
+#+END_SRC
+
+#+RESULTS:
+: Yeah!
+
+#+begin_src java
+for (int i=0; i<5; i++) {
+    System.out.println("Counting "+i);
+}
+#+end_src
+
+Inline src_clojure{ (defn square [x] (* x x)) } source code.
+
+* Footnotes
+/Footnote references/ can be inserted in different ways:
+- numbered :: e.g. ~[fn:1]~, ~[fn:2]~, …
+  - *Note:* the numbers are not related to the numbering in export formats
+- named :: e.g. ~[fn:Foo]~
+  - technically the same as a numbered footnote
+- inline anonymous :: e.g. ~[fn:: a definition]~
+  - *Note:* in export formats, inline definitions may not appear inline
+- inline named :: e.g. ~[fn:Bar: a definition]~
+  - the name can be used for additional references, e.g. ~[fn:Bar]~
+
+/Footnote definitions/ have to start at column 0 (no indentation) with a
+/footnote marker/ (same as the reference):
+: [fn:55] a definition.
+- it ends at the next footnote definition, headline or after 2 consecutive
+  empty lines
+
+_Commands_
+
+*Create a footnote*, /or – with point on an existing footnote/ – *jump to its
+definition/reference*, /or – if it has none –/ *create a definition*:
+: C-c C-x f : org-footnote-action
+- inserts footnote labels according to ~org-footnote-auto-label~
+- inserts footnote definition according to ~org-footnote-define-inline~
+- prefix ~C-u~ for different actions:
+  - ~d~: /delete/ footnote at point, including all references and the definition
+  - ~s~: /sort/ definitions by /reference order/
+  - ~r~: /renumber/ ~fn:N~ footnotes by their /reference order/
+  - ~S~: /renumber & then sort/
+    - *Note:* for additional references to an /inline named reference/, Org will
+      insert a definition ~[fn:…] DEFINITION NOT FOUND.~ but does not overwrite
+      the orignal references
+  - ~n~ ormalize: /rename/ all footnotes into /numbered/ footnotes
+
+*Quickly jump* between footnote definition and reference at point:
+: C-c C-c : org-ctrl-c-ctrl-c → ?
+
+*Edit* definition of footnote at point in a separate buffer:
+: C-c ' : org-edit-special → org-edit-footnote-reference
+
+_Variables_
+
+~org-footnote-define-inline~ specifies how to position footnote definitions.
+- ~nil~ /(default)/: under top-level heading ~* Footnotes~, which gets created near
+  the end of the document (if it doesn’t already exist)
+- *non-nil*: inline definition, at reference location
+- ~t~: the ~[fn:label:definition]~ notation will be used to define the footnote at
+  reference position
+- or as an in-buffer setting:
+  : #+STARTUP: fninline
+  : #+STARTUP: nofninline
+
+~org-footnote-auto-adjust~ automatically adjusts footnotes after insert/delete,
+when set to *non-nil* (dafault is ~nil~).
+- will /sort/ all footnotes and /renumber/ simple ~[fn:N]~ footnotes
+- set to ~'sort~ or ~'renumber~ for just sorting or renumbering
+- or as an in-buffer setting:
+  : #+STARTUP: fnadjust
+  : #+STARTUP: nofnadjust
+
+~org-footnote-auto-label~ defines new footnote labels automatically
+- ~nil~: prompts the user for each label
+- ~t~ /(default)/: creates unique /numbered/ labels (~[fn:1]~, ~[fn:2]~, …)
+- ~confirm~: like ~t~, but lets the user edit the created value
+  - remove the label in minibuffer to creata an /anonymous footnote/
+- ~random~: generates a unique, random label
+
 * Images
 
-  | Shortcut    | Action                   |
-  |-------------+--------------------------|
-  | C-c C-x C-v | org-toggle-inline-images |
+Images are inserted as links to their source, e.g. ~[[file:my-image.jpg]]~ or
+~[[./my-image.jpg]]~
+- the ~file:~ prefix may be omitted if the file name is complete, e.g., it
+  starts with ~./~, or ~/~
 
-Insert images as links: =[[./my-image.jpg]]= and add metadata.
-Then click/ENTER to toggle image display or use the shortcut.
+The image can act as a link to another image, which can be used to separate a
+preview image from a high-res version: ~[[file:highres.jpg][file:thumb.jpg]]~
+- click or type ~C-c C-o~ on the image to see the linked image in a new buffer
+- will also work for export in html
 
-#+CAPTION: This is a test image
-#+NAME: fig1
-#+ATTR_HTML: :width 100%
+/Metadata/ can be added for *captions*, *labels* (to link to the image from
+elsewhere in the document) or *attributes* (to change display size, etc.):
+
+To set the *width* for inline images to display at (instead of using their
+actual width), either set the global variable ~org-image-actual-width~ or the
+property ~ORG-IMAGE-ACTUAL-WIDTH~ (on a subtree) to a non-~t~ value.
+- needs /imagemagick/ to scale the images
+- see [[info:org#Images][org#Images]] for an explanation on all possible values
+- *Note:* this determines if local width attributes on a single image will have
+  an effect
+  - (?) the property might need ~()~ instead of ~nil~ to allow width attributes
+  - just set the variable to ~nil~ and never think about it again
+
+#+CAPTION: This is an example image
+#+NAME: fig:example
+#+ATTR_ORG: :width 100%
 [[./_res/orgMode/example.jpg]]
 - [[https://en.wikipedia.org/wiki/Popigai_impact_structure][Source]]
+
+
+Toggle inline images for the whole buffer:
+: C-c C-x C-v : org-toggle-inline-images
+- with a /prefix argument/, also display images that have a link description
+
+To always display images at startup, set ~org-startup-with-inline-images~ to
+non-nil. To set it locally per-file:
+: #+STARTUP: inlineimages
+: #+STARTUP: noinlineimages
+
+To automatically display images when cycling the folding state on a subtree,
+set ~org-cycle-inline-images-display~.
+
+For customization of image export to other formats, see:
+- [[info:org#Images in HTML export][org#Images in HTML export]]
+- [[info:org#Images in LaTeX export][org#Images in LaTeX export]]
+- [[info:org#Images in ODT export][org#Images in ODT export]]
+
 
 * Export to other formats
 
@@ -956,16 +1352,47 @@ C-s can also export just the subtree (current heading)
 
 Look for "ox-<pkgname>" to find packages for export formats.
 
-
 * LaTeX integration
+Org mode can contain LaTeX fragments.
+- in *LaTeX export*, the code is left as it is
+- in *HTML export*, Org can use either [[https://www.mathjax.org][MathJax]] or transcode the math into images
 
-https://orgmode.org/manual/LaTeX-fragments.html
+LaTeX math delimiters:
+: $…$
+: \( … \)
+: $$ … $$
+: \[ … \]
 
-  | Shortcut    | Action               |
-  |-------------+----------------------|
-  | C-c C-x C-l | Toggle LaTeX preview |
+Environments of any kind:
+: \begin{equation}
+: …
+: \end{equation}
 
-Includes MathJax to render Latex in HTML.
+Toggle *preview* of LaTeX fragment at point /or/ preview all fragments in the
+current entry/node (if none is at point):
+: C-c C-x C-l : org-latex-preview
+- prefix ~C-u~ to /clear/ all previews in current entry/node
+- prefix ~C-u C-u~ to /preview/ all fragments in the buffer
+- prefix ~C-u C-u C-u~ to /clear/ all previews in the buffer
+
+To automatically preview all LaTeX fragments in the current buffer, set:
+: #+STARTUP: latexpreview
+To disable previews:
+: #+STARTUP: nolatexpreview
+
+_Variables_
+
+~org-export-with-latex~ controls whether LaTeX is being processed in export.
+- can also be set on a per-file basis, see [[info:org#LaTeX fragments][org#LaTeX fragments]]
+
+~org-format-latex-options~ controls the rendering of images from LaTeX fragments
+as in-buffer preview and in HTML export and defines the /matchers/ to find such
+fragments.
+
+~org-format-latex-header~ sets the document header used for processing LaTeX
+fragments.
+
+_Examples_
 
 - Characters: \alpha \rightarrow \beta
 - $O(n \log n)$
@@ -975,6 +1402,8 @@ Includes MathJax to render Latex in HTML.
             &= 7
   \end{align*}
 
+** CDLaTeX mode (speed-up insertion of envs & math templates)
+- see [[info:org#CDLaTeX mode][org#CDLaTeX mode]]
 
 * Examples
 
@@ -1017,38 +1446,6 @@ Shortcut: write ~<q~ & hit ENTER.
 #+begin_quote
 Some quoted line.
 #+end_quote
-
-** Source code
-
-  | Shortcut | Action                              |
-  |----------+-------------------------------------|
-  | <s + TAB | quickly insert source code block    |
-  | C-c C-,  | insert a chosen block structure     |
-  | C-c '    | edit source block in specified mode |
-  | C-c '    | exit edit mode and return to org    |
-  | C-c C-c  | evaluate source block               |
-
-To use ~<s + TAB~, eval this in config:
-: (require 'org-tempo)
-
-To modify how the dedicated buffer is opened from ~C-c '~:
-: (setq org-src-window-setup …)
-- e.g. set to ~'current-window~ to use the same window
-
-#+begin_src java
-for (int i=0; i<5; i++) {
-    System.out.println("Counting "+i);
-}
-#+end_src
-
-Inline src_clojure{ (defn square [x] (* x x)) } source code.
-
-** Literate programming
-
-You can evaluate code blocks and pipe the results into another code block.
-
-You can write an Org-mode file for all your emacs config and have it evaluate
-using emacs lisp.
 
 * Todo
 
@@ -1094,8 +1491,136 @@ Examples:
 
 ** Todo keywords
 
-
-
 * Agenda
+:PROPERTIES:
+:CUSTOM_ID: agenda
+:END:
 
 * Calendars
+* Capturing
+Capture something using a /capture template/:
+: C-c c (recommended binding) : org-capture
+- prefix ~C-u~ to visit the target location of the capture template
+- prefix ~C-u C-u~ to visit the last stored capture item in its buffer
+  - or jump to the bookmark ~org-capture-last-stored~, which is automatically
+    created unless ~org-capture-bookmark~ is nil
+
+** Capture Templates
+Capture templates are stored in ~org-capture-templates~.
+
+See [[info:org#Capture templates][org#Capture templates]] on how to write a capture template.
+
+* Citations
+:PROPERTIES:
+:CUSTOM_ID: org-cite
+:END:
+- using ~org-cite~, since Org 9.5
+
+A *bibliography* must be provided before adding citations – either locally,
+using one or more ~bibliography~ keywords, e.g.:
+: #+bibliography: SomeFile.bib
+: #+bibliography: /some/other/file.json
+: #+bibliography: "/some/file/with spaces/in its name.bib"
+…or globally by setting the variable ~org-cite-global-bibliography~
+
+A *citation* requires one or more /citation keys/:
+: [cite:@key] : [cite:@key;@key] : …
+- can specify a /prefix/ (e.g. “see ”) and/or a /suffix/ (e.g. “p. 123”), which is
+  useful for comprehension of the citation but not included in the reference:
+  : cite:<prefix> @key <suffix>
+  for multiple citation keys, a common prefix/suffix can be added:
+  : cite:<common prefix> ;<prefix> @key <suffix>; …; <common suffix>
+- can specify a /stylistic variation/ for the citations:
+  : cite/<style>:…
+  - usually makes sense only for author-year styles
+
+A *citation key* identifies a reference in the bibliography and can have
+different forms, e.g.:
+- BibTex: ~@<author-lastname>_<title-firstword>_<publ-year>~
+- CSL: ~@<id>~ (exported from Zotero, this is a URL)
+
+  
+Insert a citation:
+: C-c C-x @ : org-cite-insert
+- confirm with ~M-RET~, since just ~RET~ will add another citation
+
+** Exporting Citations
+An *export processor* is required to export citations to LaTeX/HTML/etc. Each
+one can use different *citation and *reference styles*.
+- see [[info:org#Citation export processors][org#Citation export processors]] or for infos about available processors
+  - also [[https://kristofferbalintona.me/posts/202206141852/#understanding-org-cite-export-processors][Understanding org-cite export processors]] for more details
+- ~csl~ is the most flexible and compatible and can export to formats like
+  latex/pdf, html, odt and plain (UTF8) text
+  - intended as a universal standard for citation formatting
+  - it uses the [[https://en.wikipedia.org/wiki/Citation_Style_Language][Citation Style Language]] (CSL) for formatting
+  - /citation styles/ are provided by =.csl= files
+    - the variable ~org-cite-csl-styles-dir~ defines the path to locate CSL
+      styles, e.g. ~"~/Zotero/styles"~ (for Zotero)
+    - when it is set, only the filenames need to be provided
+- ~natbib~, ~bibtex~ and ~biblatex~ only target LaTeX or LaTeX-derived formats
+  - they only compile to LaTeX commands, while ~csl~ exports to /rendered text/
+  - however, ~biblatex~ uses the LaTeX package /BibLaTeX/, which handles
+    automatic selection of citation variants among other things
+
+The variable ~org-cite-export-processors~ defines the default /back-end/, /export
+processor/ and /citation/reference style/ for Org files, as a list of tuples:
+: ((BACK-END . PROCESSOR) …)
+- ~BACK-END~ is the name of an export back-end (e.g. ~md~, ~latex~, ~odt~) or ~t~ for
+  unspecific
+- ~PROCESSOR~ is a triplet ~(NAME BIBLIOGRAPHY-STYLE CITATION-STYLE)~
+  - only ~NAME~ is required
+  - the ~basic~ processor provides the whole triplet
+- when ~nil~, citations and bibliography are not exported
+
+Set the /export processor/ and /citation/reference style/ buffer-wide with:
+: #+cite_export: <?export-processor> <?style …>
+- the style only affects the /exported/ references and bibliography section,
+  not how they get inserted in OrgMode (which is determined by the
+  bibliography file)
+- Examples:
+  : #+cite_export: basic author author-year
+  : #+cite_export: csl /some/path/to/vancouver-brackets.csl
+  : #+cite_export: natbib kluwer
+
+To specify where the bibliography should be placed in export:
+: #+print_bibliography:
+- can be inserted multiple times at different places in the document
+
+** Zotero Integration
+1. Install the [[https://retorque.re/zotero-better-bibtex/index.html][Better BibTex]] plugin
+   - generates /citation keys/ without key clashes
+   - can use user-defined /citekey formulas/
+   - can keep exported =.bib= files in sync with changes in Zotero
+2. Export a =.bib= file from a Zotero library/collection.
+   - use ~Better BibLaTeX~ format
+   - check ~Keep Updated~ option for sync
+3. Set ~org-cite-global-bibliography~ variable in Emacs to =.bib= file path
+
+*** zotxt-emacs (extension)
+- https://github.com/egh/zotxt-emacs
+
+** citar (extension, frontend for org-cite, etc.)
+:PROPERTIES:
+:CUSTOM_ID: citar
+:END:
+- https://github.com/emacs-citar/citar
+- also see: https://kristofferbalintona.me/posts/202206141852/#citar
+- front-end to browse and act on BibTeX, BibLaTeX, and CSL JSON
+  bibliographic data, and LaTeX, markdown, and org-cite editing support
+- adds the citar citation-insert processor
+
+*** citar-org
+
+
+** citeproc (extension, citation processor required for CSL export)
+- https://github.com/andras-simonyi/citeproc-el
+
+** org-ref (extension, org-cite alternative)
+:PROPERTIES:
+:CUSTOM_ID: org-ref
+:END:
+- https://github.com/jkitchin/org-ref
+
+Citation form:
+: cite:key
+
