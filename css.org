@@ -326,3 +326,6 @@ Element behaves as in ~relative~ *until scrolled to a certain threshold* (e.g.
 
 Element is “sticky” relative to the *nearest anchestor with a scrolling
 mechanism*, which is determined by its ancestors’ ~position~ property.
+
+* Variables
+- [[https://developer.mozilla.org/en-US/docs/Web/CSS/Using_CSS_custom_properties][Using CSS custom properties (variables)]] (mdn docs)

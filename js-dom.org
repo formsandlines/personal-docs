@@ -141,6 +141,12 @@ Returns an ~HTMLCollection~ of the available plugins.
 
 *** Create & insert
 **** : Document.createElement( tagName, ?options )
+**** : Document.createElementNS( namespaceURI, qualifiedName, ?options )
+Examples:
+#+begin_src javascript
+document.createElementNS("http://www.w3.org/1999/xhtml", "div")
+document.createElementNS('http://www.w3.org/2000/svg', 'rect')
+#+end_src
 **** : Node.cloneNode( deep_clone? )
 (deeply) clones a node.
 

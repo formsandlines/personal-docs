@@ -2044,6 +2044,13 @@ Prefix keymap ~C-x p~ (Emacs 28+):
 *** Projectile
 - https://github.com/bbatsov/projectile
 - integrates with built-in [[#project.el]] library
+** Window arrangement
+*** rotate
+Rotate window in layout or the layout itself.
+- https://melpa.org/#/rotate
+*** transpose-frame
+Transpose windows arrangement in a frame.
+- https://melpa.org/#/transpose-frame
 ** Popup window manager
 *** Popper
 Just works. Use this instead of [[#popwin]], since it is a lot less buggy.
