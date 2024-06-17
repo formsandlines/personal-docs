@@ -146,6 +146,13 @@ Either ~{}~ or a map that can have ~:block/uid~ or ~:block/text~ keys:
       :some (s/keys :req [(or :block/uid
                               :block/kind)]))
 #+end_src
+
+** : (s/keys* & {:keys [req req-un opt opt-un gen]})
+Same as ~s/keys~ but returns a regex op that matches seqs of kvs, converts
+them into a map, and conforms that map with a corresponding ~s/keys~ call.
+- for [[#keyword-arguments][keyword arguments]] in function specs
+- see [[https://clojure.github.io/spec.alpha/clojure.spec.alpha-api.html#clojure.spec.alpha/keys*][keys* (spec reference)]]
+
 ** : (s/every-kv <kpred> <vpred> & opts)
 Like ~s/every~, but takes separate key and val preds and works on associative
 collections.
@@ -404,6 +411,23 @@ Use ~s/alt~ for functions with multiple arities:
         :ret ::block)
 #+end_src
 
+** Keyword Arguments (since Clojure 1.11.0)
+:PROPERTIES:
+:CUSTOM_ID: keyword-arguments
+:END:
+See https://clojure.org/news/2022/03/22/clojure-1-11-0
+- also [[https://clojure.atlassian.net/browse/CLJ-2606][[spec] kwarg invocation with a map requires spec update to keys*]]
+
+Use ~s/keys*~ to spec keyword args.
+
+: (defn with-opts-no-g
+:   [& {:as opts}]
+:   opts)
+: 
+: (s/fdef with-opts-no-g
+:   :args (s/cat :opts (s/keys*)) 
+:   :ret …)
+- Source: [[https://clojurians.slack.com/archives/C053AK3F9/p1712158041984799][user sheluchin on Clojars]]
 
 * Testing
 

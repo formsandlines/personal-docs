@@ -1,0 +1,20 @@
+#+title: Docs/HTML
+
+* Tables
+- [[https://css-tricks.com/complete-guide-table-element/][A Complete Guide to the Table Element]]
+
+* SVG
+- [[https://developer.mozilla.org/en-US/docs/Web/SVG][SVG: Scalable Vector Graphics (mdn docs)]]
+
+Via the ~<foreignObject>~ tag, (X)HTML (or a different XML namespace) elements
+can be included in an ~svg~ element.
+- see [[https://developer.mozilla.org/en-US/docs/Web/SVG/Element/foreignObject][<foreignObject> (mdn docs)]] for reference
+
+Articles for learning SVG:
+- Understanding SVG Coordinate Systems and Transformations (series)
+  - [[https://www.sarasoueidan.com/blog/svg-coordinate-systems/][(Part 1) — The viewport, viewBox, and preserveAspectRatio]]
+  - [[https://www.sarasoueidan.com/blog/svg-transformations/][(Part 2) — The transform Attribute]]
+  - [[https://www.sarasoueidan.com/blog/nesting-svgs/][(Part 3) — Establishing New Viewports]]
+- [[https://www.sarasoueidan.com/blog/mimic-relative-positioning-in-svg/][Mimic Relative Positioning Inside an SVG with Nested SVGs]]
+
+
