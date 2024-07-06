@@ -1609,6 +1609,9 @@ display on each /frame/, based on the frame’s current /background color/.
 To inspect a /face/ at /point/:
 : M-x describe-face
 
+To inspect text properties, including applied faces:
+: C-u C-x =
+
 To see what faces are currently defined:
 : M-x list-faces-display
 
@@ -2581,6 +2584,18 @@ Icons for [[#ivy]].
 *** ThemeCreator
 - https://github.com/mswift42/themecreator
 - https://mswift42.github.io/themecreator/
+*** (built-in) modus-themes
+Accessible (as per WCAG), highly customizable and fairly complete themes
+by Protesilaos Stavrou.
+- light theme: ~modus-operandi~
+- dark theme: ~modus-vivendi~
+- toggle between light and dark: ~M-x modus-themes-toggle~
+- https://protesilaos.com/emacs/modus-themes (official manual)
+- https://github.com/protesilaos/modus-themes
+*** ef-themes
+Ef (εὖ) themes – colorful and legible alternatives to the ~modus-themes~ by
+the same author for “something with a bit more flair”.
+- https://github.com/protesilaos/ef-themes
 *** doom-themes
 Megapack of themes from the Doom Emacs distribution.
 - https://github.com/doomemacs/themes
@@ -2613,6 +2628,8 @@ underlying shell through Emacs.
 
 : M-x shell
 
+Type ~exit~ to end the shell process.
+
 | Keys              | Description                                |
 |-------------------+--------------------------------------------|
 | ~M-p~ / ~M-n~         | cycle through command history              |
@@ -2625,7 +2642,7 @@ underlying shell through Emacs.
 | ~C-c C-l~           | list command history (to reinsert)         |
 | ~C-d~               | delete forward char or send ~^D~ if no input |
 |                   | (may exit the shell)                       |
-| ~C-c C-z~           | (?) send stop sub job                      |
+| ~C-c C-z~           | send stop sub job (cancel running process) |
 | ~TAB~               | complete at the point                      |
 
 *** [built-in] ansi-term (Terminal Emulator)

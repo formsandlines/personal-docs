@@ -531,43 +531,76 @@ equals /b/.
 | ~k n~            |             | next prime number (prefix ~I~ for lower) |
 
 ** Vector Analysis
-| <16>            | <12>    | <38>                                      |
-| Command key(s)  | Formula | Meaning                                   |
-|-----------------+---------+-------------------------------------------|
-| ~v l~             |         | get vector length (count of elements)     |
-| ~[ x y … ]~       | ~[x y …]~ | collect numbers in a vector               |
-| ~v u~             |         | unpack vector/matrix as stack elements    |
-| ~v p~             |         | pack into vector/matrix                   |
-| ~v x <n>~         |         | gen. vector of ~n~ indices                  |
-| ~<n s i> C-u v x~ |         | gen. ~n~ items, start from ~s~, increm. by ~i~  |
-| ~v b <n>~         |         | build vector from ~n~ top stack elements    |
-| ~v v~             |         | reverse vector                            |
-| ~v S~             |         | sort vector (increasing order)            |
-| ~v r <n>~         |         | extract row/col ~n~ from vector or matrix   |
-| / ~v c <n>~       |         |                                           |
-|                 |         | - with /negative argument/, deletes it      |
-|-----------------+---------+-------------------------------------------|
-| ~[ a .. b ]~      |         | create a closed interval                  |
-| ~( a .. b )~      |         | create an open interval                   |
-|-----------------+---------+-------------------------------------------|
-| ~v M <op>~        |         | map vector with ~op~ (apply to each elem.)  |
-| ~v R <op>~        |         | reduce vector with ~op~                     |
-| ~v U <op>~        |         | reduce with ~op~ while accumulating results |
-|-----------------+---------+-------------------------------------------|
-| ~A~               | ~abs(v)~  | absolute value (→ lenght of the vector)   |
-| ~+~               |         | vector addition                           |
-| ~*~               |         | dot product                               |
-| ~v C~             |         | cross product of 3-dim. vector            |
-| ~v D~             |         | calculate determinant                     |
-| ~RET A /~         |         | normalize vector (divide by length)       |
-|-----------------+---------+-------------------------------------------|
-| ~[ [ v ] … ]~     | ~[v; …]~  | collect vectors in a matrix               |
-| ~v i <dim>~       |         | gen. identity matrix of dimension ~dim~     |
-| ~v t~             |         | transpose matrix                          |
-| ~&~               |         | inverse of matrix (reciprocal)            |
-|-----------------+---------+-------------------------------------------|
-| ~*~               |         | composition (matrix multiplication)       |
-| ~/~               |         | divide matrices (multiply by the inverse) |
+| <16>           | <12>      | <38>                                          |
+| Command key(s) | Formula   | Meaning                                       |
+|----------------+-----------+-----------------------------------------------|
+| ~[ x y … ]~      | ~[x y …]~   | collect numbers in a vector                   |
+| ~v l~            |           | get vector length (count of elements)         |
+| + ~H …~          |           | - matrix (or higher dim.) size: [ d1 d2 … ]   |
+| ~v u~            |           | unpack vector/matrix as stack elements        |
+| ~v p~            |           | pack into vector/matrix                       |
+| ~v x <n>~        |           | gen. vector of ~n~ indices [ 1 … ~n~ ]            |
+|                |           | - negative ~n~ results in [ ~n~ … -1 ]            |
+| + n,s,i ~C-u …~  |           | gen. ~n~ items, start from ~s~, increm. by ~i~      |
+| ~v b <n>~        |           | build vector from ~n~ top stack elements        |
+| ~v a <n>~        |           | (re)arrange vector to ~n~ columns (or ~n~-groups) |
+|                |           | - if ~n~ = 0, flattens the vector               |
+| ~v v~            |           | reverse vector                                |
+| ~v S~            |           | sort vector in increasing order               |
+| + ~I …~          |           | - decreasing order                            |
+|----------------+-----------+-----------------------------------------------|
+| ~v r <n>~        |           | extract row ~n~ from vector or matrix           |
+| ~v c <n>~        |           | extract col ~n~ from vector or matrix           |
+| + i ~C-u …~      |           | - apply index from top of stack instead       |
+| + s..e ~C-u …~   |           | - index-range to extract of rows/cols         |
+| + [i,…] ~C-u …~  |           | - vector of indices to extract of rows/cols   |
+| + ~C-- <n> …~    |           | - /delete/ row/col instead                      |
+| / if ~n~ = 0     |           | - extracts diag. elems of a sq. matrix as v.  |
+| i ~a _~          | ~[…]_n~     | like ~v r~, where index is the top elem.        |
+|                | ~[…]_i_j_…~ | for deep extraction with multiple indices     |
+| s e ~v s~        |           | get subvector from second /s/ to (excl.) top /e/  |
+|                |           | - same as ~v r~ with interval index             |
+|                |           | - /s/e/ <= 0 is relative to the end of vec.     |
+| + ~I …~          |           | - removes subvector from the vector           |
+| ~v f~            |           | find first index of top elem. in second vec.  |
+|                |           | - starts at 1, returns 0 when not found       |
+|                |           | - with num. prefix, search starts at /n/        |
+|----------------+-----------+-----------------------------------------------|
+| ~v k~            |           | cons second element to top vector             |
+| + ~H …~          |           | - append top element to second vector         |
+| ~\vbar~              |           | append/concat top elem./vec. to vector        |
+| + ~I …~          |           | - prepend/concat top elem./vec to vector      |
+| + ~H …~          |           | - concat top vector to vector                 |
+| + ~H I …~        |           | - concat top vector before second vector      |
+| ~v h~            |           | get head / first element                      |
+| + ~I …~          |           | - get tail / all but first element            |
+| + ~H …~          |           | - get all but last element                    |
+| + ~H I …~        |           | - get last element                            |
+|----------------+-----------+-----------------------------------------------|
+| ~[ a .. b ]~     |           | create a closed interval                      |
+| ~( a .. b )~     |           | create an open interval                       |
+|----------------+-----------+-----------------------------------------------|
+| ~v M <op>~       |           | map vector with ~op~ (apply to each elem.)      |
+| ~v R <op>~       |           | reduce vector with ~op~                         |
+| ~v U <op>~       |           | reduce with ~op~ while accumulating results     |
+|----------------+-----------+-----------------------------------------------|
+| ~A~              | ~abs(v)~    | absolute value (→ lenght of the vector)       |
+| ~+~              |           | vector addition                               |
+| ~*~              |           | dot product                                   |
+| ~v C~            |           | cross product of 3-dim. vector                |
+| ~v D~            |           | calculate determinant                         |
+| ~RET A /~        |           | normalize vector (divide by length)           |
+|----------------+-----------+-----------------------------------------------|
+| ~[ [ v ] … ]~    | ~[v; …]~    | collect vectors in a matrix                   |
+| ~v i <dim>~      |           | gen. identity matrix of dimension ~dim~         |
+| ~v d~            |           | gen. diagonal square matrix from top elem.    |
+|                |           | - if vector, use all elements of it           |
+|                |           | - if number, set numeric prefix for /n/ copies  |
+| ~v t~            |           | transpose matrix                              |
+| ~&~              |           | inverse of matrix (reciprocal)                |
+|----------------+-----------+-----------------------------------------------|
+| ~*~              |           | composition (matrix multiplication)           |
+| ~/~              |           | divide matrices (multiply by the inverse)     |
 
 *Note:* to speed up computation /significantly/ for very large vectors (1000+
 elements), toggle abbreviation of vector display with ~v .~ and ~t .~ (for the
