@@ -9,3 +9,32 @@ Examples:
 * Hooks
 
 https://github.com/lilactown/helix/blob/master/docs/hooks.md
+
+* React.memo
+
+Can be implemented in Helix using [[https://github.com/lilactown/helix/blob/master/docs/creating-components.md#higher-order-components][Higher Order Components]].
+
+Example:
+#+begin_src clojurescript
+(defnc Foo
+  {:wrap [(helix.core/memo)]}
+  [props]
+  "I am memoized!")
+#+end_src
+
+* React.forwardRef
+
+Can be implemented in Helix using [[https://github.com/lilactown/helix/blob/master/docs/creating-components.md#higher-order-components][Higher Order Components]].
+
+Example:
+#+begin_src clojurescript
+(ns my.ns (:require
+           ;; …
+           ["react" :as react]))
+
+(defnc Foo
+  [props ref]
+  {:wrap [(react/forwardRef)]}
+  (d/div
+   {:ref ref}))
+#+end_src

@@ -67,6 +67,7 @@ result copied from the stack.
 - ~D : calc-redo~ → redo input
 - ~y : calc-copy-to-buffer~ → copy top of stack into editing buffer
 - ~' : calc-algebraic-entry~ → enter an algebraic formula
+- ~M-k : calc-copy-as-kill~ → copy top of stack
 
 Getting Help:
 : h … : calc-help-prefix
@@ -90,7 +91,7 @@ Getting Help:
 Commands to handle larger formulas or numbers:
 - ~< : calc-scroll-left~ → left horizontal scrolling
 - ~> : calc-scroll-right~ → right horizontal scrolling
-- ~` : calc-edit~ → edit the stack entry directly
+- ~` : calc-edit~ → edit top stack entry directly
 
 Numeric prefixes change stack element selection for some commands (like
 ~calc-enter~ and ~calc-pop~):
@@ -169,6 +170,7 @@ Element types:
 - Complex Number :: e.g. ~(0, 2)~
 - Vector :: e.g. ~[1 2 3]~
 - Matrix :: e.g. ~[[1 5] [2 6]]~
+- Base /N/ Number :: e.g. ~2#1011~, ~16#FF00A4~
 - HMS Form :: e.g. ~2@ 30' 15"~ (hours, minutes, seconds)
 - Date Form :: e.g. ~<Fri Dec 25, 1987>~, ~<6:45:18pm Sat Apr 13, 2024>~
   - many common input formats allowed
@@ -525,8 +527,9 @@ equals /b/.
 | Command key(s) | Formula     | Meaning                                |
 |----------------+-------------+----------------------------------------|
 | ~!~              | ~fact(x)~     | factorial                              |
-| ~f g~            | ~gamma(x)~    | Euler’s Gamma function                 |
 | ~k c~            | ~choose(n k)~ | binomial coefficient (/n-choose-k/)      |
+| ~H k c~          | ~perm(n k)~   | number of /k/-permutations from /n/ elems  |
+| ~f g~            | ~gamma(x)~    | Euler’s Gamma function                 |
 | ~k f~            |             | prime factors                          |
 | ~k n~            |             | next prime number (prefix ~I~ for lower) |
 
@@ -667,6 +670,9 @@ _Date Arithmetic_
 | ~a S <var, …>~   |                          | solve equation for given variable(s)                            |
 | ~a .~            |                          | extract righthand side of equation                              |
 | ~a r <rule>~     |                          | apply given rewrite rule                                        |
+|----------------+--------------------------+-----------------------------------------------------------------|
+| ~a + <var>~      |                          | compute sum using formula on stack,                             |
+| - ~<from> <to>~  |                          | prompts for index variable and its lower and upper bound        |
 |----------------+--------------------------+-----------------------------------------------------------------|
 | ~a x~            |                          | “expand” formula                                                |
 | ~a c <x>~        |                          | collect terms involving ~x~                                       |

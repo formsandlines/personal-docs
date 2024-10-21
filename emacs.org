@@ -204,6 +204,12 @@ See [[#package-vc]]
 Try starting Emacs with the ~-q~ flag to prevent the /init/ file from loading
 and determine if the error comes from a broken init file.
 
+If Emacs hangs, try:
+- 1) repeatedly press ~C-g~
+- 2) if (1) doesn't work, send USR2 signal to Emacs:
+  : $ pkill -USR2 Emacs
+  - Emacs will print a stacktrace for diagnostics
+
 ** Example configs
 - https://github.com/daviwil/dotfiles/blob/master/Emacs.org
 - https://github.com/olivertaylor/dotfiles/blob/master/emacs/init.el
@@ -898,7 +904,6 @@ Compile in the current project:
 : C-x p c
 
 ** Browsing
-
 *** EWW: Emacs Web Wowser
 : M-x eww
 - ~q~ to quit
@@ -1659,10 +1664,8 @@ For a list of available themes and to toggle between them:
 To disable a theme:
 : M-x disable-theme
 
-Modus themes
-- https://protesilaos.com/emacs/modus-themes
-- [[https://protesilaos.com/emacs/modus-themes#h:1af85373-7f81-4c35-af25-afcef490c111][How to install the Modus Themes]]
-- [[https://protesilaos.com/emacs/modus-themes#h:bf1c82f2-46c7-4eb2-ad00-dd11fdd8b53f][How to customize the Modus Themes]]
+Accessible and highly customizable themes:
+- [[#modus-themes][(built-in) modus-themes]]
 
 ** Creating themes
 A theme ~foo~ should be defined in a file called =foo-theme.el=.
@@ -2513,6 +2516,138 @@ Use [[#org-mode]] links in other modes.
 *** org-auto-tangle
 Tangles org files (asynchronously) on save.
 - https://github.com/yilkalargaw/org-auto-tangle
+** Tables
+*** [built-in] table.el (by Takaaki Ota)
+:PROPERTIES:
+:CUSTOM_ID: table-el
+:END:
+Complex ASCII tables with automatic line wrapping, column-/row-spanning
+and alignment.
+- [[info:emacs#Text Based Tables][emacs#Text Based Tables]]
+- also useful to lay out text in two dimensions
+
+**** Insert & Recognize Tables
+
+Insert a table with a specified number of rows/cols, cell width/height,
+etc.:
+: M-x table-insert
+- width/height does not include cell borders
+- width/height input is either a single integer or a
+  space/comma-separated sequence of integers for each column/row
+  - counting from left → right and top → bottom
+  - any unspecified column/row is given the last specified size
+
+The inserted table gets /special text properties/ to easily edit the table
+that are lost when the file is visited again later. To apply them again,
+the table(s) must be recognized by Emacs, using these commands:
+
+Recognize/unrecognize all tables within the (scanned) buffer:
+: M-x table-recognize
+: M-x table-unrecognize
+
+Selectively recognize/unrecognize …
+- tables within the current region:
+: M-x table-recognize-region
+: M-x table-unrecognize-region
+- a table at point:
+: M-x table-recognize-table
+: M-x table-unrecognize-table
+- a cell at point:
+: M-x table-recognize-cell
+: M-x table-unrecognize-cell
+
+**** Convert Tables to/from Plain Text
+
+Capture plain text in a region and turn it into a table:
+: M-x table-capture
+- no need for borders, just needs a logical table-like structure
+- regex tips:
+  - ~\,~ for comma
+  - ~$~ for a line-break
+  - empty input for no subdivision
+
+Convert a table (back) to plain text (removes borders):
+: M-x table-release
+
+Both commands can also be useful to edit a complex text layout in two
+dimensions and convert it back to plain text when finished.
+
+Generate source code for the table in various formats:
+: C-^ : table-generate-source
+
+**** Edit Table Structure
+
+Insert row (above current cell) or column (to the left of cell):
+: M-x   table-insert-row
+: M-x   table-insert-column
+: C-+ : table-insert-row-column
+- also takes numeric prefix argument for multiple rows/cols
+- appends column to the right side of the table, when point is to the
+  right of its outermost border
+- appends row to the bottom of the table, when point is just below its
+  outermost border
+
+Delete row or column of cells at point:
+: M-x   table-delete-row
+: M-x   table-delete-column
+- also takes numeric prefix argument for multiple rows/cols
+
+
+Span current cell to merge with adjacent cell in a selected direction:
+: C-* : table-span-cell
+
+Split current cell vertically/horizontally at point:
+: M-x   table-split-cell
+: C-- : table-split-cell-vertically
+: C-| : table-split-cell-horizontally
+- for horizontal splits, content can either be divided directly (~split~)
+  or moved to the selected direction of the split (if necessary)
+
+Adjust cell width (also takes numerical argument):
+: C-< : table-narrow-cell
+: C-> : table-widen-cell
+
+Adjust cell height (also takes numerical argument):
+: C-{ : table-shorten-cell
+: C-} : table-heighten-cell
+
+**** Edit Cell Contents
+
+Move point between cells (cyclic order):
+: TAB   : table-forward-cell
+: S-TAB : table-backward-cell
+
+Add new line inside table cell:
+: RET : *table--cell-newline
+: C-j : *table--cell-newline-and-indent
+
+Align contents of cell/row/column to the left/center/right horizontally
+or to the top/middle/bottom vertically:
+: C-: : table-justify
+- option ~none~ means no vertical justification
+
+Justification style is stored in the buffer as a text property and is
+lost when the buffer is killed or Emacs is closed. The table recognition
+commands will try to determine and re-apply each cell’s justification
+style, by examining its contents.
+- set ~table-detect-cell-alignment~ to ~nil~ to disable this
+
+Toggle fixed-width-mode:
+: C-! : table-fixed-width-mode
+
+Insert a sequence starting from a given base string into each cell while
+traversing the given number of cells horizontally or vertically,
+“incrementing” the string by a given amount:
+: M-x table-insert-sequence
+- numbers are incremented numerically, other characters in ASCII order
+- to leave the string as is, enter ~0~ as an increment
+
+**** Misc
+
+Show report of width/height of cell & table at point as well as
+dimension and cell count for the table:
+: C-# : table-query-dimension
+
 ** Knowledge work
 *** org-ref
 Citations, cross-references, indexes, glossaries and bibtex utilities for
@@ -2585,6 +2720,9 @@ Icons for [[#ivy]].
 - https://github.com/mswift42/themecreator
 - https://mswift42.github.io/themecreator/
 *** (built-in) modus-themes
+:PROPERTIES:
+:CUSTOM_ID: modus-themes
+:END:
 Accessible (as per WCAG), highly customizable and fairly complete themes
 by Protesilaos Stavrou.
 - light theme: ~modus-operandi~
@@ -2627,6 +2765,7 @@ underlying shell through Emacs.
   - use ~M-x proced~ and ~M-x man~ as replacements
 
 : M-x shell
+- use with ~C-u~ to open a different shell process with a new name
 
 Type ~exit~ to end the shell process.
 
@@ -2654,6 +2793,9 @@ typical Emacs buffer.
 - slow and some obscure terminal emulation features are not supported
 
 : M-x ansi-term
+
+Almost the same as ~M-x term~, but always creates a new buffer and ~C-x~ is
+being marked as a ~term-escape-char~.
 
 *line mode* can be used for editing like in a typical Emacs buffer.
 

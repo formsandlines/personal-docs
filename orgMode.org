@@ -526,14 +526,15 @@ _Example_
   1. c.a
 
 ** Tables
-
 | Some | Data  |
 |------+-------|
 | My   | Stuff |
 | is   | Here  |
 
-Convert region to table or (if no region) create an empty table with a given
-size (e.g. 3x6):
+*** Conversion / Export
+
+Convert region to table or (if no region) create an empty table with a
+given size (e.g. 3x6):
 : C-c | : org-table-create-or-convert-from-region
 - if at least one ~TAB~ on every line, assumes /tab-separation/ (TSV)
   - force with ~C-u C-u …~
@@ -543,6 +544,44 @@ size (e.g. 3x6):
 - otherwise, lines are split at whitespace into fields
   - if whitespace-separator should be /at least/ ~n~ spaces: ~C-<n> …~
   - e.g. select "A  B C  D E F", type ~C-2 …~, result "| A | B C | D E F |"
+
+Import a file as a table:
+: M-x org-table-import
+- can figure out the separator automatically:
+  - assumes TAB when each line contains a TAB
+  - assumes CSV when each line contains a comma
+  - else assumes one or more SPACE characters as a separator
+- prefix ~C-u C-u C-u~ to prompt for a regex to specify a separator
+
+Export table at point to a specified file and format:
+: M-x org-table-export
+- defaults to TAB-separated file
+
+Pre-config the filename and format either in the variable
+~org-table-export-default-format~ or directly for all tables in a subtree:
+
+: * Table
+:   :PROPERTIES:
+:   :TABLE_EXPORT_FILE: ./my-table.csv
+:   :TABLE_EXPORT_FORMAT: orgtbl-to-csv
+:   :END:
+:   | A | B |
+:   | 1 | 2 |
+
+Built-in translator/conversion functions that use the generic translator
+~orgtbl-to-generic~:
+- see [[info:org#Translator functions][org#Translator functions]] on how to write custom language translator
+  functions
+
+| function          | converts to                   |
+|-------------------+-------------------------------|
+| ~orgtbl-to-csv~     | CSV                           |
+| ~orgtbl-to-tsv~     | TSV                           |
+| ~orgtbl-to-latex~   | LaTeX                         |
+| ~orgtbl-to-html~    | HTML                          |
+| ~orgtbl-to-texinfo~ | Texinfo                       |
+| ~orgtbl-to-unicode~ | Table with unicode characters |
+| ~orgtbl-to-orgtbl~  | another ~orgtbl-mode~ table     |
 
 *** Display / Alignment
 
@@ -770,6 +809,17 @@ Plot /ASCII-art/ bars in a new column of the table:
 - ~line:<?>~ → specify an entire line to be inserted in the Gnuplot script
 - ~map:<t>~ → flat mapping rather than a ‘3d’ slope in ~3d~ or ~grid~ types
 - ~script:"<path>"~ → specify a /script file/ to be used to plot
+
+*** ~table.el~ integration
+See [[file:emacs.org::#table-el][table.el by Takaaki Ota]] in =emacs.org=
+
+Insert a ~table.el~ table with specified number of rows, cols, etc.
+*or* (if point is already on a table)
+convert between ~table.el~ table and org-table (→ ~org-convert-table~):
+: C-c ~ : org-table-create-with-table.el
+
+Edit a ~table.el~ table (when point is in table) in a special buffer:
+: C-c ' : org-edit-special
 
 * Links
 

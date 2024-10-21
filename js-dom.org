@@ -150,6 +150,10 @@ document.createElementNS('http://www.w3.org/2000/svg', 'rect')
 **** : Node.cloneNode( deep_clone? )
 (deeply) clones a node.
 
+*DOES NOT WORK WITH CUSTOM ELEMENTS (WEB COMPONENTS)*
+- use ~document.importNode(Node, true)~ to clone a node with custom
+  elements as children (\tilde30% slower than ~cloneNode~)
+
 **** : Element.before( obj1, obj2, … ) | .after( … )
 Inserts a set of ~Node~ or string objects in the children list of the
 ~Element~'s parent, just before|after this ~Element~.
@@ -1006,3 +1010,4 @@ To freeze the UI state (if F8 doesn’t work):
 1. set the state in Browser
 2. wait 5 seconds for freezing to occur
 - [[https://stackoverflow.com/a/63643578/1204047][source]]
+  
