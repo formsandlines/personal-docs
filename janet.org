@@ -708,12 +708,15 @@ To find (the first index / all indexes) where the PEG matches:
 - returns an integer of the index or ~nil~ if not found
 
 To replace (the first match / all matches) of a PEG:
-: (peg/replace <peg> <repl.> <text>  <?start> <?args …>)
+: (peg/replace <peg> <replacement-string/fn> <text>  <?start> <?args …>)
 : (peg/replace-all …)
 - [[https://janetdocs.com/peg%2freplace]]
 - returns a new /buffer/ with the replaced match
 - if no matches found, returns the input ~text~ in a new buffer
-- the PEG does not need to make captures
+- the PEG should only match the parts that are to be replaced
+- when given a replacement string, the PEG does not need to make captures
+- when given a replacement function, captures are provided as the second
+  argument, the first arg. contains the whole match: ~(fn [match capture] …)~
 
 ** Patterns
 
@@ -765,7 +768,7 @@ To replace (the first match / all matches) of a PEG:
 | ~(look <offset> <ptn>)~ |                                        |         |
 | / ~(> …)~               |                                        |         |
 | ~(to <ptn>)~            | match up to pattern (not including it) |         |
-| ~(thru <ptn>)~          |                                        |         |
+| ~(thru <ptn>)~          | match up through patt. (thus incl. it) |         |
 | ~(backmatch <?tag>)~    | if tag: match against tagged capture   |         |
 |                       | / else: match against last capture     |         |
 |                       | / (only if it is untagged)             |         |
@@ -1218,12 +1221,13 @@ Pretty-print:
 : (pp <form>)
 
 *** Files/resources
-To load a file:
-: (slurp "<path>")
+Load file from ~path~:
+: (slurp <path>)
 
-To write to a file:
-: (spit "<path>")
-- may or may not exist
+Write ~contents~ to file at ~path~:
+: (spit <path> <contents>  <?mode>)
+- file may or may not exist
+- optionally append to file with mode ~:a~
 
 *Explicit file handling* (blocking)
 - see [[Streams]] for non-blocking/asynchronous file handling
@@ -1283,8 +1287,19 @@ Checks for truthyness:
 
 ** Complex DS
 *** Common
+Get a value from a nested data structure:
+: (get-in <ds> <keys>  <?default-value>)
+- can be any table/struct or array/vector in combination
+- ~keys~ is a sequence of keywords or numeric indices
+- ~default-value~ will be returned if value is not found
+
 Check if data-structure ~ds~ contains the value ~val~:
 : (has-value? <ds> <val>)
+
+Find the first index/key of value ~x~ in a data structure:
+: (index-of <x> <ds>  <?default-value>)
+- ~default-value~ will be returned if value is not found
+- will not look at table prototypes
 
 Sort, using an optional comparator function or ~<~ by default:
 : (sort <ds> <?comp>)
@@ -1309,15 +1324,26 @@ Select elements:
 Get the number of elements:
 : (length <xs>)
 
-Extract a sub-range:
-: (slice <xs> <?start> <?end>)
-- see also: ~tuple/slice~
+Extract a sub-range (returns a /tuple/):
+: (slice <xs>  <?start (incl.)> <?end (excl.)>)
+- default ~start~ is 0, ~end~ is length of ~xs~
+- Indexes can be negative to start from the end of the array
+  - negative ~start~ is exclusive
+  - negative ~end~ is inclusive
+- use ~(slice xs 1)~ to mimic ~rest~ or ~cdr~ in other Lisps
+- use ~(slice arr)~ to create a copy of an array 
+- see also ~array/slice~ (returns an array), ~tuple/slice~
 
 Higher-order sequence functions (no mutation):
 : (map <fn> <xs …>)
 : (filter <pred> <xs>)
 : (reduce <fn> <init> <xs>) (reduce2 <fn> <xs>)
 : (partition <n> <xs>)
+: (partition-by <fn> <xs>)
+
+Predicate functions on sequences:
+: (all <pred> <xs>)
+: (some <pred> <xs>)
 
 Like ~reduce~, but accumulates intermediate values into an array:
 : (accumulate <fn> <init> <xs>) (accumulate2 <fn> <xs>)
@@ -1361,9 +1387,9 @@ Append flattened ~xs~ to (returned) array ~into~:
 
 **** Tuple
 
-To take a sub-seq of an array/tuple from ~start~ (incl.) to ~end~ (excl.) index:
-: (tuple/slice <seq> <?start> <?end>)
-: (tuple/slice @[1 2 3])  # creates an immutable copy
+To take a sub-seq of an array/tuple from ~start~ to ~end~ index:
+: (tuple/slice <seq>  <?start (incl.)> <?end (excl.)>)
+- see also ~slice~ (common)
 - https://janetdocs.com/tuple%2fslice
   
 **** Array
@@ -1418,11 +1444,21 @@ To convert bytes (e.g. from string iteration) to a string:
 : (string/from-bytes <byte-vals …>)
 
 Join an array of strings with optional separator string:
-: (string/join <str-array> <?sep>)
+: (string/join <str-array>  <?sep>)
+
+Split a string into an array of strings:
+: (string/split <sep> <string>)
+
+Search for first instance of ~pattern~ in ~string~, returns index of first
+matched character or ~nil~ if no match:
+: (string/find <pattern> <string>  <?start-idx>)
 
 To reverse (the /bytes/ of) a string/buffer:
 : (string/reverse <string>)
 - will reverse all bytes from UTF-8 encoding → *breaks unicode chars!*
+
+Double-quote string ~\"~:
+: (string/from-bytes 0x22)
 
 Examples:
 #+begin_src janet-ts
@@ -1432,6 +1468,8 @@ Examples:
 #=> "This (1 2 3) is an expression."
 (map string/from-bytes "hello")
 #=> @["h" "e" "l" "l" "o"]
+("?" 0)
+#=> 63  (quick lookup for character bytecodes)
 #+end_src
 *** Associative DS
 **** Common

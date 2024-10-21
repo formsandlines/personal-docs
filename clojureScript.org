@@ -117,6 +117,9 @@ See:
 - https://www.digitalocean.com/community/tutorials/js-modules-es6
 
 * Google Closure Library
+:PROPERTIES:
+:CUSTOM_ID: goog
+:END:
 
 (see [[file:google-closure.org][google-closure.org]])
 
@@ -151,11 +154,53 @@ obj ;=> #js {:a 1, :b "two"}
 ; but it won’t work with keywords in vectors
 #+end_src
 
+*** Type Hints
+
+Use in definitions, function arguments and let-bindings to tell the
+compiler that the name binds to a javascript object of some kind.
+
+General js object:
+: ^js x
+More specific:
+: ^js/Object x
+: ^js/Array x
+: ^js/HTMLDocument x
+: ^js/MutationObserver x
+
+Examples:
+#+begin_src clojurescript
+(defn first-match [^js/Array selectors] ;; cannot be inferred
+  (let [result (atom js/undefined)]
+    (.forEach selectors
+              (fn [s]
+                (when-let [elem (.. js/document (querySelector s))]
+                  (reset! result elem))))
+    result))
+
+(def ^js/Array arr (array ".xyz" "#root")) ;; not necessary, can be inferred
+
+(let [^js elem   (first-match arr) ;; who knows what this returns?
+      ^js/Node p (.. elem (querySelector "p"))] ;; can be inferred?
+  (.-textContents p))
+#+end_src
+
 *** Objects
 
-Define JS objects with ~js-obj~
+Define JS objects with ~js-obj~ or ~#js {…}~ .
 - keys must be strings (as opposed to Clojure maps)
-- member-access with ~aget~
+  - when using ~#js~, keywords in the input map get converted to strings
+- member-access with ~(.-x obj)~ notation
+  - compiles to ~obj.x~
+  - *Note:* properties might get renamed during [[https://github.com/clojure/clojurescript/wiki/Advanced-Compilation][advanced optimizations]],
+    which breaks with direct access
+    - ~aget~ might work (and compiles to ~obj["x"]~), but is explicitly
+      [[https://cljs.github.io/api/cljs.core/aget][documented]] for native arrays only
+    - ~goog.object/get~ and (multi-arity) ~goog.object/getValueByKeys~ from
+      [[#goog][Google Closure Library]] or ~oget~ from [[#cljs-oops][cljs-oops]] solve this issue
+      without relying on externs
+      - see [[https://github.com/binaryage/cljs-oops?tab=readme-ov-file#motivation][explanation]] for arguments against using externs files
+      - for using externs, there is now [[https://clojurescript.org/guides/externs#externs-inference][externs inference]]
+      - also see [[http://lukevanderhart.com/2011/09/30/using-javascript-and-clojurescript.html][Using JavaScript libraries in ClojureScript]] (2011)
 - set properties with ~aset~
 
 #+begin_src clojurescript
@@ -180,8 +225,10 @@ obj  ;=> #js {:x 1, :y 2, :z 3}
 
 *** Arrays
 
-Define JS arrays with ~array~
-- set/get like objects
+Define JS arrays with ~array~, ~#js […]~, ~make-array~ or ~js/Array.from~ .
+- use ~aget~ / ~aset~ for member access/mutation (like with JS objects)
+- use native ~.forEach~ to iterate for better performance in large arrays
+- use ~aclone~ to clone an array (shallow copy)
 
 #+begin_src clojurescript
 (def arr (array 1 2 3))
@@ -189,6 +236,7 @@ arr ;=> #js [1 2 3]
 
 ;; Index access:
 (aget arr 1) ;=> 2
+(aget ["a" "b" "c"] 1) ;=> nil (won’t work with vectors!)
 
 ;; Set/create element (mutation):
 (aset arr 3 "foo") ;=> "foo"
@@ -196,10 +244,12 @@ arr ;=>  #js [1 2 3 "foo"]
 
 ;; To convert js objects to js Arrays:
 (js/Array.from "Hey") ;=> #js ["H" "e" "y"]
+
+;; Iterating over a js Array:
+(.forEach arr
+          (fn [x]
+            (js/console.log x)))
 #+end_src
-
-
-src_clojure{ (aget ["a" "b" "c"] 1) }
 
 *** Classes
 At the moment (05/2024), ~class~ definitions are not supported in Cljs.
@@ -258,9 +308,9 @@ Example:
 
 ** JS methods
 
-- prefix ~.~ to call
-- ~..~ syntax sugar to call chained methods
-- call as constructor with leading ~.~
+Prefix ~.~ to call a method from a JS object: ~(.f obj)~
+- use ~..~ syntax sugar to call chained methods: ~(.. obj f1 (f2 "arg"))~
+- call as constructor with a leading ~.~ : ~(MyClass. "arg")~
 
 #+begin_src clojurescript
 (.toUpperCase "Hello world!")
@@ -295,34 +345,124 @@ Example usage:
 
 ** JS properties
 
-Prefix ~.-~ to access:
-src_clojure{ (.-length "Hello world!") }
+Prefix ~.-~ to access properties of JS objects: ~(.-prop obj)~
+- use ~..~ syntax sugar to access chained properties: ~(.. obj -prop1 -prop2)~
 
-Use ~set!~ function to set:
-src_clojure{ (set! (.. js/document (getElementById "app") -innerHTML) "Hello world!") }
+Use ~set!~ to set properties: ~(set! (.-prop obj) "new val")~
+- mutates the object
+- also adds the property if not already set
+- ~aset~ will also work: ~(aset obj "prop" "new val")~ (also mutates object)
 
-~..~ syntax sugar to access chained properties:
-src_clojure{ (.. js/document -body -lastChild -innerHTML -length) }
+#+begin_src clojurescript
+;; Get properties:
+(.-length "Hello world!")
+
+;; Set properties:
+(set! (.. js/document (getElementById "app") -innerHTML) "Hello world!")
+
+;; Chained properties:
+(.. js/document -body -lastChild -innerHTML -length)
+#+end_src
 
 ** Global variables
 
 ~js~ is ClojureScripts namespace for global JavaScript variables.
-
-~js/document~, ~js/window~, etc.
+- e.g. ~js/document~, ~js/window~, ~js/console.log~, ~js/Node~
 
 #+begin_src clojurescript
 (js/console.log "Hey ho") ; appears in browser console
 #+end_src
 
-To create a new variable in the global ns (can be accessed in browser console):
+To create a new variable in the global namespace, use ~set!~ on ~js/x~:
+- can be accessed in the browser console
 #+begin_src clojurescript
 (set! js/newVar 3)
 js/newVar ;=> 3
 #+end_src
 
-Global variables can be looked up from ns like in JS:
+Global variables can be looked up from ~js~ namespace like in JS:
 #+begin_src clojurescript
 (js/document.body.lastChild.innerHTML.charAt 7)
+#+end_src
+
+** Error Handling
+
+Example:
+#+begin_src clojurescript
+(defonce maybe-x (atom nil))
+
+(try
+  (if-let [x @maybe-x]
+    x
+    (throw (js/Error. "No x!")))
+  (catch js/Error e
+    (js/console.error e))
+  (finally
+    (js/console.log "Anyways.")))
+#+end_src
+
+* Snippets
+** Async
+
+#+begin_src clojurescript
+(def myvar* (atom nil))
+
+(def wait-for-myvar
+  (js/Promise.
+   (fn [resolve reject]
+     (let [interval (atom nil)
+           attempts (atom 0)]
+       (reset! interval
+               (js/setInterval
+                (fn []
+                  (when-let [val @myvar*]
+                    (js/clearInterval @interval)
+                    (resolve val))
+                  (when (> @attempts 10)
+                    (reject))
+                  (swap! attempts inc))
+                100))))))
+
+(.then wait-for-myvar
+       (fn [val]
+         (js/console.log "😋 obtained " val))
+       (fn [_]
+         (js/console.error "🫥 failed to obtain value")))
+
+(reset! myvar* 42)
+#+end_src
+
+** MutationObserver
+
+#+begin_src clojurescript
+(defonce iframe (atom nil))
+
+(defn make-mounted-observer-callback
+  [added-node-callback]
+  (js/MutationObserver.
+   (fn [^js/Array mutations ^js/MutationObserver observer]
+     (.forEach
+      mutations
+      (fn [^js/MutationRecord mutation]
+        (when (= (.-type mutation) "childList")
+          (.forEach
+           (.-addedNodes mutation)
+           (fn [^js/Node node]
+             (added-node-callback node observer)))))))))
+
+(def mounted-iframe-observer
+  (make-mounted-observer-callback
+   (fn [^js/Node node ^js/MutationObserver observer]
+     (when (and (= (.-nodeName node) "DIV")
+                (> (.. node -children -length) 0))
+       (reset! iframe (.querySelector node "iframe"))
+       (when @iframe
+         (.disconnect observer))))))
+
+(.observe mounted-iframe-observer
+          (.. js/document (getElementById "container"))
+          #js {:childList true
+               :subtree true})
 #+end_src
 
 * .cljc (Reader Conditionals)
@@ -364,3 +504,11 @@ Splices lists into the containing form.
 (defn build-list []
   (list 5 6 7 8))
 #+end_src
+
+* Libraries
+** cljs-oops
+:PROPERTIES:
+:CUSTOM_ID: cljs-oops
+:END:
+ClojureScript macros for convenient native Javascript object access.
+- [[https://github.com/binaryage/cljs-oops]]
