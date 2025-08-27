@@ -72,6 +72,10 @@ Special keybindings in the *org-goto* buffer:
 | ~u~                     | move upwards to parent heading                |
 | ~TAB~                   | cycle subtree visibility                      |
 
+*Note:* ~org-occur~ seems to have no previous/next match commands/bindings when
+~org-goto-auto-isearch~ is set to nil. Use normal isearch instead.
+- it searches only headers, which is very convenient
+
 ** Tree Editing
 Insert a new heading below the point or (when point is on the first ~*~) above
 the current heading:
@@ -823,13 +827,13 @@ Edit a ~table.el~ table (when point is in table) in a special buffer:
 
 * Links
 
-  | Shortcut            | Action                                 |
-  |---------------------+----------------------------------------|
-  | C-c C-l / SPC m l l | Create/edit link / insert to selection |
-  | C-c C-o / Enter     | Open link                              |
-  | , l t               | toggle link display                    |
-  | , l l               | org-insert-link                        |
-  | SPC n l             | org-store-link                         |
+  | Shortcut        | Action                                 |
+  |-----------------+----------------------------------------|
+  | C-c C-l         | Create/edit link / insert to selection |
+  | C-c C-o / Enter | Open link                              |
+  |                 | org-toggle-link-display                |
+  | C-c C-l         | org-insert-link                        |
+  | C-c l           | org-store-link                         |
 
 ** Internal Links
 
@@ -893,7 +897,27 @@ xxx
 
 ** Hyperlinks
 
-[[https://formform.dev][My project]]
+Syntax: [[https://en.wikipedia.org]], [[https://en.wikipedia.org][Link to Wikipedia]] (with label)
+
+** Radio Targets
+- [[info:org#Radio Targets][org#Radio Targets]]
+
+Syntax: <<<My Target>>>
+
+When a file is loaded, Emacs scans for any radio targets in the document.
+- to update/activate a target without reloading the file, press ~C-c C-c~
+  with the cursor on the target
+
+Text with the radio targets label will automatically be linked (case
+insensitive), e.g. my target or My Target.
+
+Find and update all radio targets in the file:
+: M-x org-update-radio-target-regexp
+
+: C-c n r : org-insert-radio-target-brackets
+
+To move the cursor directly to a specific radio target (e.g. in eLisp):
+: (org-link--search-radio-target <target>)
 
 ** Link to file
 

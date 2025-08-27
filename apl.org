@@ -3,11 +3,685 @@
 Infos:
 - [[https://www.jsoftware.com/papers/tot.htm][Notation as a Tool of Thought]] (Ken Iverson)
 
+* Language
+** Keyboard Layout
+- https://dfns.dyalog.com/n_keyboards.htm
+- https://dfns.dyalog.com/n_kbmac.htm
+- https://www.dyalog.com/apl-font-keyboard.htm (download layouts here)
+
+Dyalog Mac APL/en-GB keyboard:
+: ┌────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬─────────┐
+: │± ⌺ │! ⌶ │@ ⍫ │£ ⍒ │$ ⍋ │% ⌽ │^ ⍉ │& ⊖ │* ⍟ │( ⍱ │) ⍲ │_ ! │+ ⌹ │Backspace│
+: │§ ⋄ │1 ¨ │2 ¯ │3 < │4 ≤ │5 = │6 ≥ │7 > │8 ≠ │9 ∨ │0 ∧ │- × │= ÷ │         │
+: ├────┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬──────┤
+: │Tab    │Q   │W   │E ⍷ │R   │T ⍨ │Y   │U   │I ⍸ │O ⍥ │P ⍣ │{ ⍞ │} ⍬ │Enter │
+: │       │q ? │w ⍵ │e ∊ │r ⍴ │t ~ │y ↑ │u ↓ │i ⍳ │o ○ │p * │[ ← │] → │      │
+: ├───────┴┬───┴┬───┴┬───┴┬───┴┬───┴┬───┴┬───┴┬───┴┬───┴┬───┴┬───┴┬───┴┐     │
+: │Caps    │A   │S   │D   │F ⍛ │G   │H   │J ⍤ │K ⌸ │L ⌷ │: ≡ │" ≢ │|   │     │
+: │Lock    │a ⍺ │s ⌈ │d ⌊ │f _ │g ∇ │h ∆ │j ∘ │k ' │l ⎕ │; ⍎ │' ⍕ │\ # │     │
+: ├──────┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴──┬─┴────┴─────┤
+: │Shift │~ ⊣ │Z ⊆ │X   │C   │V   │B   │N   │M   │< ⍪ │> ⍙ │? ⍠ │Shift       │
+: │      │` ⊢ │z ⊂ │x ⊃ │c ∩ │v ∪ │b ⊥ │n ⊤ │m | │, ⍝ │. ⍀ │/ ⌿ │            │
+: ├────┬─┴───┬┴───┬┴────┼────┴────┴────┴────┴────┼────┴┬───┴┬───┴────────────┘
+: │    │     │alt │     │                        │     │ alt│      ┌───┐
+: │fn  │ctrl │    │cmd  │                        │  cmd│    │┌───┐ ├───┤ ┌───┐
+: └────┴─────┴────┴─────┴────────────────────────┴─────┴────┘└───┘ └───┘ └───┘
+
+** Glyphs
+:PROPERTIES:
+:TABLE_EXPORT_FILE: ./apl-keys.csv
+:TABLE_EXPORT_FORMAT: orgtbl-to-csv
+:END:
+| Key | Glyph |   | Key | Glyph |   | Key | Glyph |   | Key | Glyph |
+|-----+-------+---+-----+-------+---+-----+-------+---+-----+-------|
+| a   | ⍺     |   | A   | ⍶     |   | 1   | ¨     |   | !   | ⌶     |
+| b   | ⊥     |   | B   | £     |   | 2   | ¯      |   | @   | ⍫     |
+| c   | ∩     |   | C   | ⍧     |   | 3   | <     |   | #   | ⍒     |
+| d   | ⌊      |   | D   |       |   | 4   | ≤     |   | $   | ⍋     |
+| e   | ∊     |   | E   | ⍷     |   | 5   | =     |   | %   | ⌽     |
+| f   | _     |   | F   | ⍫     |   | 6   | ≥     |   | ^   | ⍉     |
+| g   | ∇     |   | G   |       |   | 7   | >     |   | &   | ⊖     |
+| h   | ∆     |   | H   | ⍙     |   | 8   | ≠     |   | *   | ⍟     |
+| i   | ⍳      |   | I   | ⍸     |   | 9   | ∨     |   | (   | ⍱     |
+| j   | ∘     |   | J   | ⍤     |   | 0   | ∧     |   | )   | ⍲     |
+| k   | '     |   | K   | ⌺     |   | `   | ◊     |   | ~   |       |
+| l   | ⎕     |   | L   | ⌷     |   | -   | ×     |   | _   | !     |
+| m   | \vert     |   | M   |       |   | =   | ÷     |   | +   | ⌹     |
+| n   | ⊤     |   | N   |       |   | ,   | ⍝     |   | <   | ⍪     |
+| o   | ○     |   | O   | ⍥     |   | /   | ⌿     |   | ?   | ⍠     |
+| p   | ⋆     |   | P   | ⍣     |   | [   | ←     |   | {   | ⍞     |
+| q   | ?     |   | Q   |       |   | ]   | →     |   | }   | ⍬     |
+| r   | ⍴     |   | R   |       |   | ;   | ⍎     |   | :   | ≡     |
+| s   | ⌈      |   | S   |       |   | '   | ⍕     |   | "   | ≢     |
+| t   | ∼     |   | T   | ⍨     |   | \   | ⊢     |   | \vert   | ⊣     |
+| u   | ↓     |   | U   |       |   | §   |       |   | ±   |       |
+| v   | ∪     |   | V   |       |   | .   | .     |   | >   | ⍀     |
+| w   | ⍵     |   | W   | ⍹     |   |     |       |   |     |       |
+| x   | ⊃     |   | X   | χ     |   |     |       |   |     |       |
+| y   | ↑     |   | Y   | ¥     |   |     |       |   |     |       |
+| z   | ⊂     |   | Z   |       |   |     |       |   |     |       |
+
+** Terminology
+[[https://mastering.dyalog.com/Introduction.html#conventions][source]]
+
+- Scalar :: a single value, a number or a single character
+- Vector :: a plain list of values, e.g. ~4 32.5 7~ or ~'my water bottle'~
+- Array :: generic word for any set of values, whatever the number of its
+  dimensions (whatever its shape)
+- Matrix :: an array with 2 dimensions
+- Table :: another common word used for 2D-arrays (matrices)
+- Cube :: common word used for 3D-arrays
+
+** Conditionals
+
+*If-statements*
+
+Imperative if-statement in Dyalog APL:
+: :If <condition>
+:   <true-branch>
+: :EndIf
+
+Example ([[https://youtu.be/myoK22rq1jk?t=1026][source]]):
+#+begin_src gnu-apl
+∇vowels←JustVowels word
+  vowels←''
+  :For letter :In word
+    :If letter∊'aeiou'
+      vowels,←letter
+    :EndIf
+  :EndFor
+∇
+#+end_src
+
+GNU APL does not support control structures, but this works:
+: ∇ r←<function header>
+:   →(<condition>)/error
+:   r←<true-branch>
+:   →0
+: error:
+:   r←<false-branch>
+: ∇
+- source: [[https://stackoverflow.com/a/37907592]]
+
+Example: function to calculate binomial coefficients
+- adapted from snippet A.3 in Iversons [[https://www.jsoftware.com/papers/tot.htm][“Notation as a Tool of Thought”]],
+  which doesn’t work in GNU APL
+#+begin_src gnu-apl
+∇r←bc arg ;x
+  →(arg=0)/error
+  r←(x,0) + (0,x←bc arg-1)
+  →0
+error:
+  r←1
+∇
+#+end_src
+
+*Conditional expressions*
+
+GNU APL doesn’t have guards for conditional expressions, so this will work
+in Dyalog but NOT in GNU APL:
+: {<b>:<b=1> ⋄ <b=0>}
+- 1→true, 0→false
+
+There are [[https://stackoverflow.com/questions/15752895/conditional-function-in-apl][various workarounds]], but they will evaluate both their true and
+their false branch:
+- Using *Index*:
+: <i> ⌷ <i=1> <i=2>
+- same with bracket notation:
+: (<i=1> <i=2>)[<i>]
+- Using *Pick*:
+: <i> ⊃ <i=1> <i=2>
+- index ~i~ acts as a “boolean”, with 1-indexed values 1→“false” and 2→“true”
+- set index origin to 0 to avoid adding 1 to the boolean:
+  : ⎕IO←0
+
+** Loops
+
+Imperative for-each loop in Dyalog APL:
+: :For <name> :In <v>
+:   <body>
+: :EndFor
+
+Example ([[https://youtu.be/myoK22rq1jk?t=821][source]]):
+#+begin_src gnu-apl
+∇t←Count array;element
+  t←0
+  :For element :In array
+    t+←1
+  :EndFor
+∇
+#+end_src
+
+Count with a recursive approach (only in Dyalog):
+#+begin_src gnu-apl
+{⍺←0 ⋄ 0=⍴⍵:⍺ ⋄ (⍺+1)∇1↓⍵}
+#+end_src
+
+Count with higher-order function:
+#+begin_src gnu-apl
+{+/⍵=⍵}
+
+⍝ even simplier:
+{≢⍵}
+{⍴⍵}
+#+end_src
+
+Count as a derived function (only in Dyalog):
+#+begin_src gnu-apl
+(+/=⍨)
+#+end_src
+
+** Definitions
+
+To define a variable:
+: <name>←<x>
+
+Redefinition is not allowed! Erase the definition first:
+: )ERASE <name>
+
+*Direct function* (like a lambda)
+
+Embedded in another expression:
+: … { <body> } …
+As an ad-hoc definition:
+: <fn-name> ← { <body> }
+
+~body~ may contain the following parameters:
+- ~⍺~ for /left-hand/ argument
+- ~⍵~ for /right-hand/ argument
+
+*Explicit function definition*
+
+: ∇<result-name> ← <?l-arg> <fn-name> <?r-arg> <? ;local-vars ;…>
+:  <body>
+:  …
+: ∇
+
+** Data Structures
+
+*Scientific notation*
+
+Positive exponent:
+: <n>e<exp>
+Negative exponent:
+: <n>e¯<exp>
+
+*Complex Numbers*
+
+: <real>J<imag>
+
+*Arrays*
+
+Arrays/vectors are *1-indexed* by default.
+- set index origin to 0 to avoid adding 1 to the boolean:
+  : ⎕IO←0
+  - ~⎕IO~ to see the current index origin
+
+Get item at index (or /n/ indexes) from /n/-dimensional array:
+: <arr>[i1;i2;…in]
+: <i1 i2 … in> ⌷ <arr>
+
+Get items from multiple indices:
+: <arr>[i j k …]
+- indices can repeat to get the same item multiple times
+- instead of listing indices directly, they can be enumerated with ~⍳~
+
+Set items at index/indices in array to the same number of values or a single
+scalar:
+: <arr>[i j k…] ← xi xj xk…
+: <arr>[i j k…] ← x
+
+** Primitive Functions
+*** General
+
+~◊~ → *Statement separator*
+
+Display expressions separately on multiple lines:
+: <expr1> ◊ <expr2> ◊  …
+
+~⍝~ → *Comment*
+
+Add a comment:
+: ⍝ <some comment>
+
+~←~ → *Assignment* (dya.)
+
+Assign the value of an expression to a variable name:
+: <name> ← <expr>
+
+~⍕~ → *Format* (mon./dya.)
+
+Returns a character representation of its argument.
+
+*** Arithmetics
+
+~¯~ → *Negative Number*
+
+-/n/:
+: ¯n
+
+~|~ → *Magnitude*
+
+~+~ → *Conjugate* (mon.) / *Addition* (dya.)
+~-~ → *Negation* (mon.) / *Subtraction* (dya.)
+
+~×~ → *Signum* (mon.) / *Multiplication* (dya.)
+~÷~ → *Reciprocal* (mon.) / *Division* (dya.)
+
+Reciprocal (1 / ~n~):
+: ÷<n>
+
+~⋆~ → *Exponential* (mon.) / *Power* (dya.)
+
+Exponential (/e/ to the power of ~n~):
+: ⋆<n>
+
+~n~ to the power of ~m~:
+: <n>⋆<m>
+
+~!~ → *Factorial* (mon.) / *Combinations* (dya.)
+
+Factorial of ~n~:
+: !<n>
+
+Number of ~k~-combinations out of ~n~ items (binomial coefficient function):
+: <k>!<n>
+
+Examples:
+- ~2!6~ is the same as ~(!6)÷(!6-2)×!2~ (= 15)
+- pascal’s triangle (with apex on the left): ~pas←{((⍳⍵)-1)∘.!(⍳⍵)-1}~
+
+~⍟~ → *Logarithm*
+
+Natural logarithm of ~n~:
+: ⍟<n>
+
+Base ~b~ logarithm of ~n~:
+: <b>⍟<n>
+
+Equivalences:
+: +/m⍴n ←→ n×m
+: ×/m⍴n ←→ n*m
+: +\m⍴n ←→ n×⍳m
+: ×\m⍴n ←→ n*⍳m
+: ×/v ←→ *+/⍟v
+
+*** Scalars
+
+~?~ → *Roll* (mon.) / *Deal* (dya.)
+
+Select random number from ~⍳n~:
+: ?<n>
+… for each integer in vector:
+: ?<v>
+- e.g. to roll 10 dices: ~?10⍴6~
+- note that selecting from ~⍳n~ means 0 is not included!
+
+~⊤~ → *Encode* (dya.)
+
+Encode each number in vector in the number system with radices ~r~:
+: <r …> ⊤ <v>
+- the count of ~r~ determines the number of places in the resulting number
+  - e.g. ~2 2 2 ⊤ 5~ represents the number 5 in 3 binary places: ~1 0 1~
+  - with a vector, numbers are arranged as columns in the result
+
+Example: boolean matrix function ~T←{(⍵⍴2)⊤(⍳2⋆⍵)-1}~
+- adapted from snippet A.2 in Iversons [[https://www.jsoftware.com/papers/tot.htm][“Notation as a Tool of Thought”]],
+  which doesn’t work in GNU APL
+    
+*** Logic
+
+~∼~ → *Not* (mon., bool.) / *Without* (dya.)
+
+Remove element(s) ~x~ from vector:
+: <v>~<x>
+- e.g. ~'apple'∼'p'~ ⇒ ~ale~
+
+~∨~ → *Logical disjunction* (dya., bool.) / *GCD* (dya.)
+~∧~ → *Logical conjunction* (dya., bool.) / *LCM* (dya.)
+~⍱~ → *Logical Nor* (dya., bool.)
+~⍲~ → *Logical Nand* (dya., bool.)
+
+Find the /greatest common divisor/ (GCD):
+: <x>∨<y>
+Find the /least common multiple/ (LCM):
+: <x>∧<y>
+
+Equivalences:
+: ∧/b ←→ ~∨/~b
+: ∨/b ←→ ~^/~b
+
+~=~ → *Equality*  / *Equivalence* (bool.)
+~≠~ → *Not equal* / *Exclusive-or* (bool.)
+
+Equivalences:
+: ≠/b ←→ ~=/~b
+: =/b ←→ ~≠/~b
+
+~≤~ → *Less than or equal* (dya.)    / *Material implication* (dya., bool.)
+~≥~ → *Greater than or equal* (dya.) / *Converse (implication)* (dya., bool.)
+~<~ → *Less than* (dya.)    / *Material nonimplication* (dya., bool.)
+~>~ → *Greater than* (dya.) / *Converse nonimplication* (dya., bool.)
+
+- /a ≤ b/  can be translated to  /a → b/  in logic.
+- /a ≥ b/  can be translated to  /a ← b/  in logic.
+
+- /a < b/  can be translated to  /a ↛ b/  in logic.
+- /a > b/  can be translated to  /a ↚ b/  in logic.
+
+Examples:
+
+Logical truth tables:
+#+begin_src gnu-apl
+      0 1∘.,0 1
+0 0  0 1  ⍝  all pairs in a × b
+1 0  1 1 
+
+      0 1∘.=0 1
+1 0  ⍝  a ⇔ b
+0 1
+      0 1∘.≠0 1
+0 1  ⍝  a XOR b
+1 0
+
+      0 1∘.∨0 1
+0 1  ⍝  a ∨ b
+1 1
+      0 1∘.∧0 1
+0 0  ⍝  a ∧ b
+0 1
+
+      0 1∘.≤0 1
+1 1  ⍝  a → b
+0 1
+      0 1∘.≥0 1
+1 0  ⍝  a ← b
+1 1
+
+      0 1∘.<0 1
+0 1  ⍝  a ↛ b
+0 0
+      0 1∘.>0 1
+0 0  ⍝  a ↚ b
+1 0
+#+end_src
+
+*** Vectors
+
+~≢~ → *Tally* (mon.) / *Not match* (dya.)
+
+~↑~ → *First* (mon.) / *Take* (dya.)
+~↓~ → *Drop* (dya.)
+
+~,~ → *Ravel* (mon.) / *Catenate* (dya.)
+
+Catenate vectors /a/ and /b/:
+: <v:a>,<v:b>
+
+Catenate vector to matrix as new row (~i~ →1), column (~i~ →2), …:
+: <m>,[i]<v>
+
+Join (“ravel”) rows of a matrix to a vector (“row-major” order):
+: ,<m>
+
+~∊~ → *Enlist* (mon.) / *Membership* (dya.)
+
+Check if elements in ~match~ vector are members of ~v~:
+: <match>∊<v>
+
+Enlist all elements in the vector (even nested ones):
+: ∊<v>
+
+~⍳~ → *Index generator* (mon.) / *Index of* (dya.)
+
+Generate a number sequence [ 1, ~n~ ]:
+: ⍳<n>
+Multi-dimensional:
+: ⍳<n> <m> …
+
+Index all items in vector by their index in search vector:
+: <search>⍳<v>
+- items not matched are indexed with last index of match vector + 1
+  - this can be used beneficially as a “not found” item in another vector
+    that matches the indices afterwards
+- only the first match is listed for each item in search vector
+
+Equivalences:
+: +/⍳n ←→ ((n+1)×n)÷2
+  
+~⌽~ → *Reversal* (mon.) / *Rotation* (dya.)
+~⊖~ → *Reverse first* (mon.) / *Rotate first* (dya.)
+- “first” meaning /first axis/ (e.g. vertical in a matrix)
+~⍉~ → *Transpose* (mon.) / *Dyadic transpose* (dya.)
+
+? Equivalent for matrix ~m~ and rotation ~n~
+: (⌽[1]<m>) = ⊖<m>    (<n>⌽[1]<m>) = <n>⊖<m>
+: (⌽<m>) = ⊖[2]<m>    (<n>⌽<m>) = <n>⊖[2]<m>
+
+Reverse array on last (rightmost) axis:
+: ⌽<a>
+Reverse array on first (leftmost) axis:
+: ⊖<a>
+Reverse array on specified axis:
+: ⌽[i]<a>
+: ⊖[i]<a>
+- e.g. for matrix: /column/ order (~i~ →1), /row/ order (~i~ →2), …
+- ? same for ~⌽~ and ~⊖~
+
+Rotate array by ~n~ elements on last (rightmost) axis left-/upwards:
+: <n>⌽<a>
+Rotate array by ~n~ elements on first (leftmost) axis up-/leftwards:
+: <n>⊖<a>
+Rotate array by ~n~ elements on specified axis up-/leftwards:
+: <n>⌽[i]<a>
+: <n>⊖[i]<a>
+- e.g. for matrix: /column/-wise (~i~ →1), /row/-wise (~i~ →2), …
+- negative ~n~ rotates in the opposite direction
+- ? same for ~⌽~ and ~⊖~
+
+Swap rows and columns (→ /transpose/) on a matrix:
+: ⍉<m>
+Swap axes in specified order on array:
+: <i j k…>⍉<a>
+- ~2 1~ on a matrix is equivalent to the monadic transpose
+- ~1 1~ takes the /leading diagonal/
+
+~⌊~ → *Floor* (mon.) / *Minimum* (dya.)
+~⌈~ → *Ceiling* (mon.) / *Maximum* (dya.)
+
+Equivalences:
+: ⌈/v ←→ -⌊/-v
+: ⌊/v ←→ -⌈/-v
+
+~⍴~ → *Shape* (mon.) / *Reshape* (dya.)
+
+Form a vector of /n/ elements:
+: <n>⍴<x>
+Form a matrix of /m/ rows and /n/ columns:
+: <m> <n>⍴<x>
+
+Note: elements will repeat if ~(≢x) < m×n~
+- e.g. ~6⍴4~ results in ~4 4 4 4 4 4~
+
+~¨~ → *Each* (mon./dya.)
+
+e.g. ~+/¨(1 2) (3 4)~ will take the sum for each subvector
+
+~⌹~ → *Matrix inverse* (mon.) / *Matrix divide* (dya.)
+
+** Operators (higher-order functions)
+
+~/~ → *Reduce* (mon.) / *Compress* (dya.)
+~\~ → *Scan* (mon.) / *Expand* (dya.)
+
+Sum of vector:
+: +/<v>
+: -/<v>  ⍝ alternating sum, e.g. 1 - 2 + 3 - 4 + …
+
+Product of vector:
+: ×/<v>
+: ÷/<v>  ⍝ alternating product, e.g. 1 ÷ 2 × 3 ÷ 4 × …
+
+~n~-wise reduction (calls ~f~ on ~n~ successive items of ~v~):
+: <n><f>/<v>
+- e.g. ~3,/⍳5~ ⇒ ~1 2 3  2 3 4  3 4 5~
+
+Filter by boolean vector:
+: <bv>/<v>
+- e.g. ~0 1 0 1/'tesa'~ results in ~ea~
+- e.g. ~'aeiou'{(⍵∊⍺)/⍵}~ will filter a word for vowels
+
+Isolate the first “true” (~1~) value in a boolean vector:
+: <\<b>
+- e.g. ~<\0 0 1 1 0 1 1~ results in ~0 0 1 0 0 0 0~
+
+_Note:_ for /non-associative/ functions like ~-~ or ~÷~, the right-to-left
+evaluation rule of APL makes reductions and scans on these functions behave
+in alternating ways with their right inverse functions (~+~ in case of ~-~, ~×~ in
+case of ~÷~).
+- e.g. ~⁠-/1 2 3 4~ evaluates like ~(1 - (2 - (3 - (4 - 5))))~, which, after sign
+  inversion, is equivalent to ~1 - 2 + 3 - 4 + 5~.
+
+_Note:_ the results from ~f\v~ on a /k/-element vector correspond to each separate
+result of a /k/-prefix reduction ~f/v[1..k]~, NOT to intermediate results of a
+single reduction!
+
+Sums for of each colum (~n~ →1), row (~n~ →2), … of a matrix:
+: +/[n]<m>
+- default: last axis
+
+Replicate elements in ~vr~ according integer counts in ~vl~:
+: <vl>/<vr>
+e.g. ~1 2 3/'abc'~ results in ~abbccc~
+
+Sum scan (vector of intermediate sums):
+: +\<v>
+
+~.~ → *Product* (dya.): *Inner product* (~f.g~) or *Outer product* (~∘.f~)
+
+Inner product (generalised matrix product):
+: <vl> <g>.<f> <vr>
+-  applies function args like ~g/vl f vr~
+
+Examples:
+- dot product: ~+.×~
+- multiplication table: ~(⍳10)∘.×⍳10~
+
+Equivalences:
+: p+.×q ←→ +/p×q
+
+
+~∘~ → *Matrix multiplication* / *Beside and Bind* (dya.)
+
+~A∘B~ (matrix mult.) is essentially ~A +.× B~ optimized for space and speed.
+
+** System Functions
+Write a vector of character vectors to a text file:
+: <char-vecs> ⎕NPUT <path>
+
+Example:
+#+begin_src gnu-apl
+⎕←(⊂'apple' 'pie') ⎕NPUT 'writing.txt'
+#+end_src
+
 * Dyalog implementation
 https://www.dyalog.com
 
+- based on APL2
+- closed source, free for non-commercial use
+- namespaces
+- lexical scoping
+- different paradigms like OOP, FP, etc.
+
+Editor:
+- /Ctrl + Shift + Backspace/ to scroll backwards in input history
+- /Ctrl + Shift + Enter/ to scroll forwards in input history
+- /Shift + Enter/ to edit a name/variable
+- /Enter/ on a line in session log to re-execute it
+- ~]Help~ opens the online documentation
+- ~]<cmd> -?~ to get help for user cmd (~-??~ for more details and examples)
+- ~]<cmd>~ shows the current state of a user cmd (append ~?~ for the full state)
+
+Workspaces & Sessions:
+- ~)OFF~ to save the Session log before closing APL
+- ~)CONTINUE~ to save workspace with a temporary name
+- ~)LOAD continue~ to retrieve a temporarily saved workspace
+- ~2⎕NQ⎕SE'FileWrite'~ to make display settings permanent
+- =View > Show Workspace Explorer= shows a tree view of the current workspace
+
+Files:
+- ~)ED "<path>"~ to edit plain text files in Dyalog
+
+Row processing:
+: ]Rows [on|off|reset|?] [-style=<s>] [-fold=<f>] [-fns[=on|off]] [-dots=<c>]
+- will cut, wrap, fold or extend the display of output lines to fit the
+  Session window
+- ~]Rows on~ enables row-processing
+- ~]Rows off~ restores native ⎕PW block-wrapping
+
+Boxing:
+: ]Box [on|off|reset|?] [-style={non|min|mid|max}] [-view={non|min|mid|max}]
+:      [-trains={box|tree|parens|def}] [-fns[=off|on]]
+- ~]Box on~ to draw boxes for clearer visual separation in nested arrays
+- ~-style=max~ for verbose boxes incl. hints on axes and data types
+- ~-trains=tree~ to display function trains with a tree structure
+- ~-fns=on~ to have boxes display in nested arrays even if they are printed to
+  the session from within functions
+
+Utilities:
+- ~]Map~ displays the content and structure of the current workspace
+- ~]Plot <data>~ draws simple graphs (see ~]Plot -??~)
+- ~]Open <filename>~ opens a target file or web address in its default app
+- ~]CD <dir>~ to change directory inside the APL session
+- ~]Get <src>~ to import data/code in various formats from local/remote src
+- ~]Repr <arr>~ to generate an expression for (almost) any given array
+
+Other tips:
+- https://www.dyalog.com/getting-started/tips.htm
+
+** Script Files
+For functions/operators/objects.
+
+Script files can be loaded into a Dyalog session:
+: 2⎕FIX'/path/to/myscript.dyalog'
+
+Example file:
+#+begin_src gnu-apl
+:Namespace MyNamespace
+    
+    ⍝ Variables
+    SomeVar ← 42
+    
+    ⍝ Functions
+    ∇ result ← Add(x y)
+        result ← x + y
+    ∇
+    
+    ⍝ Nested namespace
+    :Namespace Nested
+        InnerVar ← 100
+    :EndNamespace
+    
+:EndNamespace
+#+end_src
+
+* GNU APL implementation
+- based on APL2
+- free and open source
+- slow compared to Dyalog
+- no lexical scoping
+- no namespaces
+- no control structures
+
+Emacs package ~gnu-apl-mode~:
+- http://www.gnu.org/software/apl/
+
 * J implementation
 https://www.jsoftware.com
+
+- open source
+- performant
+- ASCII-compatible syntax
 
 References:
 - [[https://code.jsoftware.com/wiki/NuVoc][The NuVoc Portal]] (J primitives)
@@ -42,4 +716,5 @@ Exit jconsole:
 
 Exit JHS: ~ctrl+\~
 
-* Q implementation
+* BQN
+- no complex numbers (yet, there is a [[https://mlochbaum.github.io/BQN/spec/complex.html][spec]])

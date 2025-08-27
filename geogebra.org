@@ -1,0 +1,150 @@
+#+title: Docs/GeoGebra Classic
+
+- [[https://geogebra.github.io/docs/manual/en/][Manual with list of Commands]]
+
+* Usage
+
+Press ~ESC~ to switch from any tool back to the selection tool.
+
+Start typing after selecting an object to rename it.
+- if the name is already taken by another object, this object will be renamed
+  by appending ‘_n’ (where /n/ is an integer starting with 1)
+  
+* Data
+
+Point:
+: (x, y, …)
+- tool: *Point*
+
+Vector:
+: Vector(x, y, …)
+
+List of points:
+: {p1, p2, …}
+- tool: *List*
+
+Polygon
+- consists of Segments
+
+Line
+Segment
+- consists of Points
+
+* Commands
+
+Create a Point:
+: Point({x, y, …}) → (x, y, …)
+
+Create a Polygon from Points:
+: Polygon(<point>, …)
+- automatically creates Segments for all sides
+- tool: *Polygon*
+: Polygon(<point>, <point>, <sides>)
+- automatically creates base Segment
+- tool: *Regular Polygon*
+: Polygon(<list of points>)
+
+Points can be entered directly, e.g. ~Polygon((-3,2),(3,2),(3,-2),(-3,-2))~
+
+Create a Line:
+: Line(<point>, <point>)
+Parallel to another line:
+: Line(<point>, <line>)
+
+* Algebra Input
+
+Multiplication: either ~a * x~ or just ~a x~
+
+Naming variables:
+- Points → upper case letters (e.g. /A/)
+- Vectors → lower case letters (e.g. /v/)
+- Segments, lines, circles, functions, … → lower case (e.g. /c/)
+- /x/ within a function must always be lower case (e.g. ~f(x) = 3 * x + 2~)
+
+Using new parameters within an algebraic input causes GeoGebra to create
+sliders for their values (e.g. ~y = m * x + b~ creates sliders for ~m~ and ~b~.
+
+* Style Bar & Settings
+
+Hold right mouse button to select multiple objects.
+- on Macbook, perform a secondary click with the trackpad (set how that works
+  in System Settings → Trackpad) and while holding the click move another
+  finger on the trackpad for the selection
+
+Set a *Caption* in the *Style Bar* to use the same name across objects.
+
+Change view settings by opening the *Style Bar* with nothing selected.
+- Graphic view:
+  - ~Grid → Grid Type~ can be set to Polar or Isometric instead
+  - ~xAxis~ / ~yAxis~ can customize the axis, e.g. to use \pi units instead to
+    visualize sine functions or cross the perpendicular axis at a different
+    value
+  - ~Show Mouse Coordinates~ can be useful to more accurately place objects on
+    the grid
+- Algebra view:
+  - ~Auxiliary Objects~ can be checked to display *special objects*
+  - ~Angle Unit~ can be set to Radians instead of Degrees
+
+Selecting a tool activates the *Style Bar* settings for the objects created with
+that tool (also applies to the last created object).
+- Special Object Tools (e.g. Slider, Text):
+  - ~Position → Absolute Position on Screen~ can fix special objects on the
+    window, to be independent of the view position
+  - ~Position → Starting Point~ can fix special objects on other objects so they
+    can move along with them
+
+*Global Settings* can be found in the hamburger menu at the top-right corner.
+- ~Rounding~ sets the number of decimal places to round off numbers
+
+* Keyboard Shortcuts (MacOS)
+Sources:
+- https://geogebra.github.io/docs/manual/en/Keyboard_Shortcuts/
+- https://help.geogebra.org/hc/en-us/articles/20048444963869-Accessibility
+
+| Shortcut          | Description                                          |
+|-------------------+------------------------------------------------------|
+| ~cmd (+ shift) + e~ | toggle object properties view                        |
+| ~cmd + shift + 1~   | toggle graphics view 1                               |
+| ~cmd + shift + 2~   | toggle graphics view 2                               |
+| ~cmd + shift + a~   | toggle algebra view                                  |
+| ~cmd + shift + k~   | toggle CAS view                                      |
+| ~cmd + shift + l~   | toggle Construction Protocol                         |
+| ~cmd + shift + p~   | open Probability Calculator                          |
+| ~cmd + d~           | toggle value/definition/command in Algebra view      |
+| ~cmd + f~           | (?) refresh views                                    |
+| ~cmd + r~ / ~F9~      | (?) recompute all objects (including random numbers) |
+| ~'/'~ / ~cmd + g~     | show/hide selected objects                           |
+| ~cmd + shift + g~   | show/hide labels of selected objects                 |
+| ~cmd + j~           | select ancestors                                     |
+| ~cmd + shift + j~   | select descendants                                   |
+| ~opt + click~ / ~F3~  | Copy definition of selected object to the Input Bar  |
+| ~F4~                | Copy value of selected object to the Input Bar       |
+| ~F5~                | Copy name of selected object to the Input Bar        |
+| ~opt + right drag~  | create list of selected objects in input bar         |
+
+** Special characters:
+
+Lowercase greek α / β / γ / δ / φ / λ / μ / π / σ / θ / ω:
+: opt + a/b/g/d/f/l/m/p/s/t/w
+
+Uppercase greek Α / Β / Γ / Δ / Φ / Λ / Μ / Π / Σ / Θ / Ω:
+: opt + shift + a/b/g/d/f/l/m/p/s/t/w
+
+| Shortcut/Input | Symbol                         |
+|----------------+--------------------------------|
+| ~^~ …            | Superscript                    |
+| ~_~ …            | Subscript                      |
+| … ~/~ …          | Fraction                       |
+| ~<=~ / ~>=~        | Comparators \geq / \leq              |
+| ~!=~ / ~==~        | Not-equal-to ≠ / Is-equal-to ≟ |
+| ~&&~             | Logical AND                    |
+| ~\vbar\vbar~             | Logical OR                     |
+| ~!~              | Logical NOT                    |
+| ~pi~             | PI π                           |
+| ~e~              | Euler /e/                        |
+| ~inf~ / ~opt + u~  | Infinity symbol ∞              |
+| ~opt + i~        | Imaginary unit ί = √-1          |
+| ~opt + o~        | Degree symbol °                |
+| ~opt + r~        | Square-root symbol √           |
+| ~opt + '+'~      | ⊕ (xor)                        |
+

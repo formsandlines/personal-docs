@@ -64,14 +64,13 @@ To open a REPL for Node.js:
 
 ** Setup with shadow-cljs
 
-Setup Yarn:
-: $ yarn init
-: $ yarn set version berry
-: $ echo 'nodeLinker: node-modules' >> .yarnrc.yml
+Setup pnpm:
+: $ pnpm init
+: $ touch .npmrc && echo 'shamefully-hoist = true\n' > .npmrc
 
 Install Node dependency:
-: $ yarn add --dev shadow-cljs
-: $ yarn
+: $ pnpm add --save-dev shadow-cljs
+: $ pnpm
 
 Add a =shadow-cljs.edn= file:
 #+begin_src clojure
@@ -374,11 +373,11 @@ Use ~set!~ to set properties: ~(set! (.-prop obj) "new val")~
 #+end_src
 
 To create a new variable in the global namespace, use ~set!~ on ~js/x~:
-- can be accessed in the browser console
 #+begin_src clojurescript
 (set! js/newVar 3)
 js/newVar ;=> 3
 #+end_src
+- can be accessed in the browser console
 
 Global variables can be looked up from ~js~ namespace like in JS:
 #+begin_src clojurescript

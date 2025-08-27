@@ -57,8 +57,11 @@ Represented by its *character code*, an integer.
 - e.g. ~A~ is represented by ~65~
 - can also be written with the char after a ~?~, e.g. ~?A~
 
-To turn a char code into a string:
+To turn a char code into its string representation:
 : (char-to-string <code>)
+
+To turn a string into its char code representation:
+: (string-to-char <str>)
 
 Limited to the range of 0 … 4194303 (22 bits).
 

@@ -369,6 +369,78 @@ Infos:
 - [[https://shafiul.github.io//gitbook/7_the_git_index.html][Git Community Book / The Git Index]]
 - [[https://github.blog/2021-11-10-make-your-monorepo-feel-small-with-gits-sparse-index/][Make your monorepo feel small with Git’s sparse index]]
 - [[https://stackoverflow.com/questions/4084921/what-does-the-git-index-contain-exactly][stackoverflow: What does the git index contain EXACTLY?]]
+** Metadata
+*** Notes
+- [[https://tylercipriani.com/blog/2022/11/19/git-notes-gits-coolest-most-unloved-feature/][Git Notes: git's coolest, most unloved­ feature]]
+
+See [[*git notes][git notes]] command.
+
+*** Trailers
+- https://alchemists.io/articles/git_trailers
+
+Key-value metadata that can be included on a commit or tag at creation.
+- [[https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---trailerlttokengtltvaluegt][Git Commit Trailers]]
+- [[https://git-scm.com/docs/git-tag#Documentation/git-tag.txt---trailerlttokengtltvaluegt][Git Tag Trailers]]
+
+Trailers appear at the bottom of a commit message. They can be used to
+track various aspects of the development process, possibly with the help
+of external tools.
+
+Examples (from [[https://alchemists.io/articles/git_trailers][source]]):
+
+#+begin_src shell
+git commit --message "Fixed log format" --trailer "Milestone: patch"
+git show
+
+# 717dcffd2eed G Brooke Kuhlmann Fixed log format (HEAD -> demo) 1 second ago.
+# 
+# Milestone: patch
+# 
+#  lib/demo/container.rb | 8 ++++++++
+#  1 file changed, 8 insertions(+)
+#+end_src
+
+#+begin_src shell
+git commit --message "Fixed log format" \
+           --trailer "Issue: abc" \
+           --trailer "Milestone: patch" \
+           --trailer "Tracker: tana"
+git show
+
+# 181c9172ae4e G Brooke Kuhlmann Fixed log format (HEAD -> demo) 1 second ago.
+#
+# Issue: abc
+# Milestone: patch
+# Tracker: tana
+#
+#  lib/demo/container.rb | 8 ++++++++
+#  1 file changed, 8 insertions(+)
+#+end_src
+
+#+begin_src shell
+git tag 0.0.0 --message "Version 0.0.0" \
+              --no-sign \
+              --trailer Commits:1 \
+              --trailer Files:1 \
+              --trailer Deletions:0 \
+              --trailer Insertions:10
+
+git tag --verify
+
+# object 23dec31973e5654c00f700e3755b32c55574b93a
+# type commit
+# tag 0.0.0
+# tagger Brooke Kuhlmann <brooke@alchemists.io> 1725826447 -0600
+#
+# Version 0.0.0
+#
+# Commits: 1
+# Files: 1
+# Deletions: 0
+# Insertions: 10
+# error: no signature found
+#+end_src
+
 * Recipes
 ** Truncate commit history
 
@@ -407,7 +479,39 @@ More information:
 - https://stackoverflow.com/a/74884865/1204047
 - https://stackoverflow.com/a/65389906/1204047
 
+** Remove a file/directory from all commits (local and remote)
+- [[https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository#purging-a-file-from-your-repositorys-history][GitHub Docs / Purging a file from your repository's history]]
 
+*Note:* Use [[https://github.com/newren/git-filter-repo][newren/git-filter-repo]] instead of Git’s built-in ~filter-branch~ or
+[[https://rtyley.github.io/bfg-repo-cleaner/][BFG Repo Cleaner]].
+- see [[https://github.com/newren/git-filter-repo?tab=readme-ov-file#why-filter-repo-instead-of-other-alternatives][Why filter-repo instead of other alternatives?]]
+
+: brew install git-filter-repo
+
+1. /(optional)/ Make a fresh clone of the repo or at least back it up
+
+   : git clone <remote-url>
+
+2. Remove the file/folder using ~git-filter-repo~:
+
+   : git filter-repo --path path/to/foo --invert-paths
+   - use the ~--force~ flag if the repo is not a fresh clone
+   - ~--path~ is relative to the root of the repo
+   - some data in ~.git/config~, such as the remote URL, will be removed
+
+3. Add the removed file/folder to ~.gitignore~ to be safe:
+
+   : echo 'foo' >> .gitignore
+   : git add .gitignore
+   : git commit -m 'Add foo to .gitignore'
+   
+4. Restore remote(s):
+
+   : git remote add origin <remote-url>
+
+5. Force-push the changes to overwrite the repo at GitHub:
+
+   : git push origin --force --all
 
 * Data recovery
 Anything /that is committed/ in Git can almost always be recovered.
@@ -579,6 +683,13 @@ commits:
 Show direct parent of a commit:
 : $ git log --pretty=%P -n 1 <commit-id>
 - see https://stackoverflow.com/questions/44112593/how-to-get-the-parent-of-a-specific-commit-in-git for other options
+*** git show
+Show detailled commit information (includes diff):
+: $ git show <commit-id>
+: $ git show  <=>  $ git show HEAD
+Show contents of a specific file at ~path~ in a commit:
+: $ git show <commit-id>:<path>
+
 *** git rev-list
 Show first commit from ~HEAD~:
 : $ git rev-list --max-parents=0 --abbrev-commit HEAD
@@ -931,6 +1042,10 @@ Pull and merge ~<remote-branch>~ into the current branch:
 ** Worktree
 *** git worktree
 : git worktree add <path> <branch>
+** Other
+*** git notes
+Example:
+: $ git notes add -m 'Acked-by: <tyler@tylercipriani.com>'
 
 * GitHub
 ** SSH Authentication

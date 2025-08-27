@@ -554,8 +554,8 @@ equals /b/.
 |----------------+-----------+-----------------------------------------------|
 | ~v r <n>~        |           | extract row ~n~ from vector or matrix           |
 | ~v c <n>~        |           | extract col ~n~ from vector or matrix           |
-| + i ~C-u …~      |           | - apply index from top of stack instead       |
-| + s..e ~C-u …~   |           | - index-range to extract of rows/cols         |
+| + i ~C-u …~      |           | - apply index from top of stack               |
+| + [s..e] ~C-u …~ |           | - index-range to extract of rows/cols         |
 | + [i,…] ~C-u …~  |           | - vector of indices to extract of rows/cols   |
 | + ~C-- <n> …~    |           | - /delete/ row/col instead                      |
 | / if ~n~ = 0     |           | - extracts diag. elems of a sq. matrix as v.  |
@@ -697,6 +697,11 @@ needs an arbitrary integer, it picks zero.
 If the input to ~s l~ is an equation with a variable on the lefthand side
 (e.g. ~x = 1.5~), then no variable name needs to be entered.
 
+_Sums_
+
+Calculate sums either by command: ~a + <var>~ or by formula:
+: sum(<expr>, <iter-var>, <start>, <end>, <step>)
+
 _Rewrite rules_
 
 Write like this: ~a := b~, where the /pattern/ ~a~ gets substituted by ~b~ using
@@ -782,6 +787,7 @@ and, in this case, find the fibonacci number by pattern-matching.
 | <16>              | <12>            | <38>                               |
 | Command key(s)    | Formula         | Meaning                            |
 |-------------------+-----------------+------------------------------------|
+| ~u M~               |                 | calc vector mean                   |
 | ~<mean> p <stddev>~ | ~mean +/- stddev~ | enter an error form                |
 |                   | ~sdev(a,b)~       | build an error form from arguments |
 | ~v u~               |                 | unpack error form                  |

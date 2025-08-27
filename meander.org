@@ -42,7 +42,6 @@ The primary macros for pattern matching and searching are available in
 =meander.epsilon=.
 
 ** Term rewriting
-
 ** Substitution
 
 See https://github.com/noprompt/meander/blob/epsilon/doc/substitution.md
@@ -73,8 +72,8 @@ Accumulate values into a vector on every match.
 
 ~!xs ...~ matches a series of values and accumulate them into vector ~!xs~.
 
-mvars disperse their values throughout a substitution. Each occurrence disperses
-one value from the collection.
+mvars disperse their values throughout a substitution. Each occurrence
+disperses one value from the collection.
 #+begin_src clojure
 (let [!xs [1 2 3]]
     (m/subst (!xs !xs !xs))) ;=> (1 2 3)
@@ -109,14 +108,14 @@ Create two names: ~(m/and !n !n2)~
 ;; => [[:a 1 "1"] [:b 2 "2"] [:c 3 "3"]]
 #+end_src
 
-
 ** Unification
 
 A logic variable (lvar) will be associated/unified with the value in an
-expression that is matched against the first (sub)pattern in which it appears.
+expression that is matched against the first (sub)pattern in which it
+appears.
 
-If it appears in another (sub)pattern, the expression value will be compared to
-the value already associated with the lvar.
+If it appears in another (sub)pattern, the expression value will be compared
+to the value already associated with the lvar.
 
 * Core macros
 
@@ -145,7 +144,6 @@ Like ~m/match~, but allows for ambiguous patterns.
 Like ~m/search~ but returns only the first successful match.
 - semantically similar to ~(first (m/search ...))~, but terminates search
   immediately after finding the first element -> better performance.
-
 
 ** : (r/rewrites) / (r/rewrite)
 
@@ -190,7 +188,6 @@ e.g.: src_clojure[]{ #js [?x ?y ?x] }
 - mutable variables
 
 ** Operators
-
 *** : (m/not pat)
 
 Matches anything that does not match ~pat~.
@@ -230,27 +227,27 @@ Applies ~f~ to the current value being matched in ~pattern~.
 
 | Operator | Description                                     |
 |----------+-------------------------------------------------|
-| ~_~      | wildcard: matches anything                      |
+| ~_~        | wildcard: matches anything                      |
 |          |                                                 |
-| ~&~      | rest: matches the rest of a coll                |
-| ~&n~     | there can be multiple rest patterns             |
-| ~^&~     | rest in sets                                    |
+| ~&~        | rest: matches the rest of a coll                |
+| ~&n~       | there can be multiple rest patterns             |
+| ~^&~       | rest in sets                                    |
 |          |                                                 |
-| ~.~      | partitions the coll into 2 parts                |
+| ~.~        | partitions the coll into 2 parts                |
 |          | also delimits start of a variable length subseq |
 |          |                                                 |
-| ~x ...~  | repeat the match for x zero or more times       |
-| ~x ..n~  | repeat the match for n or more times            |
-| ~x ..?n~ | capture/control the number of repetitions       |
-| ~x ..!n~ | with a logic or memory variable                 |
+| ~x ...~    | repeat the match for x zero or more times       |
+| ~x ..n~    | repeat the match for n or more times            |
+| ~x ..?n~   | capture/control the number of repetitions       |
+| ~x ..!n~   | with a logic or memory variable                 |
 |          |                                                 |
-| =~x=     | unquote to reference an external value          |
+| =~x=       | unquote to reference an external value          |
 
 Subsequence operators ~...~ and ~..n~ also act as partition operators as well.
 
 Common combinations:
 - ~x _ ...~ is similar to the regex ~#".*"~ for strings
-- ~a . x ...~ starts ~...~ matching from ~x~, the ~.~ separates it from a
+- ~a . x ...~ starts ~...~ matching from ~x~, the ~.~ separates it from ~a~
 - patterns like ~[_ ... x . _ ...]~ can be simplified using ~(m/scan x)~
 
 lvars can be used in a subsequence operators to match the number of items:
@@ -283,9 +280,7 @@ mvars can be used to collect the number of items from multiple collections:
 ** Escaping
 
 * Strategies
-
 ** Basic Combinators
-
 *** : (r/pass t)
 
 Strategy which always succeeds, returning ~t~.
@@ -375,7 +370,6 @@ Builds a strategy which modifies ~t~ at ~key~ with ~p~, then ~q~, etc.
 - for ~vector?~ and ~set?~, ~key~ must be present
 
 ** Traversal Combinators
-
 *** : (r/one s)
 *** : (r/some s)
 *** : (r/all s)
