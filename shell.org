@@ -9,7 +9,8 @@ Tutorials/Overviews:
 
 ** Restart shell session
 : $ exec "$SHELL"
-- can also replace ~$SHELL~ with ~bash~ or ~zsh~
+- ~$SHELL~ refers to the default shell, e.g. ~bash~ or ~zsh~
+- contrary to ~env~, this will terminate the current shell process
 
 ** Navigate scrollable output (less pager)
 
@@ -77,21 +78,43 @@ Remove quarantine attribute:
 ** User
 - ~#~ before commands means “run this as root”
 
+** env
+The ~env~ command sets the environment and then executes a command/utility.
+- the utility could be a shell command
+
+Show the environment:
+: $ env
+
+Run a program:
+: $ env <program>
+- often used in scripts after the shebang ~#!~
+
+Start a shell with an empty env:
+: $ env -i "$SHELL"
+- ~-i~ ignores the inherited environment
+- might cause issues with config files
+
+Remove/unset a variable from the env before running a program:
+: $ env -u <variable> <program>
+
+Set one or more variables on the env:
+: $ env <variable>=<value> … <program>
+
 ** Environment Variables
 
-To print all env. variables:
+Print all env. variables:
 : $ printenv
 
-To print the contents of an env. variable:
+Print the contents of an env. variable:
 : $ echo $[varname]
 - e.g. ~$ echo $PATH~ to inspect the ~PATH~ env. variable
 - to insert it into a string, use /double quotes/: ~$ echo "I am a $foo."~
 
-To create a new env. variable:
+Create a new env. variable:
 : $ [varname]=[value]
 - cannot have spaces in between!
 
-To store the output of a command in an env. variable:
+Store the output of a command in an env. variable:
 : $ [varname]=$([cmd])
 : $ [varname]=`[cmd]`
 
@@ -137,6 +160,12 @@ To make a file available on the ~PATH~ system-wide (in ~sh~, ~zsh~, etc.):
 If you have an ~!~ in a quoted string it will end with ~`dquote>`~. Use single
 quotes in this case.
 - use ~ctrl-g~ to escape ~`dquote>`~ (aborts the command)
+
+/bash/ and /zsh/ cache ~PATH~ entries. The cache gets cleared on every restart of
+the shell and update of ~PATH~, so it rarely causes issues.
+
+Clear the cache with:
+: $ hash -r
 
 More infos:
 - https://koenwoortman.com/zsh-add-directory-to-path/
@@ -498,6 +527,9 @@ Can be used in a one-liner:
 : $ echo $(if [ 2 -gt 0 ]; then; echo 'yes'; else echo 'no'; fi)
 : > yes
 
+Do something with multiple files:
+: $ for i in *.txt; do head "$i"; done
+
 Counting from 1 to 5 with for:
 #+begin_src bash
 #!/usr/bin/env bash
@@ -686,6 +718,12 @@ Repeat command with ~id~ (retrieved from history):
 Repeat previous command:
 : $ !!
 
+In /zsh/, the history storage limit is defined by ~$HISTSIZE~ and ~$SAVEHIST~.
+In /bash/, it is ~$HISTSIZE~ and ~$HISTFILESIZE~.
+
+To print the path to the history file:
+: $ echo $HISTFILE
+- ~~/.zsh_history~ in /zsh/, ~~/.bash_history~ in /bash/
 
 Examples:
 
@@ -693,7 +731,13 @@ Show all previous uses of the ~touch~ command:
 : $ history 1 | grep touch
 
 *** Show executable associated with a command
+Show the first match on ~$PATH~:
 : $ which <cmd>
+Show all matches, in order:
+: $ which -a <cmd>
+
+Show what is /actually/ being run by the shell:
+: $ type <cmd>
 
 *** Undo/correct commands
 External tools:
@@ -788,6 +832,9 @@ More infos:
 ** Terminal interface
 Print arguments to stdout:
 : $ echo <text>
+
+Return user's terminal name:
+: $ tty
 
 Set options for terminal interface (?)
 : $ stty
@@ -1215,6 +1262,9 @@ Unzip everything except specified files:
 : -xzvf <name>.tar.gz              : unpack tarball into current dir
 : -tzvf <name>.tar.gz              : print contents
 
+**** 7zip
+See [[#p7zip][p7zip]]
+
 *** Encryption
 Basic (weak) encryption:
 : $ cksum <filename>
@@ -1606,6 +1656,9 @@ More infos:
 - https://www.howtoforge.com/linux-column-command/
 
 *** Line-oriented text editor
+Resources:
+- [[https://www.0de5.net/stimuli/the-little-editor-that-could][The little editor that could]] (Kay Lack / YouTube)
+
 : $ ed [<filename>]
 : -p<char>  : use prompt `char`
 : -s        : suppress diagnostics (good for scripts)
@@ -1652,9 +1705,11 @@ Special address symbols:
 **** Commands
 General operations
 : w [filename]  : write buffer to (a new / the loaded) file
+: e [filename]  : read `filename` into buffer
 : h     : show help (in case of `?`)
 : H     : show help by default
 : P     : show a prompt symbol (or use `-p` option)
+: u     : undo the last edit
 : q     : exit the editor
 
 Line Editing
@@ -1662,17 +1717,35 @@ Line Editing
 : [.]i     : begin insert new lines before (current) line (0-addr. valid)
 : [.,.]c   : begin change (current) line(s) (possibly add new ones after)
 : [.,.]d   : delete (current) line(s)
+: [.,.]s/<find>/<repl>/  : subst. (regex) pattern match with replacement
 : .        : end editing (return to prompt)
 : <n>t<m>  : (?) copy from line `n` to line `m`
 : <n>m<m>  : (?) move line `n` to line `m`
 - ~a~, ~i~ and ~c~ put the editor in input mode, which can be exited via ~.~ cmd
+- ~s~ will only substitute the first instance of the pattern on each line
+  - append ~/g~ at the end for global substitution
+
+Global Command
+: g/<pattern>/<cmd>  : run `cmd` on lines matching (regex) `pattern`
+Example:
+: g/<pattern>/s/<find>/<replace>/
+- finds all lines with ~pattern~, then replaces ~find~ with ~replace~ in each
+: g/<re>/p
+- origin of the word “grep”? global regular expression search that
+  prints the results
+
+Line Inspection
+: [.]=     : print line number for specified line
 
 Line Navigation
-: [.,.]p   : print (current) line(s) (moves current line)
+: [.,.]p   : print line(s) and move current line
 : [.,.]n   : same as `p`, but includes the line number
-: <n>      : go to line number `n`
+: [.,.]\n  : (return key) move to and print current line
+: <n>      : go to line number `n` (same as `<n>p`)
 : -[n]     : jump to previous/`n` lines relative to current line
 : +[n]     : jump to next/`n` lines relative to current line
+- just ~p~ or ~n~ prints the current line
+- just ~\n~ moves to and prints next line (same as ~.+1\n~)
 
 Run unix shell commands by prepending a ~!~ :
 : !date
@@ -1839,6 +1912,9 @@ Query disk space:
 External tools:
 - [[Inkscape]] can convert between vector formats
 - [[epstopdf]] can convert ~eps~ to ~pdf~ files
+*** Bar codes
+External tools:
+- [[zbar]] can read bar codes in various formats, including QR codes
 
 ** Scripting runtimes
 External tools:
@@ -2144,6 +2220,139 @@ and tabular JSON.
 CSVs sliced, diced & analyzed.
 - https://github.com/jqnatividad/qsv
 
+** p7zip
+:PROPERTIES:
+:CUSTOM_ID: p7zip
+:END:
+: brew install p7zip
+
+Extract an archive:
+: 7z x path/to/archive.7z
+… to a specific directory:
+: 7z x path/to/archive.7z -opath/to/output
+
+List archive contents:
+: 7z l path/to/archive.7z
+
+Add a file or directory to a new or existing archive:
+: 7z a path/to/archive.7z path/to/file_or_directory
+
+** amfora
+[[https://geminiprotocol.net][Gemini]] client
+- https://github.com/makew0rld/amfora
+
+** zbar
+ZBar Bar Code Reader is an open source software suite for reading bar codes
+from various sources, such as video streams, image files and raw intensity
+sensors.
+- https://github.com/mchehab/zbar
+- supports supports EAN-13/UPC-A, UPC-E, EAN-8, Code 128, Code 93, Code 39,
+  Codabar, Interleaved 2 of 5, QR Code and SQ Code
+
+Install with Homebrew:
+: $ brew install zbar
+
+To scan a QR code and print the URL:
+: $ zbarimg --quiet --raw qrcode.png
+
+* Gnu Coreutils
+Install on macOS:
+: $ brew install coreutils
+
+** date / gdate
+
+Relative dates, e.g.:
+: $ gdate -d 'tomorrow'
+: > Tue Aug  5 20:24:02 CEST 2025
+
+** factor
+Finds all prime factors of a number.
+
+: $ factor 1000
+: > 1000: 2 2 2 5 5 5
+
+** nproc
+Prints the number of processing units available.
+
+: $ nproc
+: > 10
+
+** numfmt
+Convert numbers from/to human-readable strings.
+
+Convert from standard units:
+: $ numfmt --from=iec 1k
+: > 1024
+
+Unit options:
+- ~si~ → single letter, e.g. ~k~ / ~K~ (= 1000), ~M~ (= 1000000), …
+- ~iec~ → single letter, e.g. ~k~ / ~K~ (= 1024), ~M~ (= 1048576), …
+
+Print a sequence of 50 numbers with padding of 4 spaces:
+: $ seq 1 50 | numfmt --padding=4
+
+* Shell extensions
+** zsh-syntax-highlighting
+Highlights valid command names, etc.
+- https://github.com/zsh-users/zsh-syntax-highlighting
+
+Install on macOS:
+: $ brew install zsh-syntax-highlighting
+Append this to =.zshrc=:
+: source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+
+** zsh-autosuggestions
+Automatic suggestions to complete command calls.
+- https://github.com/zsh-users/zsh-autosuggestions
+- right arrow key accepts the autosuggestion
+- opt + right arrow key completes just the next word
+
+Install on macOS:
+: $ brew install zsh-autosuggestions
+
+Append this to =.zshrc=:
+: source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+** zsh-history-substring-search
+Cycle through history matches of the typed command.
+- https://github.com/zsh-users/zsh-history-substring-search
+
+Install on macOS:
+: $ brew install zsh-history-substring-search
+
+Append this to =.zshrc=:
+: source $(brew --prefix)/share/zsh-history-substring-search/zsh-history-substring-search.zsh
+To bind up/down arrow keys, add (lookup key-codes first):
+: bindkey '^[[A' history-substring-search-up
+: bindkey '^[[B' history-substring-search-down
+To bind Emacs ~C-p~ / ~C-n~, add:
+: bindkey -M emacs '^P' history-substring-search-up
+: bindkey -M emacs '^N' history-substring-search-down
+
+** starship
+Custom shell prompt.
+- https://starship.rs
+- https://github.com/starship/starship
+
+: $ brew install starship
+
+Append this to =.zshrc=:
+: eval "$(starship init zsh)"
+
 * Shell services
 ** Weather
 : $ curl wttr.in/Mainz
+
+* Terminal emulators
+** ghostty
+- [[https://ghostty.org][ghostty.org]]
+- [[https://ghostty.org/docs][Docs]]
+
+Show the config:
+: ghostty +show-config
+:   --default  : add default values
+:   --docs     : add documentation for each value
+
+List all themes:
+: ghostty +list-themes
+

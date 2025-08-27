@@ -143,21 +143,38 @@ To retrieve package listings from configured repositories:
 Important keys in package menu buffer:
 - see [[info:emacs#Package Menu][emacs#Package Menu]] for a complete list
 
-| Key | Description                                                   |
-|-----+---------------------------------------------------------------|
-| ~i~   | mark for installation (adds ~I~ to the line)                    |
-| ~d~   | mark for deletion (adds ~D~ to the line)                        |
-| ~x~   | ‘execute’ →                                                   |
-|     | - downloads and installs all ~I~-marked packages and            |
-|     | deletes all ~D~-marked packages, removing the marks             |
-|     | - if no marks, installs or deletes package under point,       |
-|     | depending on whether it is already installed or not           |
-| ~U~   | mark all packages with newer available versions for upgrading |
-|     | - sets ~I~ on new version and ~D~ on old installed version        |
-| ~u~   | remove any ~I~ or ~D~ mark on the current line                    |
-| ~h~   | quick help (usage summary)                                    |
-| ~w~   | open website of package on current line                       |
-| ~r~   | refresh package list (fetches it again from archive)          |
+| Key | Description                                                      |
+|-----+------------------------------------------------------------------|
+| ~i~   | mark for installation (adds ~I~ to the line)                       |
+| ~d~   | mark for deletion (adds ~D~ to the line)                           |
+| ~x~   | ‘execute’ →                                                      |
+|     | - downloads and installs all ~I~-marked packages and               |
+|     | deletes all ~D~-marked packages, removing the marks                |
+|     | - if no marks, installs or deletes package under point,          |
+|     | depending on whether it is already installed or not              |
+| ~U~   | mark all packages with newer available versions for upgrading    |
+|     | - sets ~I~ on new version and ~D~ on old installed version           |
+| ~u~   | remove any ~I~ or ~D~ mark on the current line                       |
+| ~\tilde~   | mark all obsolete packages for deletion                          |
+| ~h~   | quick help (usage summary)                                       |
+| ~?~   | display help buffer for package on the current line              |
+| ~w~   | open website of package on current line                          |
+| ~r~   | refresh package list (fetches it again from archive)             |
+| ~H~   | hide packages whose name matches a regexp                        |
+| ~(~   | hide/show old versions and packages from lower-priority archives |
+| ~/ a~ | filter package list by archive                                   |
+| ~/ d~ | filter package list by description                               |
+| ~/ k~ | filter package list by keyword                                   |
+| ~/ N~ | filter package list by name or description                       |
+| ~/ n~ | filter package list by name                                      |
+| ~/ s~ | filter package list by status                                    |
+| ~/ v~ | filter package list by version                                   |
+| ~/ m~ | filter package list by non-empty mark (e.g. for updates)         |
+| ~/ u~ | filter p. list to show only packages with available updates      |
+| ~/ /~ | clear currently applied filter                                   |
+
+*Note:* by default, ~/ u~ excludes build-in packages for which newer versions
+are available. Customize ~package-install-upgrade-built-in~ to change that.
 
 To refresh the packages catalog for updates:
 : M-x package-refresh-contents
@@ -569,6 +586,9 @@ Show list of all bindings:
 See a list of the active keymaps:
 : evaluate (current-active-maps)
 
+Inspect the source of a library/package:
+: M-x find-library
+
 Show Emacs uptime counter:
 : M-x emacs-uptime
 Show Emacs version:
@@ -601,268 +621,6 @@ Search inside an Info-mode manual:
 Link to a specific page in Info-mode:
 : M-x org-store-link
 : C-c C-l : org-insert-link
-
-** Modes
-
-A *major mode* provides /core functionality/ for the current buffer.
-- activated by specific /file extensions/ the buffer reacts to or with
-  specific /commands/
-- displayed in the /mode line/ (e.g. ~Org~ for /Org mode/)
-- ~Fundamental~ is the /default mode/ that has no special functionality
-
-A *minor mode* provides /additional functionality/, independent of a specific
-buffer.
-- can be activated in a /single buffer/ or /globally/
-- e.g. for workflow customizations, appearance, etc.
-
-A file’s *major mode is detected* (in order) by:
-- *[[File-local variables]]* can have ~mode~ values that Emacs will detect
-- *Program loader directives* /(shebangs)/ that begin with ~#!~
-  - Emacs will figure out the major mode if available
-  - the variable ~interpreter-mode-alist~ lists all program loaders Emacs can
-    detect
-- *Magic mode detection* checks if the beginning of the file matches a pattern
-  stored in the variable ~magic-mode-alist~
-  - applies if filename or extension cannot be predicted ahead of time
-- *Automatic mode detection* through file extensions, file names or all or
-  parts of a file’s path
-  - the variable ~auto-mode-alist~ lists all patterns and associated modes
-    Emacs can detect
-
-** Windows
-Select another window (in cyclic ordering):
-: C-x o : other-window
-
-Delete current /(active)/ window:
-: C-x 0 : delete-window
-Delete all windows except the /active window/:
-: C-x 1 : delete-other-windows
-Split /active window/ vertically:
-: C-x 2 : split-window-below
-Split /active window/ horizontally:
-: C-x 3 : split-window-right
-
-Make selected window ~delta~ lines /taller/ (or columns /wider/, if ~horizontal~ or
-/smaller/ if ~delta~ is /negative/):
-: C-x ^ : (enlarge-window <delta> <?horizontal>)
-
-Balance the sizes of windows:
-: balance-windows
-
-Toggle popups (e.g. for help):
-: C-` : +popup/toggle
-- requires ~popup.el~
-
-Undo changes in window arrangement:
-- see [[#winner-mode]]
-
----
-
-Control how buffers are opened in windows:
-: (add-to-list 'display-buffer-alist '(…))
-
-Example:
-#+begin_src elisp
-(add-to-list 'display-buffer-alist
-	     '("^\\*eldoc" display-buffer-at-bottom
-	       (window-height . 4)))
-#+end_src
-
-** Frames
-To create a new /frame/ (OS-level window):
-: M-x make-frame-command
-
-Select a different visible frame and raise it:
-: C-x 5 o : other-frame
-- with /numeric argument/, selects the /n'th/ next frame
-- with /negative argument/, selects the (/n'th/) previous frame
-
-Select frame with (prompted) ~name~ and raise it:
-: M-x select-frame-by-name <name>
-
-Delete (selected) frame:
-: C-x 5 0 : delete-frame
-
-*** Child Frames
-A child frame is tied to a specific regular ("parent") frame, and behaves
-somewhat like a dialog box or a tooltip. Unlike regular frames, closing a
-parent frame automatically closes its associated child frames.
-- useful for e.g. context menus, tooltips and other overlay UI components
-- see [[info:elisp#Child Frames][elisp#Child Frames]]
-
-Return the parent frame of (selected) child ~frame~:
-: (frame-parent <?frame>)
-
-** Buffers
-Buffers need not be for files, but can also be /transient buffers/ for e.g.
-network I/O or text processing (/scratch/, /help/, etc.).
-
-Show buffer list:
-: C-x C-b : list-buffers
-Open dired buffer manager:
-: M-x ibuffer
-- recommended to use with keybinding of ~list-buffer~:
-  ~(global-set-key [remap list-buffers] 'ibuffer)~
-
-Switch to previous/next buffer:
-: C-x ←/→ : previous-buffer / next-buffer
-Switch to buffer by name:
-: C-x b : consult-buffer
-
-Kill buffer (current buffer or named):
-: C-x k : kill-buffer
-- according to “Mastering Emacs”, it is normal to have hundreds or even
-  thousands of buffers open, so this is not as important as it seems
-
-Reload buffer (replaces buffer with file on disk, undoing all changes):
-: M-x revert-buffer
-
-Completion frameworks for buffer switching:
-- [[#icomplete][Icomplete / IDO / FIDO]]
-
-*** Mini buffer / minibuffer
-Interactive buffer that appears in the /echo area/ and displays errors and
-general information or acts as an interface (e.g. for buffer selection or
-input of pathnames).
-
-*** Indirect buffer
-:PROPERTIES:
-:CUSTOM_ID: indirect-buffer
-:END:
-An indirect buffer contains the entire buffer, but narrowed down to the
-selected subtree.
-
-Editing the indirect buffer will also change the original buffer, without
-affecting its visibility.
-
-More infos: [[info:emacs#Indirect Buffers][emacs#Indirect Buffers]]
-
-** Files
-
-Load file into buffer:
-: C-x C-f : find-file
-
-Save buffer to file:
-: C-x C-s : save-buffer
-Write buffer to different file /(save as…)/:
-: C-x C-w : write-file
-Save all modified file-visiting buffers:
-: C-x s : save-some-buffers
--  will ask, in turn, for each unsaved file
-
-*** Coding system
-
-Check the variable ~buffer-file-coding-system~ to see the coding system used
-by the current buffer.
-- can also be checked with ~C-h C <RET>~, but not if ~fido-mode~ is active
-- alternatively, click the leftmost symbol in the /modeline/
-
-To change the coding system in use (select from list):
-: C-x RET r : revert-buffer-with-coding-system
-- reverts the buffer!
-- buffer must be saved to make changes permanent
-
-*** Line endings
-
-Line ending indicators in the /modeline/ (e.g. in ~U:**-~):
-| Indicator | Style               |
-|-----------+---------------------|
-| ~:~         | UNIX-style          |
-| ~(DOS)~     | DOS                 |
-| ~(Mac)~     | Macintosh (pre-OSX) |
-
-*** File-local variables
-Enabled per file if present in the file.
-- will *not* overwrite variables globally
-
-As headers:
-: -*- mode: mode-name-here; my-variable: value -*-
-or footers:
-: Local Variables:
-: mode: mode-name-here
-: my-variable: value
-: End:
-
-Commented lines (with the /major mode’s/ comment syntax) will work too.
-*** File history
-To remember recently edited files:
-- [[#recentf-mode]]
-
-To remember the last place visited in a file:
-- [[#save-place-mode]]
-
-To automatically revert a buffer when the underlying file has changed:
-- [[#auto-revert-mode]]
-*** Search in files
-Recursively grep for ~regexp~ in ~files~ (shell pattern) from root ~dir~:
-: (rgrep <regexp>  <?files> <?dir> <?confirm>)
-- e.g. use in [[#dired]]
-- to jump to the first/next occurrence:
-  : C-x ` : next-error
-
-** Registers
-Can be used to temporarily store various things across buffers, similar to a
-clipboard.
-
-*Store *point* in register:
-: C-x r SPC : point-to-register
-- use [[#bookmarks]] for more permanent storage of locations
-*Store window* configuration in register:
-: C-x r w : window-configuration-to-register
-*Jump to point* /or/ *restore window config* stored in register:
-: C-x r j : jump-to-register
-
-*Store/copy* text into register:
-: C-x r s : copy-to-register
-- prefix ~C-u~ to cut instead of copy
-*Insert text* stored in register:
-: C-x r i : insert-register
-
-*Store a* (~C-u <N>~ prefix) *number* in register:
-: C-x r n : number-to-register
-
-*Increment/append contents* of/to a register:
-: C-x r + : increment-register
-- adds numeric (~C-u <N>~ prefix) value to a stored /number/
-- appends text to a stored /text/ (or empty register)
-
-_Uncommon:_
-
-*Store a file* into a register:
-: (set-register ?<key> '(file . "<path>"))
-- prefer to store the /point/ instead if buffer is already open
-
-** Bookmarks
-:PROPERTIES:
-:CUSTOM_ID: bookmarks
-:END:
-Similar to registers, but only store locations in files.
-- can be persisted over restarts of Emacs
-
-*Set bookmark* from /point/ position:
-: C-x r m : bookmark-set
-
-*Open bookmark list* in a dedicated buffer:
-: C-x r l : bookmark-bmenu-list
-- ~RET~: jump to bookmark
-- ~d~ + ~x~: mark for deletion + execute (like in [[#dired]])
-- ~q~: close buffer
-
-*Jump to bookmark* by its name:
-: C-x r b : bookmark-jump
-
-_Persisting bookmarks_
-
-When ~bookmark-save-flag~ is set to ~t~, bookmarks are always saved in
-~bookmark-default-file~ (e.g. =~/.emacs.d/bookmarks=) when Emacs is closed.
-- set to a number for more frequent saves (see docs)
-
-Otherwise, bookmarks have to be saved manually:
-
-*Save bookmarks* in a file, to persist across Emacs restarts:
-: M-x bookmark-save
-*Load bookmarks* from a file:
-: M-x bookmark-load
 
 ** History of input
 To save the history of commands, etc., see:
@@ -963,6 +721,362 @@ Game of Life:
 Also see:
 - https://www.masteringemacs.org/article/fun-games-in-emacs
   
+* Modes
+A *major mode* provides /core functionality/ for the current buffer.
+- activated by specific /file extensions/ the buffer reacts to or with
+  specific /commands/
+- displayed in the /mode line/ (e.g. ~Org~ for /Org mode/)
+- ~Fundamental~ is the /default mode/ that has no special functionality
+
+A *minor mode* provides /additional functionality/, independent of a specific
+buffer.
+- can be activated in a /single buffer/ or /globally/
+- e.g. for workflow customizations, appearance, etc.
+
+A file’s *major mode is detected* (in order) by:
+- *[[File-local variables]]* can have ~mode~ values that Emacs will detect
+- *Program loader directives* /(shebangs)/ that begin with ~#!~
+  - Emacs will figure out the major mode if available
+  - the variable ~interpreter-mode-alist~ lists all program loaders Emacs can
+    detect
+- *Magic mode detection* checks if the beginning of the file matches a pattern
+  stored in the variable ~magic-mode-alist~
+  - applies if filename or extension cannot be predicted ahead of time
+- *Automatic mode detection* through file extensions, file names or all or
+  parts of a file’s path
+  - the variable ~auto-mode-alist~ lists all patterns and associated modes
+    Emacs can detect
+
+* Windows
+Select another window (in cyclic ordering):
+: C-x o : other-window
+
+Delete current /(active)/ window:
+: C-x 0 : delete-window
+Delete all windows except the /active window/:
+: C-x 1 : delete-other-windows
+Split /active window/ vertically:
+: C-x 2 : split-window-below
+Split /active window/ horizontally:
+: C-x 3 : split-window-right
+
+Make selected window ~delta~ lines /taller/ (or columns /wider/, if ~horizontal~ or
+/smaller/ if ~delta~ is /negative/):
+: C-x ^ : (enlarge-window <delta> <?horizontal>)
+
+Balance the sizes of windows:
+: balance-windows
+
+Toggle popups (e.g. for help):
+: C-` : +popup/toggle
+- requires ~popup.el~
+
+Undo changes in window arrangement:
+- see [[#winner-mode]]
+
+---
+
+Control how buffers are opened in windows:
+: (add-to-list 'display-buffer-alist '(…))
+
+Example:
+#+begin_src elisp
+(add-to-list 'display-buffer-alist
+	     '("^\\*eldoc" display-buffer-at-bottom
+	       (window-height . 4)))
+#+end_src
+
+* Frames
+** General
+To create a new /frame/ (OS-level window):
+: M-x make-frame-command
+
+Select a different visible frame and raise it:
+: C-x 5 o : other-frame
+- with /numeric argument/, selects the /n'th/ next frame
+- with /negative argument/, selects the (/n'th/) previous frame
+
+Select frame with (prompted) ~name~ and raise it:
+: M-x select-frame-by-name <name>
+
+Delete (selected) frame:
+: C-x 5 0 : delete-frame
+
+** Child Frames
+A child frame is tied to a specific regular ("parent") frame, and behaves
+somewhat like a dialog box or a tooltip. Unlike regular frames, closing a
+parent frame automatically closes its associated child frames.
+- useful for e.g. context menus, tooltips and other overlay UI components
+- see [[info:elisp#Child Frames][elisp#Child Frames]]
+
+Return the parent frame of (selected) child ~frame~:
+: (frame-parent <?frame>)
+
+* Buffers
+** General
+Buffers need not be for files, but can also be /transient buffers/ for e.g.
+network I/O or text processing (/scratch/, /help/, etc.).
+
+Show buffer list:
+: C-x C-b : list-buffers
+Open dired buffer manager:
+: M-x ibuffer
+- recommended to use with keybinding of ~list-buffer~:
+  ~(global-set-key [remap list-buffers] 'ibuffer)~
+
+Switch to previous/next buffer:
+: C-x ←/→ : previous-buffer / next-buffer
+Switch to buffer by name:
+: C-x b : consult-buffer
+
+Kill buffer (current buffer or named):
+: C-x k : kill-buffer
+- according to “Mastering Emacs”, it is normal to have hundreds or even
+  thousands of buffers open, so this is not as important as it seems
+
+Reload buffer (replaces buffer with file on disk, undoing all changes):
+: M-x revert-buffer
+
+Completion frameworks for buffer switching:
+- [[#icomplete][Icomplete / IDO / FIDO]]
+
+** Mini buffer / minibuffer
+Interactive buffer that appears in the /echo area/ and displays errors and
+general information or acts as an interface (e.g. for buffer selection or
+input of pathnames).
+
+** Indirect buffer
+:PROPERTIES:
+:CUSTOM_ID: indirect-buffer
+:END:
+An indirect buffer contains the entire buffer, but narrowed down to the
+selected subtree.
+
+Editing the indirect buffer will also change the original buffer, without
+affecting its visibility.
+
+More infos: [[info:emacs#Indirect Buffers][emacs#Indirect Buffers]]
+
+* Files
+** General
+
+Load file into buffer:
+: C-x C-f : find-file
+
+Save buffer to file:
+: C-x C-s : save-buffer
+Write buffer to different file /(save as…)/:
+: C-x C-w : write-file
+Save all modified file-visiting buffers:
+: C-x s : save-some-buffers
+-  will ask, in turn, for each unsaved file
+
+** Coding system
+
+Check the variable ~buffer-file-coding-system~ to see the coding system used
+by the current buffer.
+- can also be checked with ~C-h C <RET>~, but not if ~fido-mode~ is active
+- alternatively, click the leftmost symbol in the /modeline/
+
+To change the coding system in use (select from list):
+: C-x RET r : revert-buffer-with-coding-system
+- reverts the buffer!
+- buffer must be saved to make changes permanent
+
+** Line endings
+
+Line ending indicators in the /modeline/ (e.g. in ~U:**-~):
+| Indicator | Style               |
+|-----------+---------------------|
+| ~:~         | UNIX-style          |
+| ~(DOS)~     | DOS                 |
+| ~(Mac)~     | Macintosh (pre-OSX) |
+
+** File-local variables
+Enabled per file if present in the file.
+- will *not* overwrite variables globally
+
+As headers:
+: -*- mode: mode-name-here; my-variable: value -*-
+or footers:
+: Local Variables:
+: mode: mode-name-here
+: my-variable: value
+: End:
+
+Commented lines (with the /major mode’s/ comment syntax) will work too.
+** File history
+To remember recently edited files:
+- [[#recentf-mode]]
+
+To remember the last place visited in a file:
+- [[#save-place-mode]]
+
+To automatically revert a buffer when the underlying file has changed:
+- [[#auto-revert-mode]]
+** Search in files
+Recursively grep for ~regexp~ in ~files~ (shell pattern) from root ~dir~:
+: (rgrep <regexp>  <?files> <?dir> <?confirm>)
+- e.g. use in [[#dired]]
+- to jump to the first/next occurrence:
+  : C-x ` : next-error
+
+** Lockfiles
+:PROPERTIES:
+:CUSTOM_ID: lockfiles
+:END:
+Once a file has been modified in a buffer, Emacs creates a specially-named
+symlink of that file (=.#= prepended to the base filename, e.g. =.#foo.txt=) in
+the same directory, which means that the user has “locked” the file. Once
+changes are saved, the file (and thus the lock) gets removed.
+
+The default location and filename of lockfiles can be changed by setting the
+variable ~lock-file-name-transforms~.
+
+Set ~create-lockfiles~ to ~nil~ to prevent the creation of lockfiles.
+
+In case of collisions (visiting a file that is locked by someone else),
+Emacs asks what to do and accepts the following answers:
+- ~s~: Steal the lock. Whoever was already changing the file loses the lock,
+  and you gain the lock.
+- ~p~: Proceed. Go ahead and edit the file despite its being locked by someone
+  else.
+- ~q~: Quit. This causes an error (‘file-locked’), and the buffer contents
+  remain unchanged--the modification you were trying to make does not
+  actually take place.
+
+Crashes to Emacs or the OS may leave stale lockfiles behind, causing Emacs
+to warn about false collisions. Type ~p~ to proceed in that case.
+
+More infos:
+- [[info:emacs#Interlocking][emacs#Interlocking]]
+- https://www.emacswiki.org/emacs/LockFiles
+
+See also:
+- [[#auto-save-files][Auto-save Files]] =#foo.txt#=
+- [[#backups][Backup Files]] =foo.txt~=
+
+** Auto-save Files
+:PROPERTIES:
+:CUSTOM_ID: auto-save-files
+:END:
+Auto-save files are created periodically for data recovery in case of a
+crash or accidental termination. The modified buffer gets saved to a new
+file with ~#~ prepended and appended on the same name (e.g. =#foo.txt#=).
+
+This ensures the original file doesn’t get overwritten before manual save.
+The auto-save file gets removed once changes have been saved explicitly.
+- by default, killing a buffer doesn’t remove its auto-save file
+
+By default, Emacs auto-saves every 300 keystrokes or after 30 seconds of
+idle time (starting once a change has been made in the buffer).
+- ~auto-save-interval~ sets the amount of keystrokes between auto-saves
+- ~auto-save-timeout~ sets the idle time (seconds) before auto-saves
+  - 0 or ~nil~ disables auto-saving due to idleness
+
+Deleting a substantial part of the text in a large buffer temporarily stops
+auto-save in that buffer to prevent accidental data loss.
+- to reenable auto-save, either save the buffer with ~C-x C-s~ or use ~C-u 1
+  M-x auto-save-mode~
+
+To change the auto-save filename pattern (via regexprs and replacements),
+set ~auto-save-file-name-transforms~.
+
+*Note:* I recommend to not include auto-save files in =.gitignore=, since they
+are a good indicator of unsaved changes in the project.
+
+More infos:
+- [[info:emacs#Auto Save Files][emacs#Auto Save Files]]
+
+See also:
+- [[#lockfiles][Lockfiles]] =.#foo.txt=
+- [[#backups][Backup Files]] =foo.txt~=
+
+** Backup Files
+:PROPERTIES:
+:CUSTOM_ID: backups
+:END:
+Backup files are created after a file has been saved to let the user recover
+the old version in case of data loss. The contents of the original file get
+copied to the backup file and a ~~~ appended to its filename (e.g. =foo.txt~=).
+
+To prevent Emacs from creating backup files, set ~make-backup-files~ to ~nil~.
+
+To change the directory where backup files are saved, set
+~backup-directory-alist~.
+- e.g. set to ~'((".*" . "~/.Trash"))~ to save them to trash on macOS
+
+More infos:
+- [[info:emacs#Backup][emacs#Backup]]
+
+See also:
+- [[#auto-save-files][Auto-save Files]] =#foo.txt#=
+- [[#lockfiles][Lockfiles]] =.#foo.txt=
+
+* Registers
+Can be used to temporarily store various things across buffers, similar to a
+clipboard.
+
+*Store *point* in register:
+: C-x r SPC : point-to-register
+- use [[#bookmarks]] for more permanent storage of locations
+*Store window* configuration in register:
+: C-x r w : window-configuration-to-register
+*Jump to point* /or/ *restore window config* stored in register:
+: C-x r j : jump-to-register
+
+*Store/copy* text into register:
+: C-x r s : copy-to-register
+- prefix ~C-u~ to cut instead of copy
+*Insert text* stored in register:
+: C-x r i : insert-register
+
+*Store a* (~C-u <N>~ prefix) *number* in register:
+: C-x r n : number-to-register
+
+*Increment/append contents* of/to a register:
+: C-x r + : increment-register
+- adds numeric (~C-u <N>~ prefix) value to a stored /number/
+- appends text to a stored /text/ (or empty register)
+
+_Uncommon:_
+
+*Store a file* into a register:
+: (set-register ?<key> '(file . "<path>"))
+- prefer to store the /point/ instead if buffer is already open
+
+* Bookmarks
+:PROPERTIES:
+:CUSTOM_ID: bookmarks
+:END:
+Similar to registers, but only store locations in files.
+- can be persisted over restarts of Emacs
+
+*Set bookmark* from /point/ position:
+: C-x r m : bookmark-set
+
+*Open bookmark list* in a dedicated buffer:
+: C-x r l : bookmark-bmenu-list
+- ~RET~: jump to bookmark
+- ~d~ + ~x~: mark for deletion + execute (like in [[#dired]])
+- ~q~: close buffer
+
+*Jump to bookmark* by its name:
+: C-x r b : bookmark-jump
+
+_Persisting bookmarks_
+
+When ~bookmark-save-flag~ is set to ~t~, bookmarks are always saved in
+~bookmark-default-file~ (e.g. =~/.emacs.d/bookmarks=) when Emacs is closed.
+- set to a number for more frequent saves (see docs)
+
+Otherwise, bookmarks have to be saved manually:
+
+*Save bookmarks* in a file, to persist across Emacs restarts:
+: M-x bookmark-save
+*Load bookmarks* from a file:
+: M-x bookmark-load
+
 * Text editing
 ** General
 *** Line wrapping /(truncation, filling)/
@@ -1425,6 +1539,10 @@ To jump to a specific symbol (named or at /point/), see [[#imenu]].
 :CUSTOM_ID: isearch
 :END:
 
+*NOTE:* By default, isearch commands are /case-insensitive/
+- ~M-c~ or ~M-s c~ will toggle case sensitivity
+- see case-folding
+
 Search in buffer forwards/backwards:
 : C-r : isearch-backward
 : C-s : isearch-forward
@@ -1465,6 +1583,7 @@ Specific search for /things/ at point (when in isearch):
 
 General search for /thing/ at point /(since Emacs 28)/:
 : M-s M-. : isearch-forward-thing-at-point
+: M-s .   : isearch-forward-symbol-at-point
 - works for e.g. symbol, list, sexp, defun, number, filename, url, email,
   uuid, word, sentence, whitespace, line, page
 - also works on regions
@@ -1483,9 +1602,36 @@ Do not allow scrolling commands (e.g. ~C-v~) to exit isearch:
 : (setq isearch-allow-scroll t)
 - mouse scrolling will still exit
 
+*** occur
+Infos:
+- [[info:emacs#Other Repeating Search][emacs#Other Repeating Search]]
+- https://www.emacswiki.org/emacs/OccurMode
+
+Find and list all lines with matches of regex pattern in temp. buffer:
+: M-s o : occur
+- takes a prefix arg to display /n/ lines before and after the match
+
+Search through multiple buffers as with ~occur~:
+: M-x multi-occur
+- user specifies buffers one by one
+- confirm buffers with ~M-RET~ when using [[#vertico][vertico.el]]
+
+Shortcuts in occur-buffer:
+
+| Binding   | Description                                       |
+|-----------+---------------------------------------------------|
+| ~M-p~ / ~M-n~ | goto previous/next match                          |
+|           | prefix ~M-g~ to navigate matches in searched buffer |
+| ~RET~       | goto occurrence                                   |
+| ~o~         | goto occurrence in another window                 |
+| ~e~         | edit mode to directly edit the matched line       |
+|           | (exit with ~C-c C-c~)                               |
+
 *** Replace commands
 
 *NOTE:* Query commands also work inside [[#isearch]] to replace matches.
+
+*NOTE:* By default, query commands are /case-insensitive/
 
 Replace (non-regex) ~from-str~ with ~to-str~ (in the current /region/):
 : M-x (replace-string <from-str> <to-str> <?delimited>
@@ -1703,6 +1849,8 @@ See [[file:elisp.org][Docs/Emacs Lisp]] for reference.
 
 Evaluate elisp expression in minibuffer:
 : M-: / M-ESC :  : (eval-expression <exp> …)
+- prepend ~C-u~ to print the value into the current buffer instead
+- prepend ~C-0~ to avoid truncation of output
 
 Evaluate top-level /form/ around /point/:
 : C-M-x : eval-defun
@@ -1816,6 +1964,11 @@ On-the-fly reindentation of text lines.
 
 Insert a /newline/:
 : C-j : electric-newline-and-maybe-indent
+** Adaptive Wrap Mode / Visual Wrap Prefix Mode
+- built-in since Emacs 30 as ~visual-wrap-prefix-mode~
+- https://www.emacswiki.org/emacs/AdaptiveWrap
+- https://elpa.gnu.org/packages/adaptive-wrap.html
+
 ** Winner mode
 :PROPERTIES:
 :CUSTOM_ID: winner-mode
@@ -1924,7 +2077,10 @@ Preserve the scratch buffer across Emacs sessions.
 Alternative /undo/ implementation.
 - https://www.emacswiki.org/emacs/UndoTree
 ** Package managers
-*** [built-in] Standard Emacs package manager
+*** [built-in] package.el
+:PROPERTIES:
+:CUSTOM_ID: package-el
+:END:
 See [[#standard-package-manager]]
 *** [built-in] use-package (declarative package configuration macro)
 :PROPERTIES:
@@ -2020,6 +2176,13 @@ Since /Emacs 30/ it is built-in:
 :PROPERTIES:
 :CUSTOM_ID: straight-el
 :END:
+*** package-utils
+Interactive extensions for [[#package-el][package.el]]
+- https://github.com/Silex/package-utils
+
+Convenience commands for upgrading packages. Can also re-compile bytecode
+after upgrades.
+
 ** Project manager
 *** [built-in] project.el
 :PROPERTIES:
@@ -2840,5 +3003,7 @@ Toggles between the [[#vterm]] buffer and whatever buffer you are editing.
 - [[https://github.com/Malabarba/beacon][beacon]] (light that follows the cursor when jumping around)
 - [[https://github.com/larstvei/Focus][focus]] (dims the font color of surrounding paragraphs)
 - [[https://www.bobnewell.net/publish/35years/poetry.html][Poetry mode]] (“as you type” count of syllables on a line)
+- [[https://github.com/karthink/gptel][gptel]] (simple LLM client)
+- [[https://thelambdalab.xyz/elpher][elpher]] (Gopher & Gemini client)
   
   

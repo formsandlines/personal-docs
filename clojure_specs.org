@@ -94,6 +94,8 @@ src_clojure{ (s/def :book/title string?) }
 
 Validates true if all of the given predicates match.
 
+*Note:* do not use with ~s/alt~ in functions specs, use ~s/&~ instead!
+
 Successive conformed values propagate through rest of the predicates and can
 then be reused:
 #+begin_src clojure
@@ -114,6 +116,8 @@ e.g.
 
 Validates true if either of the given predicates match.
 - keywords are required to help producing coherent feedback on match fail
+
+*Note:* in function specs ~:args~ for multi-arity fns, use ~s/alt~ instead
 
 Example:
 src_clojure{ (s/or :ok ::result :err ::error) }
@@ -177,9 +181,11 @@ Returns a spec for a map whose keys satisfy ~kpred~ and vals ~vpred~.
 
 Validates true if either one of the preds/patterns is matched in a sequence.
 - requires descriptive keywords for coherent feedback
-- *WARNING:* elements are processed one-by-one, so it does work with ~s/cat~, but
-  not with e.g. ~s/coll-of~, which matches a sequence as a whole
-  - use ~s/or~ instead for function arguments
+
+*WARNING:* elements are processed one-by-one, so it does work with ~s/cat~, but
+not with e.g. ~s/coll-of~, which matches a sequence as a whole
+- use ~s/alt~ for arities in function specs (together with ~s/cat~ or other
+  regex specs) and ~s/or~ for sequential data
 
 *** Examples
 #+begin_src clojure
@@ -208,12 +214,68 @@ But it does work with ~s/or~ where the sequence is processed as a whole:
 #+end_src
 So in this case, ~s/coll-of~ gets ~["a" "b" "c"]~ as a whole.
 
+~s/alt~ works only with other regex specs such as ~s/cat~ or ~s/+~, but ~s/or~
+treats every sequence/coll spec equally:
+#+begin_src clojure
+(s/def ::alt (s/alt :coll-of (s/coll-of int?)
+                    :cat (s/cat :x keyword? :y keyword?)
+                    :tuple (s/tuple string? string?)
+                    :every (s/every symbol?)
+                    :+ (s/+ float?)))
+
+(s/def ::or (s/or :coll-of (s/coll-of int?)
+                  :cat (s/cat :x keyword? :y keyword?)
+                  :tuple (s/tuple string? string?)
+                  :every (s/every symbol?)
+                  :+ (s/+ float?)))
+
+;; s/alt works only with regex specs:
+(s/conform ::alt '(42 93)) ;; => :clojure.spec.alpha/invalid
+(s/conform ::alt '([42 93])) ;; => [:coll-of [42 93]]
+(s/conform ::alt '(:i :j)) ;; => [:cat {:x :i, :y :j}]
+(s/conform ::alt ["a" "b"]) ;; => :clojure.spec.alpha/invalid
+(s/conform ::alt '(("a" "b"))) ;; => :clojure.spec.alpha/invalid
+(s/conform ::alt '(["a" "b"])) ;; => [:tuple ["a" "b"]]
+(s/conform ::alt '(a b)) ;; => :clojure.spec.alpha/invalid
+(s/conform ::alt '((a b))) ;; => [:every (a b)]
+(s/conform ::alt '(1.5 2.5)) ;; => [:+ [1.5 2.5]]
+
+;; s/or works with all specs:
+(s/conform ::or '(42 93)) ;; => [:coll-of (42 93)]
+(s/conform ::or '(:i :j)) ;; => [:cat {:x :i, :y :j}]
+(s/conform ::or '("a" "b")) ;; => :clojure.spec.alpha/invalid
+(s/conform ::or ["a" "b"]) ;; => [:tuple ["a" "b"]]  (must be vector)
+(s/conform ::or '(a b)) ;; => [:every (a b)]
+(s/conform ::or '(1.5 2.5)) ;; => [:+ [1.5 2.5]]
+
+;; s/and also doesn’t mix well with s/alt, so use s/& instead:
+(s/conform
+ (s/alt :a (s/and (s/cat :x int? :y keyword?)
+                  #(> (:x %) 2)))
+ '(3 :x)) ;; => :clojure.spec.alpha/invalid
+
+(s/conform
+ (s/alt :a (s/& (s/cat :x int? :y keyword?)
+                #(> (:x %) 2)))
+ '(3 :x)) ;; => [:a {:x 3, :y :x}]
+
+(s/conform
+ (s/or :a (s/and (s/cat :x int? :y keyword?)
+                 #(> (:x %) 2)))
+ '(3 :x)) ;; => [:a {:x 3, :y :x}]
+#+end_src
+
 ** : (s/cat & <key-pred-forms>)
 e.g.
     : (s/cat :e even? :o odd?)
 
 Validates true if the exact order, type and number of elements is matched.
 - requires descriptive keywords for coherent feedback
+- can be used to for ~:args~ in a function spec, for example
+
+*Note:* ~s/cat~ should not be used to describe a sequential data structure, it
+works more like a regex on multiple items. Similar to ~s/alt~ but as a
+concatenation instead of an alternation.
 
 *** Examples
 src_clojure{ (s/cat :service any? :query string?) }
@@ -281,7 +343,7 @@ Matches 1 or 0  occurrences of a predicate/pattern.
 ** : (s/& <regex> & <preds>)
 
 Takes a regex op and further constrains it with one or more predicates.
-?? unclear how this works
+- regex-counterpart to ~s/and~, can be used with e.g. ~s/cat~
 
 * Spec collections
 

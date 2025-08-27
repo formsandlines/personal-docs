@@ -11,7 +11,6 @@ Libraries:
 - https://www.clojure-toolbox.com
 - EDN / JSON / Transit transforms: https://github.com/borkdude/jet
 
-
 * REPL
 
 - Guide: https://lambdaisland.com/guides/clojure-repls/clojure-repls
@@ -36,7 +35,10 @@ Libraries:
 #+end_src
 
 ** REPL tools
+/Rebel Readline/ provides a better command-line REPL experience:
+- https://github.com/bhauman/rebel-readline
 
+Built-in REPL tools:
 #+begin_src clojure
 (require '[clojure.repl :refer :all]) ; (might be required by default)
 
@@ -160,7 +162,7 @@ Helpful resources:
 2. create =build.clj= file/namespace in root dir
 
 3. compile the JAR:
-: $ clj -T:build jar
+: $ clojure -T:build jar
 
 ** To put a JAR in local Maven repository:
 
@@ -173,7 +175,7 @@ Default path for a local Maven repository:
 #+end_src
 
 2. invoke install function:
-: $ clj -T:build install
+: $ clojure -T:build install
 
 ** To push a JAR to Clojars:
 
@@ -634,6 +636,488 @@ print dependency tree for the project:
 large annotated example to look for settings:
 - https://github.com/technomancy/leiningen/blob/master/sample.project.clj
 
+
+* Language
+** Namespaces
+~*ns*~ is a namespace object representing the current namespace.
+
+Set ~*ns*~ to the namespace ~name~ (unevaluated), create it if needed:
+: (ns name ?docstring ?attr-map references*)
+
+~references~ can be zero or more of (args are the same as for the
+corresponding functions, but are unevaluated and need not be quoted):
+- ~(:refer-clojure & filters)~
+- ~(:require & args)~
+- ~(:use & args)~
+- ~(:import & import-symbols-or-lists)~
+- ~(:load & paths)~
+- ~(:gen-class & options)~
+
+Return a sequence of all namespaces:
+: (all-ns)
+
+Return a map of the /(public) intern mappings/ for the namespace:
+: (ns-publics ns)
+: (ns-interns ns)
+- use ~ns-publics~ to see all public/accessible symbols from the namespace
+- use ~ns-interns~ to see all symbols from the namespace, incl. private ones
+- ~ns~ must be a symbol, e.g. ~'clojure.string~
+
+Add an alias in the current namespace to another namespace:
+: (alias alias-sym namespace-sym)
+- prefer using ~:as~ in the ns macro to calling this directly
+
+Can be used to alias the current namespace:
+#+begin_src clojure
+(ns my.very.long.complicated-name)
+
+(alias 'foo 'my.very.long.complicated-name)
+
+(def kw ::foo/bar)
+#+end_src
+
+** Multimethods
+:PROPERTIES:
+:CUSTOM_ID: multimethod
+:END:
+“Clojures functional brand of runtime polymorphism”
+- see https://clojure.org/reference/multimethods
+
+Create a new multimethod with associated ~dispatch-fn~:
+: (defmulti name ?docstring ?attr-map dispatch-fn & options)
+- ~dispatch-fn~ gets passed all args as given to the multimethod
+
+*Note:* Clojure does not replace an already existing ~defmulti~ definition, so
+to redefine a multimethod, set the old one to /nil/ first
+
+Values for ~options~:
+- ~:default~ → default dispatch value, defaults to ~:default~
+- ~:hierarchy~ → specify a [[#hierarchy][hierarchy]] for hierarchical dispatch
+
+Create & install a new method of ~multifn~ associated with ~dispatch-val~:
+: (defmethod multifn dispatch-val & fn-tail)
+- ~fn-tail~ are passed by the macro to ~fn~, so write ~[params*] exprs*~
+- while ~dispatch-val~ is the return value of ~dispatch-fn~ in the ~defmulti~
+  definition, ~fn-tail~ gets the actual args passed to the multimethod
+
+Remove the method of ~multifn~ with associated ~dispatch-val~:
+: (remove-method multifn dispatch-val)
+Remove all methods from ~multifn~:
+: (remove-all-methods multifn)
+
+Return a map of /dispatch values → dispatch fns/ for ~multifn~:
+: (methods multifn)
+
+Return the /dispatch fn/ that would apply to the ~dispatch-val~ of ~multifn~:
+: (get-method multifn dispatch-val)
+- returns /nil/ if none apply and there is no default method
+
+
+Cause ~multifn~ to prefer matches of ~dispatch-val-x~ over ~dispatch-val-y~ when
+there is a conflict:
+: (prefer-method multifn dispatch-val-x dispatch-val-y)
+- use when multiple dispatch values match for an input value (e.g. with
+  multiple inheritance in hierarchies, see example in /Programming Clojure/,
+  pp. 214–215)
+
+Return a map of /preferred value → set of other values/ from ~multifn~:
+: (prefers multifn)
+
+Examples:
+#+begin_src clojure
+;; Example from somewhere (forgot the source):
+(defmulti diet (fn [x] (:eater x)))
+(defmethod diet :herbivore [a] (str (:name a) " eats veggies."))
+(defmethod diet :carnivore [a] (str (:name a) " eats animals."))
+(defmethod diet :default [a] (str "I don't know what " (:name a) " eats."))
+
+(diet {:species "deer" :name "Bambi" :age 1 :eater :herbivore})
+;; -> "Bambi eats veggies."
+
+;; Can have a variable number of arguments:
+(defmulti varargs (fn [kw & _] kw))
+(defmethod varargs :default [_ & args] args)
+(defmethod varargs :foo [_ x] x)
+(defmethod varargs :bar [_ x y] [x y])
+
+;; Can be used for type-based polymorphism (similar to protocols):
+(defmulti showme type)
+(defmethod showme java.lang.String [txt] (str txt " is a String!"))
+(defmethod showme java.lang.Long [n] (str n " is a Long!"))
+
+
+;; Usage with a hierarchy (example from ClojureDocs):
+(def h (-> (make-hierarchy)
+           (derive :foo :bar)))
+
+(defmulti f identity :hierarchy #'h) ;; hierarchy must be a reference type
+
+(defmethod f :default [_] "default")
+(defmethod f :bar [_] "bar")
+
+(f :unknown) ;; "default"
+(f :bar) ;; "bar"
+(f :foo) ;; "bar" (because :foo is a child of :bar)
+
+;; For an impressive example on recursion in multimethods (in calculation),
+;; see p. 896 in ‘Clojure: The Essential Reference’
+#+end_src
+
+** Hierarchies
+:PROPERTIES:
+:CUSTOM_ID: hierarchy
+:END:
+Hierarchical relationships between symbols/keywords/classes.
+- see https://clojure.org/reference/multimethods
+
+Create a new (empty) hierarchy:
+: (make-hierarchy)
+
+*Note:* all functions below default to the global hierarchy when no explicit
+hierarchy is given.
+
+Establish a parent/child relationship between ~parent~ and ~tag~:
+: (derive ?h tag parent)
+- ~parent~ must be a /ns-qualified symbol/ or a /keyword/
+- ~tag~ (child) can be either a /ns-qualified symbol/, a /keyword/ or a /class/
+- modifies the /global hierarchy/ if ~h~ is not given
+- classes are allowed only as children
+
+Remove a parent/child relationship (see ~derive~):
+: (underive ?h tag parent)
+
+Check if ~child~ is (in)directly derived from ~parent~:
+: (isa? ?h child parent)
+- also returns /true/ if ~(= child ~parent)~
+- also checks /Java type inheritance relationships/
+- also works on vectors by testing their respective items
+
+Get specific relationships of ~tag~ within a hierarchy as a /set/:
+: (parents ?h tag)
+: (ancestors ?h tag)
+- useful to retrieve the set of classes or interfaces a class extends or
+  implements
+: (descendants ?h tag)
+
+Hierarchies can also be used in [[#multimethod][Multimethods]].
+
+Examples:
+#+begin_src clojure
+(def h (-> (make-hierarchy)
+           (derive ::rect ::shape)
+           (derive ::square ::rect)))
+
+;; (pprint h)
+{:parents     {:user/square #{:user/rect},
+               :user/rect   #{:user/shape}},
+ :ancestors   {:user/square #{:user/shape :user/rect},
+               :user/rect   #{:user/shape}},
+ :descendants {:user/rect   #{:user/square},
+               :user/shape  #{:user/square :user/rect}}}
+
+(ancestors ::square) ;; => nil (not in global hierarchy)
+(ancestors h ::square) ;; => #{:user/shape :user/rect}
+
+
+;; Example from ‘Clojure: The Essential Reference’:
+(defn custom-hierarchy [& derivations]
+  (reduce (fn [h [child parent]] (derive h child parent))
+          (make-hierarchy)
+          derivations))
+
+(def h (custom-hierarchy [:clerk :person]
+                         [:owner :person]
+                         [:unix :os]
+                         [:bsd :unix]
+                         [:mac :bsd]))
+
+;; checks for pairs of relationships and returns true only if all are true:
+(isa? h [:mac :owner] [:unix :person]) ;;=> true
+
+#+end_src
+
+** Protocols
+:PROPERTIES:
+:CUSTOM_ID: protocols
+:END:
+High-performance, dynamic polymorphism construct as an alternative to
+interfaces.
+- specification only, no implementation
+- a single type can implement multiple protocols
+- allow /independent extension/ of the set of types, protocols, and
+  implementations of protocols on types, by different parties
+- see https://clojure.org/reference/protocols
+
+Check if ~x~ satisfies a protocol:
+: (satisfies? <protocol> <x>)
+
+** Datatypes (deftype, defrecord, reify)
+:PROPERTIES:
+:CUSTOM_ID: datatypes
+:END:
+Define implementations of abstractions (→ [[#protocols][protocols]], interfaces) using
+well-defined relationships to constructs of the host platform.
+- provides a /host type/ (either named or anonymous with ~reify~) and some
+  /structure/ (either explicit fields or implicit closure with ~reify~)
+- not primarily interop constructs
+- see https://clojure.org/reference/datatypes
+
+*Construction*
+
+: (deftype name [& fields] & opts+specs)
+: (defrecord name [& fields] & opts+specs)
+: (reify & opts+specs)
+
+~deftype~ and ~defrecord~ are macros that dynamically generate compiled bytecode
+for a named class with a set of given fields.
+- when ~Foo~ is defined, both define a corresponding function ~->Foo~ that
+  passes its args to the constructor
+- when a ~defrecord~ ~Bar~ is defined, a corresponding function ~map->Bar~ is
+  defined that takes a map and initializes a new record instance
+
+~reify~ defines both an /anonymous/ type and creates an /instance/ of that type.
+- the method bodies of reify are /lexical closures/, and can refer to the
+  surrounding local scope
+
+*Use-cases*
+
+- use ~defrecord~ to represent application domain information
+  - when generic processing of immutable data is important
+- use ~deftype~ for classes that are artifacts of the
+  implementation/programming domain
+  - when a more specific/custom implementation is needed
+  - when mutable fields are required
+- use ~reify~ when a one-off implementation of one or more protocols or
+  interfaces is needed
+  - with the benefit of the local context
+  - use case is similar to ~proxy~, or /anonymous inner classes/ in Java
+    - more performant than ~proxy~ in both construction and invocation
+    - preferable to proxy in all cases where its constraints are not
+      prohibitive
+
+*Features*
+
+~deftype~ and ~defrecord~ can optionally implement methods via [[#protocols][protocols]] and/or
+interfaces.
+
+~defrecord~ provides a complete implementation of a persistent map:
+- value-based equality and hashCode
+- metadata support
+- associative support
+- keyword accessors for fields
+- extensible fields (assoc keys not supplied with the definition)
+- etc.
+
+~deftype~ provides no functionality not specified by the user (other than a
+constructor), but supports /mutable fields/.
+
+Both can be written with a special reader syntax ~#my.thing[1 2 3]~, but
+~defrecord~ supports an additional reader form ~#my.record{:a 1, :b 2}~.
+
+Types created with ~deftype~, ~defrecord~, and ~definterface~, can emit classes
+that include Java annotations for Java interop. Annotations are described as
+/meta/ on:
+- /Type name/ (deftype/record/interface) - class annotations
+- /Field names/ (deftype/record) - field annotations
+- /Method names/ (deftype/record) - method annotations
+
+** Iteration
+*** for pure data
+Return a lazy seq of evaluations of ~body-expr~ – for each item as specified
+in 1+ binding pairs in ~seq-exprs~, each followed by 0+ modifiers:
+: (for seq-exprs* body-expr)
+- list-comprehension, NOT a for-loop
+- multiple seq bindings behave like a nested loop
+- bindings can have ~:let~, ~:when~ and ~:while~ modifiers
+  
+Evaluate the ~exprs~ with the given ~bindings~ (like in a ~let~-form), using
+~recur~ for iteration:
+: (loop [bindings*] exprs*)
+- /special form/
+
+Jump back to the recursion point, a ~loop~ or ~fn~ method:
+: (recur exprs*)
+- /special form/
+- MUST be in /tail-position/ (last expr in a branch)
+- recursion via ~recur~ doesn't consume the stack
+
+Return a lazy seq (infinite or length ~n~) of ~x~:
+: (repeat ?n x)
+
+Return a lazy seq of iteratively calling ~x~, ~(f x)~, ~(f (f x))~, …:
+: (iterate f x)
+- ~f~ must be free of side-effects
+- ~rest~ and ~nthrest~ preserve the ~clojure.lang.Iterate~ type of the seq
+
+Examples:
+#+begin_src clojure
+(for [letter [:a :b]
+      number (range 3)]
+  [letter number])
+;;=> ([:a 0] [:a 1] [:a 2] [:b 0] [:b 1] [:b 2])
+
+(for [x '(1 2 3)] (* x x)) ;;=> (1 4 9)
+
+;; indexed:
+(for [[i val] (map-indexed vector [:a :b :c])] ...)
+;; or equivalently:
+(for [[i val] (map vector (range) [:a :b :c])] ...)
+
+;; argument to :when must be an expression of the local bindings
+(for [i (range 10)
+      :when (odd? i)]
+  i) ;;=> (1 3 5 7 9)
+
+;; get all neighbours of a coordinate in an area
+(let [w 4, h 4
+      x 2, y 1]
+  (for [dx [-1 0 1]  ;; neighbour range
+        dy [-1 0 1]
+        :let [x' (+ x dx)  ;; calc new coords
+              y' (+ y dy)]
+        :when (and (not (= dx dy 0))  ;; exclude self
+                   (<= 0 x' (dec w))  ;; check bounds
+                   (<= 0 y' (dec h)))] [x' y']))
+;;=> ([1 0] [1 1] [1 2] [2 0] [2 2] [3 0] [3 1] [3 2])
+
+; use :while to constrain infinite sequences
+(take 6 (for [i (range) ;; seq i constrained by take 6
+              j (range)
+              :while (< j 3)] [i j])) ;; constrains seq j
+;;=> ([0 0] [0 1] [0 2] [1 0] [1 1] [1 2])
+
+
+(loop [i 0]
+  (if (< i 10)
+    (recur (inc i)) i))
+;; roughly equivalent to:
+((defn f [i]
+  (if (< i 10)
+    (f (inc i)) i))
+ 0)
+;; function arguments are implicit loop bindings:
+(defn increases [i]
+  (if (< i 10)
+    (recur (inc i)) i))
+
+
+(take 4 (iterate #(* % 2) 1)) ;;=> (1 2 4 8)
+(take 9 (iterate #(repeat 3 %) 1))
+;;=> (1 (1 1 1) ((1 1 1) (1 1 1) (1 1 1)))
+#+end_src
+
+*** for side-effects
+Evaluate ~exprs~ ~n~ times using a binding:
+: (dotimes [name n] exprs*)
+- returns nil
+
+Repeatedly execute ~body~ with bindings and filterings in 1+ ~seq-exprs~ (as
+provided to ~for~):
+: (doseq seq-exprs & body)
+- multiple seq bindings behave like a nested loop
+- if ~seq~ is a lazy sequence, forces evaluation
+- returns nil
+
+Fully realize a lazy seq to force any of its effects:
+: (doall ?n coll)
+- walks through the successive nexts of the seq, retains the head and
+  returns it, thus causing the entire seq to reside in memory at one time
+- does not retain the head of the sequence
+- returns nil
+
+Return a lazy seq of (~n~ or infinite) calls to ~f~ (must take no args):
+: (repeatedly ?n f)
+
+Execute a side-effecting procedure on successive items of ~coll~:
+: (run! proc coll)
+- returns nil
+- uses ~reduce~ internally
+
+Examples:
+#+begin_src clojure
+(dotimes [i 3] (println i))
+
+
+(doseq [n (range 3)] (println n))
+(doseq [v1 [1 2 3]
+        v2 ['a 'b]] (println v1 v2))
+
+(defn five-letter-words-imperative [dict]
+  (def words (atom []))
+  (doseq [word dict]
+    (when (== (count word) 5)
+      (swap! words conj word)))
+  @words)
+
+
+(def state (atom 1))
+(repeatedly 5 #(swap! state inc)) ;=> (2 3 4 5 6)
+@state ;;=> 6
+#+end_src
+
+** Transducer
+- see https://clojure.org/reference/transducers
+
+Transducers abstract transformations from input sequences and output data.
+
+Example adapted from [[https://github.com/nufuturo-ufcg/clj-smells-catalog?tab=readme-ov-file#reinventing-the-wheel][clj-smells-catalog – Reinventing the Wheel]]:
+#+begin_src clojure
+(let [data [{:name "Alice" :active true  :tags ["admin" "editor"]}
+            {:name "Bob"   :active false :tags ["viewer" "editor"]}
+            {:name "Carol" :active true  :tags ["editor" "reviewer"]}]
+
+      active (filter :active)
+      names  (map :name)
+      tags   (map :tags)
+      ->transform-data (fn [& xforms] (into [] (apply comp xforms) data))]
+  {:names (->transform-data active names)
+   :seconds (->transform-data active tags (map second))
+   :flat-tags (->transform-data active tags cat)})
+;; =>
+;; {:names ("Alice" "Carol"),
+;;  :seconds ("editor" "reviewer"),
+;;  :flat-tags ("admin" "editor" "editor" "reviewer")}
+#+end_src
+
+Because the output of ~eduction~ is a “reducible”, it can be used for
+side-effects in transformations, e.g. to generate a new sequence of random
+numbers on every call.
+
+Example adapted from [[https://clojurecivitas.github.io/clojure/transducers/what_if.html][What if… we were taught transducers first?]]:
+#+begin_src clojure
+(let [s (eduction (map (fn [_] (rand-int 10))) (range 5))]
+  [(into [] s) (into [] s)])
+;; => [[7 9 9 1 0] [7 1 3 9 5]] (calls transformation twice)
+
+(let [s (sequence (map (fn [_] (rand-int 10))) (range 5))]
+  [(into [] s) (into [] s)])
+;; => [[2 0 8 4 3] [2 0 8 4 3]] (results are cached)
+#+end_src
+
+** Transients
+Temporary, localized permutation on otherwise persistent collections.
+- supported on /vectors/, /hash-maps/, and /hash-sets/
+- can only be used in an single-threaded scope
+- share structure with persistent source
+- creation and transforming back to persistent is O(1)
+- creation does not modify the source
+- ~get~, ~nth~ and ~count~ work as usual
+- see https://clojure.org/reference/transients
+
+Return (constant time) a transient version of ~coll~:
+: (transient coll)
+
+Mutation through ~!~-variants, which work just like their counterparts:
+: (conj! …) : (assoc! …)
+- return values have to be used, not designed to be bashed in-place!
+
+Return (constant time) a new, persistent version of the transient ~coll~:
+: (persistent! coll)
+- after calling, the transient collection cannot be used anymore
+  - also true for any alias
+  - as a workaround, create a new binding to a ~transient~ call on the
+    persistent ~coll~, which will keep the persistent version
+
 * Clojure & Java interop
 
 ** Calling Clojure from Java
@@ -720,3 +1204,8 @@ In =.scala= files, everything similar to [[In pure Java:]], except:
 - ~Clojure.`var`(…)~ (~var~ must be in backticks)
 - no need to specify ~IFn~ and ~Object~ types
 - no need to invoke Clojures ~println~, just use the one from Scala
+
+** Type hints
+
+Note: primitive type hints are not supported on protocol functions.
+- [[https://clojure.org/reference/protocols][Source]]

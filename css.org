@@ -256,6 +256,11 @@ See:
 - [[https://developer.mozilla.org/en-US/docs/Learn/CSS/CSS_layout/Multiple-column_Layout][Multiple-column layout]] (mdn/guides)
 
 : columns: …
+** Containment
+- https://developer.mozilla.org/en-US/docs/Web/CSS/contain
+- https://css-tricks.com/almanac/properties/c/contain/
+
+: contain :: none | size | layout | paint | strict
 
 * Normal flow
 
@@ -327,5 +332,38 @@ Element behaves as in ~relative~ *until scrolled to a certain threshold* (e.g.
 Element is “sticky” relative to the *nearest anchestor with a scrolling
 mechanism*, which is determined by its ancestors’ ~position~ property.
 
-* Variables
+* Variables / Custom Properties
 - [[https://developer.mozilla.org/en-US/docs/Web/CSS/Using_CSS_custom_properties][Using CSS custom properties (variables)]] (mdn docs)
+
+
+* Color Schemes
+~prefers-color-scheme~ conditionally applies styles based on the users chosen
+color scheme. Can be used to set the initial theme based on users system
+preferences before the JS loads, preventing flash of wrong theme.
+: @media (prefers-color-scheme: light) { <styles> }
+: @media (prefers-color-scheme: dark) { <styles> }
+- [[https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme][prefers-color-scheme (mdn docs)]]
+
+~color-scheme~ helps browsers render native UI elements (like scrollbars and
+form controls) in the appropriate theme colors.
+: :root { color-scheme: light dark }
+- should be set dynamically to match the theme-switcher value, if present
+- [[https://developer.mozilla.org/en-US/docs/Web/CSS/color-scheme][color-scheme (mdn docs)]]
+
+~light-dark~ is a CSS color function which returns either one of its color
+arguments depending on the light/dark color scheme set by the developer or the
+users requested light or dark color theme. ~color-scheme~ must have a value of
+~light dark~ (usually set on ~:root~).
+: <prop>: light-dark(<color-light>, <color-dark>);
+- no need to set theme colors in ~prefers-color-scheme~ media query
+- works on all properties where any ~<color>~ value is accepted
+- [[https://developer.mozilla.org/en-US/docs/Web/CSS/color_value/light-dark][light-dark (mdn docs)]]
+
+Also see:
+- [[https://css-tricks.com/almanac/properties/c/color-scheme/][color-scheme (CSS almanac / CSS-Tricks)]]
+
+* Error handling
+- [[https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_syntax/Error_handling][CSS error handling (mdn docs)]]
+
+Linting CSS files:
+- [[https://stylelint.io][Stylelint]]

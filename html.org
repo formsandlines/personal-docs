@@ -1,9 +1,147 @@
 #+title: Docs/HTML
 
-* Tables
+References:
+- [[https://developer.mozilla.org][Mozilla mdn]] (reference/docs, guides, etc.)
+- [[https://html.spec.whatwg.org/dev/][HTML: The Living Standard (WHATWG)]] (HTML5 spec)
+
+Other resources:
+- [[https://htmlreference.io]] (overview of elements and attributes)
+- [[https://www.patrickweaver.net/blog/a-blog-post-with-every-html-element/][A Blog Post With Every HTML Element]]
+
+* Elements
+** <table>
 - [[https://css-tricks.com/complete-guide-table-element/][A Complete Guide to the Table Element]]
 
-* SVG
+** <dialog>
+- [[https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog][<dialog>: The Dialog element (mdn docs)]]
+
+Can be /modal/ or /non-modal/.
+
+Can be turned into a [[#popover][popover]] (e.g. ~<dialog popover>~) to combine popover
+control with dialog semantics.
+
+* Web APIs
+** Popover API
+:PROPERTIES:
+:CUSTOM_ID: popover
+:END:
+- [[https://developer.mozilla.org/en-US/docs/Web/API/Popover_API][Popover API (mdn docs)]]
+
+Always /non-modal/.
+
+*Create a popover:*
+- declaratively in pure HTML:
+#+begin_src html
+<button popovertarget="mypopover">Toggle the popover</button>
+<div id="mypopover" popover>Popover content</div>
+#+end_src
+- via JS API: ~HTMLElement.togglePopover()~
+
+** Web Components
+- [[https://developer.mozilla.org/en-US/docs/Web/API/Web_components][Web Components (mdn docs)]]
+
+*** Custom Elements
+
+*** Templates / Slots
+
+*** Shadow DOM
+
+Enables encapsulation of an element by attaching a *DOM tree* to it and hiding
+its internals from external JS and CSS.
+
+The shadow DOM tree starts with a *shadow root* under which any regular HTML
+element can be attached.
+
+The attachment point in the main DOM is a regular node called the *shadow
+host*. It can be referred to from inside the shadow DOM via the ~:host~
+pseudo-class selector.
+- the host element defines where the *shadow boundary* begins
+- in /web components/, this is typically the /custom element/ itself
+- /events/ from within the shadow DOM appear to come from the host element
+  when viewed from outside
+
+**** inheritance
+
+/CSS properties/ defined outside of the shadow DOM do not inherit through
+the /shadow boundary/, except for certain /inheritable/ properties like
+~font-family~, ~color~, custom properties, etc.
+- inheritance can be prevented by resetting specific or all CSS properties
+  on ~:host~ from within the shadow DOM’s stylesheet:
+  #+begin_src css
+:host {
+  /* Reset specific CSS properties */
+  color: initial;
+
+  /* Reset all CSS properties (except for custom properties!) */
+  all: initial;
+}
+  #+end_src
+- sometimes this also has to be set on ~:host *~, since individual elements
+  inside the shadow DOM can still inherit from e.g. styles set on ~body *~
+
+**** programmatic construction
+
+The shadow DOM gets attached to a regular DOM node called the *shadow host*:
+#+begin_src javascript
+// First, we attach a shadow DOM to the shadow host:
+const host = document.querySelector("#host");
+const shadow = host.attachShadow({ mode: "open" });
+// Then we can add elements to the shadow root:
+const span = document.createElement("span");
+span.textContent = "I'm in the shadow DOM";
+shadow.appendChild(span);
+#+end_src
+- ~mode: "open"~ allows JS to access elements from the /shadow DOM/ via the
+  ~shadowRoot~ property of the /shadow host/
+- with ~mode: "closed"~ the ~shadowRoot~ property will return ~null~
+  - this is rather to declare intention instead of being a security
+    mechanism, as it can be evaded e.g. by browser extensions
+
+For *styling*, a ~CSSStyleSheet~ object can be constructed and attached to the
+/shadow root/:
+#+begin_src javascript
+// Create the stylesheet and set its content:
+const sheet = new CSSStyleSheet();
+sheet.replaceSync("span { color: red; border: 2px dotted black;}");
+// Add the stylesheet to the shadow root:
+shadow.adoptedStyleSheets = [sheet];
+#+end_src
+- in contrast to the [[declarative construction]], this allows to share the
+  stylesheet among multiple DOM trees (e.g. in component libraries) and
+  make dynamic changes which propagate to all components that use it
+
+**** declarative construction
+    
+A shadow root can also be created declaratively using the ~<template>~
+element (which gets replaced with its content wrapped in a shadow root):
+#+begin_src html
+<div id="host">
+  <template shadowrootmode="open">
+    <span>I'm in the shadow DOM</span>
+  </template>
+</div>
+#+end_src
+- better performance
+- useful for server-side rendering
+- ~shadowrootmode~ can be either ~open~ or ~closed~, same as ~attachShadow()~
+  method
+- the ~<template>~ must be wrapped in a parent (host) element
+
+For *styling*, a ~<style>~ element can be added to the ~<template>~ element:
+#+begin_src html
+<template id="host">
+  <style>
+    span {
+      color: red;
+      border: 2px dotted black;
+    }
+  </style>
+  /* ... */
+</template>
+#+end_src
+
+* Embedded DSLs
+** Scalable Vector Graphics (SVG)
 - [[https://developer.mozilla.org/en-US/docs/Web/SVG][SVG: Scalable Vector Graphics (mdn docs)]]
 
 Via the ~<foreignObject>~ tag, (X)HTML (or a different XML namespace) elements
@@ -16,5 +154,4 @@ Articles for learning SVG:
   - [[https://www.sarasoueidan.com/blog/svg-transformations/][(Part 2) — The transform Attribute]]
   - [[https://www.sarasoueidan.com/blog/nesting-svgs/][(Part 3) — Establishing New Viewports]]
 - [[https://www.sarasoueidan.com/blog/mimic-relative-positioning-in-svg/][Mimic Relative Positioning Inside an SVG with Nested SVGs]]
-
 
