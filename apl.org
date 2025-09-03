@@ -64,13 +64,22 @@ Dyalog Mac APL/en-GB keyboard:
 ** Terminology
 [[https://mastering.dyalog.com/Introduction.html#conventions][source]]
 
-- Scalar :: a single value, a number or a single character
-- Vector :: a plain list of values, e.g. ~4 32.5 7~ or ~'my water bottle'~
 - Array :: generic word for any set of values, whatever the number of its
   dimensions (whatever its shape)
+  - rank: n
+  - Mixed Array :: array that contains scalar numbers /and/ scalar characters
+  - Nested Array :: array that contains /sub-arrays/
+  - Simple Array :: array that is not /nested/
+- Scalar :: a single value, a number or a single character
+  - rank: 0
+- Vector :: a plain list of values, e.g. ~4 32.5 7~ or ~'my water bottle'~
+  - rank: 1
 - Matrix :: an array with 2 dimensions
+  - rank: 2
 - Table :: another common word used for 2D-arrays (matrices)
+  - rank: 2
 - Cube :: common word used for 3D-arrays
+  - rank: 3
 
 ** Conditionals
 
@@ -174,7 +183,23 @@ Count as a derived function (only in Dyalog):
 ** Definitions
 
 To define a variable:
-: <name>←<x>
+: <name> ← <x>
+- values can be assigned to multiple variables in one expression, e.g.:
+  : (g h j) ← 30 51 49
+  - the parentheses can be left out, but this is highly discouraged
+
+Variable names are case-sensitive and must not start with a digit.
+
+The following letters are allowed for variable names:
+#+begin_src text
+0123456789
+ABCDEFGHIJKLMNOPQRSTUVWXYZ_
+abcdefghijklmnopqrstuvwxyz
+ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝẞ
+àáâãäåæçèéêëìíîïðñòóôõöøùúûüþ
+∆⍙
+#+end_src
+
 
 Redefinition is not allowed! Erase the definition first:
 : )ERASE <name>
@@ -198,6 +223,89 @@ As an ad-hoc definition:
 : ∇
 
 ** Data Structures
+*** Array
+
+Sequence of zero or more items.
+
+Arrays can be multi-dimensional, Dyalog APL supports up to 15 dimensions.
+- ~<n m …>⍴<a>~ constructs a multi-dimensional array along axes ~n~, ~m~, …
+
+*Shape & Rank*
+
+- ~⍴<a>~ gets the /shape/ (axis-length for each dimension) of an array
+- ~≢⍴<a>~ gets the /rank/ (number of dimensions) of an array
+  - scalars have a rank of 0
+  - note: ~1⍴42~ is an 1D-array (one item), while ~42~ is a scalar, or 0D-array!
+
+*Index*
+
+Arrays/vectors are *1-indexed* by default.
+- set index origin to 0 to avoid adding 1 to the boolean:
+  : ⎕IO←0
+  - ~⎕IO~ to see the current index origin
+
+Get item(s) from /n/-dimensional array in the shape specified by /n/ indices:
+: <arr>[i1;i2;…in]
+Each index can be a vector of indices, selecting multiple parts from each
+axis of the array:
+: <arr>[i1 j1 …; … ;in jn …]
+Selections can be independent of one specific row/column/… intersection by
+specifying multiple vectors of length /n/:
+: <arr>[(i1 … in)(j1 … jn)…]
+
+Indices can repeat to get the same item multiple times
+- instead of listing indices directly, they can be enumerated with ~⍳~
+
+Get item(s) from /n/-dimensional array by /k ≤ n/ indices:
+: <i1 i2 … ik> ⌷ <arr>
+Equivalently:
+: <(i1 i2 … ik)> ⌷ <arr>
+- when not specifying all /n/ axes, /k/-dimensional sub-arrays are returned
+Each index can be a vector of indices, selecting multiple parts from each
+axis of the array:
+: <(i1 j1 …) (i2 j2 …) … (ik jk …)> ⌷ <arr>
+- *Note:* must specify at least two axes
+
+Examples:
+- ~xs[1 5 6;1 3]~ selects rows 1, 5 and 6 with columns 1 and 3 each
+  - ~(1 5 6)(1 3)⌷xs~ is equivalent
+- ~xs[3;]~ selects all cols from row 3, ~xs[;]~ returns the whole array
+
+
+Set items at index/indices in array to the same number of values or a single
+scalar:
+: <arr>[i j k…] ← xi xj xk…
+: <arr>[i j k…] ← x
+- *Note:* the replacement array must have exactly the same shape as the array
+  of indices it replaces
+
+An index can be of any shape and the result will always match the shape of
+the index, as if each item of the index had been replaced by the item it
+designates.
+
+*** Character
+
+A single character is a scalar (0-dimensional), a string of characters is a
+character vector. Multiple strings are represented by a nested array.
+
+To enter an apostrophe ~'~, it must be doubled, e.g.:
+: 'It''s raining, isn''t it?'
+
+Unicode characters of multiple bytes count as single characters.
+
+#+begin_src gnu-apl
+      ≢⍴'a'
+0
+      ≢⍴'ab'
+1
+
+      ≢'🙋'
+1
+      ≢'镕'
+1
+#+end_src
+
+*** Number
 
 *Scientific notation*
 
@@ -210,68 +318,66 @@ Negative exponent:
 
 : <real>J<imag>
 
-*Arrays*
-
-Arrays/vectors are *1-indexed* by default.
-- set index origin to 0 to avoid adding 1 to the boolean:
-  : ⎕IO←0
-  - ~⎕IO~ to see the current index origin
-
-Get item at index (or /n/ indexes) from /n/-dimensional array:
-: <arr>[i1;i2;…in]
-: <i1 i2 … in> ⌷ <arr>
-
-Get items from multiple indices:
-: <arr>[i j k …]
-- indices can repeat to get the same item multiple times
-- instead of listing indices directly, they can be enumerated with ~⍳~
-
-Set items at index/indices in array to the same number of values or a single
-scalar:
-: <arr>[i j k…] ← xi xj xk…
-: <arr>[i j k…] ← x
-
 ** Primitive Functions
-*** General
+List of all scalar (mon./dya.) functions:
+- https://mastering.dyalog.com/Appendices.html#appendices-scalar-functions
 
-~◊~ → *Statement separator*
+Monadic/Dyadic:
+: + - × ÷ | ⌊ ⌈ ⋆ ⍟ ○ ! 
+Only Monadic:
+: ~ ? ⊢ ⊣
+Only Dyadic:
+: ∧ ∨ ⍲ ⍱ < ≤ = ≥ > ≠
+
+List of all operators:
+- https://mastering.dyalog.com/Appendices.html#dyalog-apl-operators
+  
+*** General
+**** ~◊~ → *Statement separator*
 
 Display expressions separately on multiple lines:
 : <expr1> ◊ <expr2> ◊  …
 
-~⍝~ → *Comment*
+**** ~⍝~ → *Comment*
 
 Add a comment:
 : ⍝ <some comment>
 
-~←~ → *Assignment* (dya.)
+**** ~←~ → *Assignment* (dya.)
 
 Assign the value of an expression to a variable name:
 : <name> ← <expr>
 
-~⍕~ → *Format* (mon./dya.)
+**** ~⍕~ → *Format* (mon./dya.)
 
 Returns a character representation of its argument.
 
 *** Arithmetics
-
-~¯~ → *Negative Number*
+**** ~¯~ → *Negative Number*
 
 -/n/:
 : ¯n
 
-~|~ → *Magnitude*
+**** ~|~ → *Magnitude* (mon.) {Abs. value} / *Residue* (dya.) {Remainder/Modulus}
 
-~+~ → *Conjugate* (mon.) / *Addition* (dya.)
-~-~ → *Negation* (mon.) / *Subtraction* (dya.)
+Absolute value of ~n~:
+: |<n>
 
-~×~ → *Signum* (mon.) / *Multiplication* (dya.)
-~÷~ → *Reciprocal* (mon.) / *Division* (dya.)
+~n~ is a divisor of ~m~ / ~m~ mod ~n~:
+: <n>|<m>
+
+**** ~+~ → *Conjugate* (mon.) / *Addition* (dya.)
+**** ~-~ → *Negation* (mon.) / *Subtraction* (dya.)
+**** ~×~ → *Signum* (mon.) / *Multiplication* (dya.)
+**** ~÷~ → *Reciprocal* (mon.) / *Division* (dya.)
 
 Reciprocal (1 / ~n~):
 : ÷<n>
 
-~⋆~ → *Exponential* (mon.) / *Power* (dya.)
+- division by 0 throws a domain error
+- ~0÷0 = 1~ (this convention can be [[https://mastering.dyalog.com/Some-Primitive-Functions.html#some-primitive-functions-division-control-div-and-other-mathematical-subtleties][changed]])
+
+**** ~⋆~ → *Exponential* (mon.) / *Power* (dya.)
 
 Exponential (/e/ to the power of ~n~):
 : ⋆<n>
@@ -279,7 +385,10 @@ Exponential (/e/ to the power of ~n~):
 ~n~ to the power of ~m~:
 : <n>⋆<m>
 
-~!~ → *Factorial* (mon.) / *Combinations* (dya.)
+- there is no special square-root function, so √2 is just ~2 * 0.5~
+- also, the imaginary number is: ~¯1 ⋆ 0.5 = 0J1~
+
+**** ~!~ → *Factorial* (mon.) / *Combinations* (dya.)
 
 Factorial of ~n~:
 : !<n>
@@ -291,7 +400,7 @@ Examples:
 - ~2!6~ is the same as ~(!6)÷(!6-2)×!2~ (= 15)
 - pascal’s triangle (with apex on the left): ~pas←{((⍳⍵)-1)∘.!(⍳⍵)-1}~
 
-~⍟~ → *Logarithm*
+**** ~⍟~ → *Logarithm*
 
 Natural logarithm of ~n~:
 : ⍟<n>
@@ -307,8 +416,28 @@ Equivalences:
 : ×/v ←→ *+/⍟v
 
 *** Scalars
+**** ~⍬~ → *Empty numeric vector* (nil.)
 
-~?~ → *Roll* (mon.) / *Deal* (dya.)
+#+begin_src gnu-apl
+      ⍬≡⍳0
+1
+      ⍬≡0⍴0
+1
+      ⍬≡0 0⍴0
+0
+      ⍬≡''
+0
+
+      3 2⍴⍬ 1 2
+   1 
+2    
+1  2 
+
+      ⍬⍴5 3 6
+5  ⍝ the vector collapses to a zero-dim. point, the first element
+#+end_src
+
+**** ~?~ → *Roll* (mon.) / *Deal* (dya.)
 
 Select random number from ~⍳n~:
 : ?<n>
@@ -317,7 +446,11 @@ Select random number from ~⍳n~:
 - e.g. to roll 10 dices: ~?10⍴6~
 - note that selecting from ~⍳n~ means 0 is not included!
 
-~⊤~ → *Encode* (dya.)
+Pick/deal ~n~ random integers from ~⍳m~ without repetition:
+: <n>?<m>
+- ~n~ must be ≤ ~m~
+
+**** ~⊤~ → *Encode* (dya.)
 
 Encode each number in vector in the number system with radices ~r~:
 : <r …> ⊤ <v>
@@ -330,17 +463,13 @@ Example: boolean matrix function ~T←{(⍵⍴2)⊤(⍳2⋆⍵)-1}~
   which doesn’t work in GNU APL
     
 *** Logic
-
-~∼~ → *Not* (mon., bool.) / *Without* (dya.)
+**** ~∼~ → *Not* (mon., bool.) / *Without* (dya.)
 
 Remove element(s) ~x~ from vector:
 : <v>~<x>
 - e.g. ~'apple'∼'p'~ ⇒ ~ale~
 
-~∨~ → *Logical disjunction* (dya., bool.) / *GCD* (dya.)
-~∧~ → *Logical conjunction* (dya., bool.) / *LCM* (dya.)
-~⍱~ → *Logical Nor* (dya., bool.)
-~⍲~ → *Logical Nand* (dya., bool.)
+**** ~∨~ / ~∧~ → *Disjunction/Conjunction* (dya.) / *GCD/LCM* (dya.)
 
 Find the /greatest common divisor/ (GCD):
 : <x>∨<y>
@@ -351,27 +480,26 @@ Equivalences:
 : ∧/b ←→ ~∨/~b
 : ∨/b ←→ ~^/~b
 
-~=~ → *Equality*  / *Equivalence* (bool.)
-~≠~ → *Not equal* / *Exclusive-or* (bool.)
+**** ~⍱~ / ~⍲~ → *Nor/Nand* (dya.)
+**** ~=~ / ~≠~ → *Equality/Not equal* / *Equivalence/Exclusive-or* (dya.)
 
 Equivalences:
 : ≠/b ←→ ~=/~b
 : =/b ←→ ~≠/~b
 
-~≤~ → *Less than or equal* (dya.)    / *Material implication* (dya., bool.)
-~≥~ → *Greater than or equal* (dya.) / *Converse (implication)* (dya., bool.)
-~<~ → *Less than* (dya.)    / *Material nonimplication* (dya., bool.)
-~>~ → *Greater than* (dya.) / *Converse nonimplication* (dya., bool.)
-
+**** ~≤~ → *Less than or equal* (dya.) / *Material implication* (dya., bool.)
 - /a ≤ b/  can be translated to  /a → b/  in logic.
+
+**** ~≥~ → *Greater than or equal* (dya.) / *Converse (implic.)* (dya., bool.)
 - /a ≥ b/  can be translated to  /a ← b/  in logic.
 
+**** ~<~ → *Less than* (dya.) / *Material nonimplication* (dya., bool.)
 - /a < b/  can be translated to  /a ↛ b/  in logic.
+
+**** ~>~ → *Greater than* (dya.) / *Converse nonimplication* (dya., bool.)
 - /a > b/  can be translated to  /a ↚ b/  in logic.
 
-Examples:
-
-Logical truth tables:
+**** Logical truth tables:
 #+begin_src gnu-apl
       0 1∘.,0 1
 0 0  0 1  ⍝  all pairs in a × b
@@ -406,14 +534,26 @@ Logical truth tables:
 1 0
 #+end_src
 
-*** Vectors
+*** Arrays
+**** ~≢~ → *Tally* (mon.) / *Not match* (dya.)
+**** ~↑~ → *First* (mon.) / *Take* (dya.)
+**** ~↓~ → *Drop* (dya.)
+**** ~⊂~ → *Enclose* (mon.) / *Partitioned Enclose* (dya.)
 
-~≢~ → *Tally* (mon.) / *Not match* (dya.)
+Enclose/“zip” an array for nesting (returns a scalar):
+: ⊂<arr>
+- can be used to assign a nested array to an index in another array:
+  - e.g. ~a ← 1 2 3 ⋄ a[2] ← ⊂15 20 25 ⋄ ⎕ ← a~ results in ~1 15 20 25 3~
 
-~↑~ → *First* (mon.) / *Take* (dya.)
-~↓~ → *Drop* (dya.)
+**** ~⊃~ → *First* (mon.) / *Pick* (dya.)
 
-~,~ → *Ravel* (mon.) / *Catenate* (dya.)
+Extract the first item of an array (“unzips” an /enclosed array/):
+: ⊃<arr>
+
+Pick an item in ~arr~ by index/indices:
+: <idx>⊃<arr>
+
+**** ~,~ → *Ravel* (mon.) / *Catenate* (dya.)
 
 Catenate vectors /a/ and /b/:
 : <v:a>,<v:b>
@@ -424,15 +564,15 @@ Catenate vector to matrix as new row (~i~ →1), column (~i~ →2), …:
 Join (“ravel”) rows of a matrix to a vector (“row-major” order):
 : ,<m>
 
-~∊~ → *Enlist* (mon.) / *Membership* (dya.)
+**** ~∊~ → *Enlist* (mon.) / *Membership* (dya.)
 
-Check if elements in ~match~ vector are members of ~v~:
-: <match>∊<v>
+Check if elements in ~match~ array are members of ~arr~:
+: <match>∊<arr>
 
-Enlist all elements in the vector (even nested ones):
-: ∊<v>
+Enlist all elements in the array (even nested ones):
+: ∊<arr>
 
-~⍳~ → *Index generator* (mon.) / *Index of* (dya.)
+**** ~⍳~ → *Index generator* (mon.) / *Index of* (dya.)
 
 Generate a number sequence [ 1, ~n~ ]:
 : ⍳<n>
@@ -442,18 +582,19 @@ Multi-dimensional:
 Index all items in vector by their index in search vector:
 : <search>⍳<v>
 - items not matched are indexed with last index of match vector + 1
-  - this can be used beneficially as a “not found” item in another vector
-    that matches the indices afterwards
+  - this can be used beneficially as a “not found” item in another
+    vector that matches the indices afterwards
 - only the first match is listed for each item in search vector
 
 Equivalences:
 : +/⍳n ←→ ((n+1)×n)÷2
-  
-~⌽~ → *Reversal* (mon.) / *Rotation* (dya.)
-~⊖~ → *Reverse first* (mon.) / *Rotate first* (dya.)
-- “first” meaning /first axis/ (e.g. vertical in a matrix)
-~⍉~ → *Transpose* (mon.) / *Dyadic transpose* (dya.)
 
+**** ~⌽~ ~⍉~ ~⊖~ → Reversal / Rotation / Transposition
+- ~⌽~ → *Reversal* (mon.) / *Rotation* (dya.)
+- ~⊖~ → *Reverse first* (mon.) / *Rotate first* (dya.)
+- ~⍉~ → *Transpose* (mon.) / *Dyadic transpose* (dya.)
+- “first” meaning /first axis/ (e.g. vertical in a matrix)
+  
 ? Equivalent for matrix ~m~ and rotation ~n~
 : (⌽[1]<m>) = ⊖<m>    (<n>⌽[1]<m>) = <n>⊖<m>
 : (⌽<m>) = ⊖[2]<m>    (<n>⌽<m>) = <n>⊖[2]<m>
@@ -486,14 +627,15 @@ Swap axes in specified order on array:
 - ~2 1~ on a matrix is equivalent to the monadic transpose
 - ~1 1~ takes the /leading diagonal/
 
-~⌊~ → *Floor* (mon.) / *Minimum* (dya.)
-~⌈~ → *Ceiling* (mon.) / *Maximum* (dya.)
+**** ~⌊~ / ~⌈~ → *Floor/Ceiling* (mon.) / *Minimum/Maximum* (dya.)
+
+- can be used to cap values in an array to upper/lower bounds
 
 Equivalences:
 : ⌈/v ←→ -⌊/-v
 : ⌊/v ←→ -⌈/-v
 
-~⍴~ → *Shape* (mon.) / *Reshape* (dya.)
+**** ~⍴~ → *Shape* (mon.) / *Reshape* (dya.)
 
 Form a vector of /n/ elements:
 : <n>⍴<x>
@@ -503,16 +645,14 @@ Form a matrix of /m/ rows and /n/ columns:
 Note: elements will repeat if ~(≢x) < m×n~
 - e.g. ~6⍴4~ results in ~4 4 4 4 4 4~
 
-~¨~ → *Each* (mon./dya.)
+**** ~¨~ → *Each* (mon./dya.)
 
 e.g. ~+/¨(1 2) (3 4)~ will take the sum for each subvector
 
-~⌹~ → *Matrix inverse* (mon.) / *Matrix divide* (dya.)
+**** ~⌹~ → *Matrix inverse* (mon.) / *Matrix divide* (dya.)
 
 ** Operators (higher-order functions)
-
-~/~ → *Reduce* (mon.) / *Compress* (dya.)
-~\~ → *Scan* (mon.) / *Expand* (dya.)
+*** ~/~ → *Reduce* (mon.) / *Compress* (dya.)
 
 Sum of vector:
 : +/<v>
@@ -531,33 +671,35 @@ Filter by boolean vector:
 - e.g. ~0 1 0 1/'tesa'~ results in ~ea~
 - e.g. ~'aeiou'{(⍵∊⍺)/⍵}~ will filter a word for vowels
 
-Isolate the first “true” (~1~) value in a boolean vector:
-: <\<b>
-- e.g. ~<\0 0 1 1 0 1 1~ results in ~0 0 1 0 0 0 0~
-
-_Note:_ for /non-associative/ functions like ~-~ or ~÷~, the right-to-left
-evaluation rule of APL makes reductions and scans on these functions behave
-in alternating ways with their right inverse functions (~+~ in case of ~-~, ~×~ in
-case of ~÷~).
-- e.g. ~⁠-/1 2 3 4~ evaluates like ~(1 - (2 - (3 - (4 - 5))))~, which, after sign
-  inversion, is equivalent to ~1 - 2 + 3 - 4 + 5~.
-
-_Note:_ the results from ~f\v~ on a /k/-element vector correspond to each separate
-result of a /k/-prefix reduction ~f/v[1..k]~, NOT to intermediate results of a
-single reduction!
+Replicate elements in ~vr~ according integer counts in ~vl~:
+: <vl>/<vr>
+- e.g. ~1 2 3/'abc'~ results in ~abbccc~
 
 Sums for of each colum (~n~ →1), row (~n~ →2), … of a matrix:
 : +/[n]<m>
 - default: last axis
 
-Replicate elements in ~vr~ according integer counts in ~vl~:
-: <vl>/<vr>
-e.g. ~1 2 3/'abc'~ results in ~abbccc~
+*** ~\~ → *Scan* (mon.) / *Expand* (dya.)
+
+Isolate the first “true” (~1~) value in a boolean vector:
+: <\<b>
+- e.g. ~<\0 0 1 1 0 1 1~ results in ~0 0 1 0 0 0 0~
 
 Sum scan (vector of intermediate sums):
 : +\<v>
 
-~.~ → *Product* (dya.): *Inner product* (~f.g~) or *Outer product* (~∘.f~)
+_Note:_ for /non-associative/ functions like ~-~ or ~÷~, the right-to-left
+evaluation rule of APL makes reductions and scans on these functions
+behave in alternating ways with their right inverse functions (~+~ in case
+of ~-~, ~×~ in case of ~÷~).
+- e.g. ~⁠-/1 2 3 4~ evaluates like ~(1 - (2 - (3 - (4 - 5))))~, which, after
+  sign inversion, is equivalent to ~1 - 2 + 3 - 4 + 5~.
+
+_Note:_ the results from ~f\v~ on a /k/-element vector correspond to each
+separate result of a /k/-prefix reduction ~f/v[1..k]~, NOT to intermediate
+results of a single reduction!
+
+*** ~.~ → *Product* (dya.): *Inner product* (~f.g~) or *Outer product* (~∘.f~)
 
 Inner product (generalised matrix product):
 : <vl> <g>.<f> <vr>
@@ -570,10 +712,17 @@ Examples:
 Equivalences:
 : p+.×q ←→ +/p×q
 
-
-~∘~ → *Matrix multiplication* / *Beside and Bind* (dya.)
+*** ~∘~ → *Matrix multiplication* / *Beside and Bind* (dya.) / *Compose/Jot* (dya.)
 
 ~A∘B~ (matrix mult.) is essentially ~A +.× B~ optimized for space and speed.
+
+Apply dyadic function ~f~ like ~⍺f⍵~ (swap arguments):
+: (<f>∘<⍵>)<⍺>
+- e.g. ~(>∘0 1 4) 1 2 3~ results in ~1 1 0~
+
+Compose two functions to apply them like ~g(f⍵):~
+: <g>∘<f>
+- in case of a left argument, applies ~g~ dyadically like ~⍺g(f⍵)~
 
 ** System Functions
 Write a vector of character vectors to a text file:
@@ -593,24 +742,99 @@ https://www.dyalog.com
 - lexical scoping
 - different paradigms like OOP, FP, etc.
 
-Editor:
-- /Ctrl + Shift + Backspace/ to scroll backwards in input history
-- /Ctrl + Shift + Enter/ to scroll forwards in input history
-- /Shift + Enter/ to edit a name/variable
-- /Enter/ on a line in session log to re-execute it
-- ~]Help~ opens the online documentation
-- ~]<cmd> -?~ to get help for user cmd (~-??~ for more details and examples)
-- ~]<cmd>~ shows the current state of a user cmd (append ~?~ for the full state)
+Resources:
+- [[https://help.dyalog.com/19.0/index.htm][Dyalog APL 19.0 Help]] (documentation on functions, etc.)
+- https://www.dyalog.com/getting-started/tips.htm
+
+** RIDE Editor
+
+By default, ~`~ is used as a prefix key to enter symbols. Type ~``~ and a name
+to have RIDE suggest the appropriate glyph.
+
+*Input buffer:*
+- press /Ctrl + Shift + Backspace/ to scroll backwards in input history
+- press /Ctrl + Shift + Enter/ to scroll forwards in input history
+
+*Session log:*
+- press /Enter/ on a line in session log to re-execute it
+- change a previous line in the session log to mark it for re-execution
+  - the line will be marked with a tiny red dot and text color
+  - pressing /Enter/ anywhere will execute all marked lines top to bottom
+  - execution will copy the changed lines and keep the log unmodified
+  - any error will prevent the next lines from executing
+  - /Shift + ESC/ removes the mark
+- press /Shift + Enter/ to edit a name/variable
+
+*Note:* lines in the session log cannot be deleted from within RIDE on macOS
+
+** System Functions
+
+Dyalog built-in functions which provide services related to both the APL and
+the external environment.
+- case-insensitive names beginning with the ~⎕~ symbol.
+- implicitly available in a clear workspace
+- see ch. 4 “System Functions” in =Dyalog APL Language Reference Guide.pdf=
+
+** System Commands
+
+*Not* executable APL expressions that provide services or infos associated
+with the workspace and the external environment.
+- case-insensitive names beginning with the ~)~ symbol.
+- see ch. 5 “System Commands” in =Dyalog APL Language Reference Guide.pdf=
+
+A Dyalog workspace may contain objects, namely classes, namespaces,
+operators, functions and variables defined by the user.
 
 Workspaces & Sessions:
-- ~)OFF~ to save the Session log before closing APL
-- ~)CONTINUE~ to save workspace with a temporary name
-- ~)LOAD continue~ to retrieve a temporarily saved workspace
-- ~2⎕NQ⎕SE'FileWrite'~ to make display settings permanent
+- ~)OFF~ saves the Session log before closing APL
+  - workspaces will not be saved
+- ~)SAVE <wsname>~ to save the /active workspace/ to a file named ~wsname~
+  - without an explicit path, Dyalog uses the /workspace search path/
+- ~)LOAD <wsname>~ to load workspace named ~wsname~
+  - *replaces* the /active workspace/ in memory, unsaved changes are lost!
+  - without an explicit path, Dyalog searches in /workspace search path/
+  - when there are spaces in a name/path, must be wrapped in dquotes ~"~
+  - the extension ~.dws~ can be omitted
+- ~)DROP <wsname>~ to delete workspace named ~wsname~ from disk
+- ~)WSID~ shows the name of the current workspace
+  - this is the WS most recently loaded/saved, not necessarily identical to
+    the /active workspace/ in memory
+- ~)LIB <? path>~ to list all available workspaces (optionally from ~path~)
+- ~)CONTINUE~ saves a temporary workspace named ~continue~ and terminates APL
+  - type ~)LOAD continue~ to retrieve the workspace later on
+- ~)COPY <wsname> <? x y …>~ to copy object(s) ~x y …~ from workspace ~wsname~ to
+  the /active workspace/
+  - *replaces* objects with the same name!
+    - use ~)pcopy~ instead, which does not replace objects with the same name
+    - replacing can be useful to revert changes made in the /active WS/
+  - omit the object names to copy all objects
+- ~)CLEAR~ clears the workspace
+- ~)ERASE <x y …>~ erases object(s) ~x y …~ from workspace
+- ~)ED <x>~ opens the editor to change defined object ~x~
+- ~2⎕NQ⎕SE'FileWrite'~ makes display settings permanent
 - =View > Show Workspace Explorer= shows a tree view of the current workspace
 
 Files:
 - ~)ED "<path>"~ to edit plain text files in Dyalog
+
+** System Variables
+Other than with [[System Commands]], these can be used as part of APL
+expressions.
+
+- ~⎕WSID~ → like ~)WSID~
+
+** User Commands
+
+Dyalog-specific user commands to access various utilities and functionality
+within the Dyalog environment.
+- case-insensitive names beginning with the ~]~ symbol.
+- see ch. 1 “Display of Arrays” in =Dyalog Programming Reference Guide.pdf=
+
+General:
+- ~]Help~ opens the online documentation
+- ~] -?~ to see a list of all available user commands
+- ~]<cmd> -?~ to get help for ~cmd~ (~-??~ for more details and examples)
+- ~]<cmd>~ shows the current state of ~cmd~ (append ~?~ for the full state)
 
 Row processing:
 : ]Rows [on|off|reset|?] [-style=<s>] [-fold=<f>] [-fns[=on|off]] [-dots=<c>]
@@ -636,8 +860,21 @@ Utilities:
 - ~]Get <src>~ to import data/code in various formats from local/remote src
 - ~]Repr <arr>~ to generate an expression for (almost) any given array
 
-Other tips:
-- https://www.dyalog.com/getting-started/tips.htm
+** Namespaces
+Namespaces can be nested and are separated by a ~.~ (dot).
+- relative name: ~NS1.NS2.OBJ~
+- absolute name: ~#.NS.OBJ~
+- ~#~ → top level or “Root” namespace
+- ~##~ → parent or space containing the current namespace
+- ~⎕SE~ → session namespace, preserved across workspace ~load~ and ~clear~
+
+Create a namespace:
+: )NS <nsname>
+: ⎕NS <nsname>
+
+Change current/relative namespace (similar to changing a directory):
+: )CS <nsname>
+: ⎕CS <nsname>
 
 ** Script Files
 For functions/operators/objects.
@@ -664,6 +901,15 @@ Example file:
     
 :EndNamespace
 #+end_src
+
+** Libraries
+*DISPLAY*
+Like ~]box on.~
+
+Load:
+: )copy DISPLAY
+Use:
+: DISPLAY <x>
 
 * GNU APL implementation
 - based on APL2
