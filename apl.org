@@ -81,6 +81,23 @@ Dyalog Mac APL/en-GB keyboard:
 - Cube :: common word used for 3D-arrays
   - rank: 3
 
+- Shape :: vector that specifies the number of elements for each dimension
+  in an array
+- Rank :: integer that specifies the number of dimensions of an array
+- Axis :: integer that selects a specific dimensional axis of an array
+  (as the corresponding index for its /shape/)
+
+- Scalar Function :: function that applies to each scalar of an array and
+  returns an array of the same shape as its input
+  - if *dyadic*, either its arguments must be the same shape or one/both of
+    them must be a single value, in which case the returned shape matches
+    the non-singleton array (if not both are singleton)
+    - for any /nested arrays/, their sub-arrays must also either be matched by
+      shape or with a single value
+  - pervasive :: permeates down through the structure of nested arrays,
+    until it reaches the lowest-level items, and then applies itself at this
+    level
+
 ** Conditionals
 
 *If-statements*
@@ -230,14 +247,15 @@ Sequence of zero or more items.
 Arrays can be multi-dimensional, Dyalog APL supports up to 15 dimensions.
 - ~<n m …>⍴<a>~ constructs a multi-dimensional array along axes ~n~, ~m~, …
 
-*Shape & Rank*
+**** Shape & Rank
 
 - ~⍴<a>~ gets the /shape/ (axis-length for each dimension) of an array
 - ~≢⍴<a>~ gets the /rank/ (number of dimensions) of an array
   - scalars have a rank of 0
-  - note: ~1⍴42~ is an 1D-array (one item), while ~42~ is a scalar, or 0D-array!
+  - note: ~1⍴42~ is an 1D-array (one item), while ~42~ is a scalar, or
+    0D-array!
 
-*Index*
+**** Index
 
 Arrays/vectors are *1-indexed* by default.
 - set index origin to 0 to avoid adding 1 to the boolean:
@@ -261,8 +279,8 @@ Get item(s) from /n/-dimensional array by /k ≤ n/ indices:
 Equivalently:
 : <(i1 i2 … ik)> ⌷ <arr>
 - when not specifying all /n/ axes, /k/-dimensional sub-arrays are returned
-Each index can be a vector of indices, selecting multiple parts from each
-axis of the array:
+  Each index can be a vector of indices, selecting multiple parts from
+  each axis of the array:
 : <(i1 j1 …) (i2 j2 …) … (ik jk …)> ⌷ <arr>
 - *Note:* must specify at least two axes
 
@@ -272,16 +290,37 @@ Examples:
 - ~xs[3;]~ selects all cols from row 3, ~xs[;]~ returns the whole array
 
 
-Set items at index/indices in array to the same number of values or a single
-scalar:
+Set items at index/indices in array to the same number of values or a
+single scalar:
 : <arr>[i j k…] ← xi xj xk…
 : <arr>[i j k…] ← x
-- *Note:* the replacement array must have exactly the same shape as the array
-  of indices it replaces
+- *Note:* the replacement array must have exactly the same shape as the
+  array of indices it replaces
 
 An index can be of any shape and the result will always match the shape of
 the index, as if each item of the index had been replaced by the item it
 designates.
+
+**** Axis
+
+*Axis Operator*
+
+The square-bracket notation to select the axis on a function behaves
+like an operator which produces a derived function, which is why it is
+often called the /axis operator/.
+
+*Dyadic scalar functions* normally apply to each scalar of its arguments,
+but they can also be applied to a specific ~axis~ of an array. The axis of
+the higher-dimensioned array gets selected, while the other argument
+must be an array of the same length as that axis:
+: <L> <f>[axis] <R>
+- e.g. for a 3x2 matrix, ~mat×[1]2 3 4~ multiplies the first row by 2, the
+  second by 3 and the third by 4, while ~mat×[2]5 6~ multiplies the first
+  column by 5 and the second by 6
+
+Some *dyadic non-scalar functions* and some *operators* can also be applied
+to a given axis and may reduce (e.g. ~/~) or expand (e.g. ~,)~ the array
+along that axis.
 
 *** Character
 
@@ -352,24 +391,63 @@ Assign the value of an expression to a variable name:
 
 Returns a character representation of its argument.
 
+**** ~⊣~ / ~⊢~ → *Same* (mon.), *Left / Right* (dya.)
+
+In the monadic case, returns its argument as is (identity function).
+- can be used to display the value of a variable from an assignment
+
+In the dyadic case, returns its /left/ (~⊣~) or /right/ (~⊢~) argument.
+
 *** Arithmetics
 **** ~¯~ → *Negative Number*
 
 -/n/:
 : ¯n
 
-**** ~|~ → *Magnitude* (mon.) {Abs. value} / *Residue* (dya.) {Remainder/Modulus}
+**** ~|~ → *Magnitude {Abs. value}* (mon.), *Residue {Remainder/Modulus}* (dya.)
 
-Absolute value of ~n~:
+/Absolute value/ (real number) or /magnitude/ (complex number) of ~n~:
 : |<n>
+- the magnitude of a complex number is the length of its diagonal on the
+  complex plane
 
-~n~ is a divisor of ~m~ / ~m~ mod ~n~:
+~n~ is a /divisor/ of ~m~ OR ~m~ /mod/ ~n~:
 : <n>|<m>
 
-**** ~+~ → *Conjugate* (mon.) / *Addition* (dya.)
-**** ~-~ → *Negation* (mon.) / *Subtraction* (dya.)
-**** ~×~ → *Signum* (mon.) / *Multiplication* (dya.)
-**** ~÷~ → *Reciprocal* (mon.) / *Division* (dya.)
+Equivalence (see [[https://mastering.dyalog.com/Some-Primitive-Functions.html#residue][explanation]]):
+: (<n>|<m>) ≡ (<m> - (<n> × (⌊(<m>÷<n>))))
+
+**** ~+~ → *Conjugate* (mon.), *Addition* (dya.)
+
+With no /imaginary/ part, the monadic form acts as the /identity function/,
+as the complex conjugate of a real number is the number itself.
+- this is also true for character input
+
+Example:
+- ~+ 0J1~ results in ~0J¯1~
+
+**** ~-~ → *Negation* (mon.), *Subtraction* (dya.)
+
+/Negation/ is not /logical negation/, which is “Not” (~~~). This will only
+reverse the minus sign of any number.
+- note that ~- 0~ is just ~0~
+
+**** ~×~ → *Direction/Signum* (mon.), *Multiplication* (dya.)
+
+For real numbers, /Direction/ simply returns the sign of the number:
+- ~1~ for positive numbers
+- ~0~ for zero
+- ~¯1~ for negative numbers
+
+For complex numbers, the number is scaled to have a /magnitude/ of 1.
+
+Geometrically, complex numbers can be represented as triangles, which
+reveals a relation between monadic ~×~ and ~|~:
+- the “smaller triangle” (via ~×~) times the magnitude of the “original
+  triangle” (via ~|~) returns the original triangle, as shown in:
+  : v ≡ (×v)×|v
+
+**** ~÷~ → *Reciprocal* (mon.), *Division* (dya.)
 
 Reciprocal (1 / ~n~):
 : ÷<n>
@@ -377,7 +455,7 @@ Reciprocal (1 / ~n~):
 - division by 0 throws a domain error
 - ~0÷0 = 1~ (this convention can be [[https://mastering.dyalog.com/Some-Primitive-Functions.html#some-primitive-functions-division-control-div-and-other-mathematical-subtleties][changed]])
 
-**** ~⋆~ → *Exponential* (mon.) / *Power* (dya.)
+**** ~⋆~ → *Exponential* (mon.), *Power* (dya.)
 
 Exponential (/e/ to the power of ~n~):
 : ⋆<n>
@@ -388,7 +466,7 @@ Exponential (/e/ to the power of ~n~):
 - there is no special square-root function, so √2 is just ~2 * 0.5~
 - also, the imaginary number is: ~¯1 ⋆ 0.5 = 0J1~
 
-**** ~!~ → *Factorial* (mon.) / *Combinations* (dya.)
+**** ~!~ → *Factorial* (mon.), *Combinations* (dya.)
 
 Factorial of ~n~:
 : !<n>
@@ -415,6 +493,18 @@ Equivalences:
 : ×\m⍴n ←→ n*⍳m
 : ×/v ←→ *+/⍟v
 
+**** ~⌊~ / ~⌈~ → *Floor / Ceiling* (mon.), *Minimum / Maximum* (dya.)
+
+Can be used to cap values in an array to upper/lower bounds.
+
+To /round/ decimal values to the /nearest/ integer, two methods can be used:
+- ~⌊v+0.5~ will round /up/ in case of x.5
+- ~⌈v-0.5~ will round /down/ in case of x.5
+
+Equivalences:
+: ⌈/v ←→ -⌊/-v
+: ⌊/v ←→ -⌈/-v
+
 *** Scalars
 **** ~⍬~ → *Empty numeric vector* (nil.)
 
@@ -437,7 +527,7 @@ Equivalences:
 5  ⍝ the vector collapses to a zero-dim. point, the first element
 #+end_src
 
-**** ~?~ → *Roll* (mon.) / *Deal* (dya.)
+**** ~?~ → *Roll* (mon.), *Deal* (dya.)
 
 Select random number from ~⍳n~:
 : ?<n>
@@ -463,13 +553,14 @@ Example: boolean matrix function ~T←{(⍵⍴2)⊤(⍳2⋆⍵)-1}~
   which doesn’t work in GNU APL
     
 *** Logic
-**** ~∼~ → *Not* (mon., bool.) / *Without* (dya.)
+**** ~∼~ → *Not* (mon., bool.), *Without* (dya.)
 
 Remove element(s) ~x~ from vector:
 : <v>~<x>
 - e.g. ~'apple'∼'p'~ ⇒ ~ale~
+- the size and shape of ~x~ are irrelevant, only its items are used
 
-**** ~∨~ / ~∧~ → *Disjunction/Conjunction* (dya.) / *GCD/LCM* (dya.)
+**** ~∨~ ~∧~ → *Disjunction / Conjunction* (dya.), *GCD / LCM* (dya.)
 
 Find the /greatest common divisor/ (GCD):
 : <x>∨<y>
@@ -480,23 +571,26 @@ Equivalences:
 : ∧/b ←→ ~∨/~b
 : ∨/b ←→ ~^/~b
 
-**** ~⍱~ / ~⍲~ → *Nor/Nand* (dya.)
-**** ~=~ / ~≠~ → *Equality/Not equal* / *Equivalence/Exclusive-or* (dya.)
+**** ~⍱~ ~⍲~ → *Nor / Nand* (dya.)
+**** ~=~ ~≠~ → *Equality / Not equal, *Equivalence / Exclusive-or* (dya.)
+
+Element-wise (scalar) comparison, NOT a check for array equality!
+- use ~≡~ and ~≢~ instead
 
 Equivalences:
 : ≠/b ←→ ~=/~b
 : =/b ←→ ~≠/~b
 
-**** ~≤~ → *Less than or equal* (dya.) / *Material implication* (dya., bool.)
+**** ~≤~ → *Less than or equal* (dya.), *Material implication* (dya., bool.)
 - /a ≤ b/  can be translated to  /a → b/  in logic.
 
-**** ~≥~ → *Greater than or equal* (dya.) / *Converse (implic.)* (dya., bool.)
+**** ~≥~ → *Greater than or equal* (dya.), *Converse (implic.)* (dya., bool.)
 - /a ≥ b/  can be translated to  /a ← b/  in logic.
 
-**** ~<~ → *Less than* (dya.) / *Material nonimplication* (dya., bool.)
+**** ~<~ → *Less than* (dya.), *Material nonimplication* (dya., bool.)
 - /a < b/  can be translated to  /a ↛ b/  in logic.
 
-**** ~>~ → *Greater than* (dya.) / *Converse nonimplication* (dya., bool.)
+**** ~>~ → *Greater than* (dya.), *Converse nonimplication* (dya., bool.)
 - /a > b/  can be translated to  /a ↚ b/  in logic.
 
 **** Logical truth tables:
@@ -535,17 +629,34 @@ Equivalences:
 #+end_src
 
 *** Arrays
-**** ~≢~ → *Tally* (mon.) / *Not match* (dya.)
-**** ~↑~ → *First* (mon.) / *Take* (dya.)
+**** ~≡~ → *Depth* (mon.), *Match* (dya.)
+
+? Get the depth of an array:
+: ≡ <arr>
+
+Check if two arrays are equal:
+: <arr> ≡ <arr>
+- returns a boolean scalar
+
+**** ~≢~ → *Tally* (mon.), *Not match* (dya.)
+
+Get the number of elements of an array (main axis):
+: ≢ <arr>
+
+Check if two arrays are different:
+: <arr> ≢ <arr>
+- returns a boolean scalar
+
+**** ~↑~ → *First* (mon.), *Take* (dya.)
 **** ~↓~ → *Drop* (dya.)
-**** ~⊂~ → *Enclose* (mon.) / *Partitioned Enclose* (dya.)
+**** ~⊂~ → *Enclose* (mon.), *Partitioned Enclose* (dya.)
 
 Enclose/“zip” an array for nesting (returns a scalar):
 : ⊂<arr>
 - can be used to assign a nested array to an index in another array:
   - e.g. ~a ← 1 2 3 ⋄ a[2] ← ⊂15 20 25 ⋄ ⎕ ← a~ results in ~1 15 20 25 3~
 
-**** ~⊃~ → *First* (mon.) / *Pick* (dya.)
+**** ~⊃~ → *First* (mon.), *Pick* (dya.)
 
 Extract the first item of an array (“unzips” an /enclosed array/):
 : ⊃<arr>
@@ -553,18 +664,56 @@ Extract the first item of an array (“unzips” an /enclosed array/):
 Pick an item in ~arr~ by index/indices:
 : <idx>⊃<arr>
 
-**** ~,~ → *Ravel* (mon.) / *Catenate* (dya.)
+**** ~, ⍪~ → *Ravel* (mon.), *Catenate {Join} / …first* (dya.)
 
-Catenate vectors /a/ and /b/:
-: <v:a>,<v:b>
+Join (“ravel”) scalars of an array into a vector (“row-major” order):
+: ,<arr>
+- /sub-arrays/ are preserved
 
-Catenate vector to matrix as new row (~i~ →1), column (~i~ →2), …:
+Catenate two arrays (along ~axis~):
+: <arr>,<arr>
+: <arr>,[axis]<arr>
+- defaults to last axis/dimension of the array
+- for /axis 1/, ~<arr>⍪<arr>~ is equivalent to ~<arr>,[1]<arr>~
+
+Specifically:
+
+Catenate two scalars to a vector:
+: <s>,<s>
+
+Catenate two vectors to an extended vector:
+: <v>,<v>
+
+Catenate scalar to matrix as new row (~i~ →1) or column (~i~ →2):
+: <m>,[i]<s>
+- creates copies of the scalar along the catenation axis
+
+Catenate vector to matrix as new row (~i~ →1) or column (~i~ →2):
 : <m>,[i]<v>
+- vector length must match row/col count on catenation axis
 
-Join (“ravel”) rows of a matrix to a vector (“row-major” order):
-: ,<m>
+Catenate matrix to matrix before/after first/last row (~i~ →1) or column
+(~i~ →2):
+: <m>,[i]<m>
+- number of rows/columns on catenation axis must match between matrices
 
-**** ~∊~ → *Enlist* (mon.) / *Membership* (dya.)
+**** ~/~ ~⌿~ → *Replicate (Compress) / …first* (dya.)
+
+Filter by boolean vector:
+: <bv>/<v>
+- e.g. ~0 1 0 1/'tesa'~ results in ~ea~
+- e.g. ~'aeiou'{(⍵∊⍺)/⍵}~ will filter a word for vowels
+
+Replicate elements in ~vr~ according integer counts in ~vl~:
+: <vl>/<vr>
+- e.g. ~1 2 3/'abc'~ results in ~abbccc~
+- if ~vl~ is a single scalar, it will apply to all elements of ~vr~
+- negative integers will use /n/ *fill items* instead
+  - for numbers, the fill item is ~0~, for characters it is ~' '~
+
+**** ~\~ ~⍀~ → *Expand / …first* (dya.)
+
+**** ~∊~ → *Enlist* (mon.), *Membership* (dya.)
 
 Check if elements in ~match~ array are members of ~arr~:
 : <match>∊<arr>
@@ -572,7 +721,7 @@ Check if elements in ~match~ array are members of ~arr~:
 Enlist all elements in the array (even nested ones):
 : ∊<arr>
 
-**** ~⍳~ → *Index generator* (mon.) / *Index of* (dya.)
+**** ~⍳~ → *Index generator* (mon.), *Index of* (dya.)
 
 Generate a number sequence [ 1, ~n~ ]:
 : ⍳<n>
@@ -590,9 +739,9 @@ Equivalences:
 : +/⍳n ←→ ((n+1)×n)÷2
 
 **** ~⌽~ ~⍉~ ~⊖~ → Reversal / Rotation / Transposition
-- ~⌽~ → *Reversal* (mon.) / *Rotation* (dya.)
-- ~⊖~ → *Reverse first* (mon.) / *Rotate first* (dya.)
-- ~⍉~ → *Transpose* (mon.) / *Dyadic transpose* (dya.)
+- ~⌽~ → *Reversal* (mon.), *Rotation* (dya.)
+- ~⊖~ → *Reverse first* (mon.), *Rotate first* (dya.)
+- ~⍉~ → *Transpose* (mon.), *Dyadic transpose* (dya.)
 - “first” meaning /first axis/ (e.g. vertical in a matrix)
   
 ? Equivalent for matrix ~m~ and rotation ~n~
@@ -627,15 +776,7 @@ Swap axes in specified order on array:
 - ~2 1~ on a matrix is equivalent to the monadic transpose
 - ~1 1~ takes the /leading diagonal/
 
-**** ~⌊~ / ~⌈~ → *Floor/Ceiling* (mon.) / *Minimum/Maximum* (dya.)
-
-- can be used to cap values in an array to upper/lower bounds
-
-Equivalences:
-: ⌈/v ←→ -⌊/-v
-: ⌊/v ←→ -⌈/-v
-
-**** ~⍴~ → *Shape* (mon.) / *Reshape* (dya.)
+**** ~⍴~ → *Shape* (mon.), *Reshape* (dya.)
 
 Form a vector of /n/ elements:
 : <n>⍴<x>
@@ -649,37 +790,89 @@ Note: elements will repeat if ~(≢x) < m×n~
 
 e.g. ~+/¨(1 2) (3 4)~ will take the sum for each subvector
 
-**** ~⌹~ → *Matrix inverse* (mon.) / *Matrix divide* (dya.)
+**** ~⌹~ → *Matrix inverse* (mon.), *Matrix divide* (dya.)
+
+**** ~⍋~ ~⍒~ → *Grade Up/Down* (mon.), *Dyadic Grade Up/Down* (dya.)
+
+Return indices which would select items in ascending order:
+: ⍋ <arr>
+
+Can be used to sort an array via sort indices from a different array of
+the same shape:
+#+begin_src gnu-apl
+      names←'Joe' 'Sue' 'Sam'
+      ages←34 22 25
+      names[⍋ages]
+┌→──┬───┬───┐
+│Sue│Sam│Joe│
+└──→┴──→┴──→┘
+      names[⍒ages]
+┌→──┬───┬───┐
+│Joe│Sam│Sue│
+└──→┴──→┴──→┘
+#+end_src
+- [[https://help.dyalog.com/19.0/#Language/Symbols/Grade%20Up.htm][source]]
 
 ** Operators (higher-order functions)
-*** ~/~ → *Reduce* (mon.) / *Compress* (dya.)
+Operators produce /derived functions/, given one or two functions as input
+(their /operands/). For a monadic operator, the operand is its /left/ argument.
+- e.g. ~+/~
 
-Sum of vector:
-: +/<v>
-: -/<v>  ⍝ alternating sum, e.g. 1 - 2 + 3 - 4 + …
+*** ~/~ ~⌿~ → *Reduce {Fold, N-Wise Reduce} / …first* (mon.)
 
-Product of vector:
-: ×/<v>
-: ÷/<v>  ⍝ alternating product, e.g. 1 ÷ 2 × 3 ÷ 4 × …
+Apply ~f~ between each element of the array:
+: <f>/<arr>
+- by default applied along the last axis of the array
+for /axis/ ~n~:
+: <f>/[n]<arr>
+- e.g. column (~n~ →1), row (~n~ →2), … of a matrix
+- the resulting /shape/ is the shape of the array without its ~n~'th item,
+  reducing its /rank/ by 1 (the origin of the term “reduce”)
+- for /axis 1/, ~<f>⌿<arr>~ is equivalent to ~<f>/[1]<arr>~
 
-~n~-wise reduction (calls ~f~ on ~n~ successive items of ~v~):
-: <n><f>/<v>
+~n~-wise reduction (calls ~f~ on ~n~ successive items of ~arr~):
+: <n><f>/<arr>
 - e.g. ~3,/⍳5~ ⇒ ~1 2 3  2 3 4  3 4 5~
 
-Filter by boolean vector:
-: <bv>/<v>
-- e.g. ~0 1 0 1/'tesa'~ results in ~ea~
-- e.g. ~'aeiou'{(⍵∊⍺)/⍵}~ will filter a word for vowels
+---
 
-Replicate elements in ~vr~ according integer counts in ~vl~:
-: <vl>/<vr>
-- e.g. ~1 2 3/'abc'~ results in ~abbccc~
+If ~f~ is a *scalar function* …
 
-Sums for of each colum (~n~ →1), row (~n~ →2), … of a matrix:
-: +/[n]<m>
-- default: last axis
+… and the argument is a *nested array*, applies ~f~ between the /ith/ items of
+each sub-array. Scalars are applied to all items. The result is a nested
+array of the same length as the sub-arrays.
+- e.g. ~+/ (1 2 3) (4 5 6) 10~ gets applied like:
+  : ((1 + 4 + 10) (2 + 5 + 10) (3 + 6 + 10))
+  : = (15 17 19)
+- all sub-arrays must be of the same shape or scalars
 
-*** ~\~ → *Scan* (mon.) / *Expand* (dya.)
+… and the argument is a *matrix*, applies ~f~ between each element of each /row/
+of the matrix.
+- e.g. ~+/ 2 3⍴⍳6~ gets applies like:
+  : 1 + 2 + 3  ⍝ 1st row
+  : 4 + 5 + 6  ⍝ 2nd row
+  : = 6 15
+
+… and the argument is a *higher-dimensional array*, it will get reduced like
+matrices: only the last (vector) axis gets reduced, the rest of the shape
+stays the same.
+
+*Note:* /non-commutative functions/ may produce counter-intuitive results!
+This is because APL applies the function in /right-associative/ order.
+- ~-/<v>~ produces an alternating sum, e.g. ~1 - 2 + 3 - 4 + …~
+- ~÷/<v>~ produces an alternating product, e.g. ~1 ÷ 2 × 3 ÷ 4 × …~
+
+---
+
+*Non-scalar functions* get applied between each element of the first axis in
+the array.
+- e.g. ~,/0 (1 2) (3 4 5) (6 7 8 9)~ gets applied like:
+  : ⊂ 0,(1 2),(3 4 5),(6 7 8 9)
+  : = (0 1 2 3 4 5 6 7 8 9)
+
+---
+
+*** ~\~ ~⍀~ → *Scan / …first* (mon.)
 
 Isolate the first “true” (~1~) value in a boolean vector:
 : <\<b>
@@ -699,7 +892,7 @@ _Note:_ the results from ~f\v~ on a /k/-element vector correspond to each
 separate result of a /k/-prefix reduction ~f/v[1..k]~, NOT to intermediate
 results of a single reduction!
 
-*** ~.~ → *Product* (dya.): *Inner product* (~f.g~) or *Outer product* (~∘.f~)
+*** ~.~ → *Product* (dya.): *Inner product* (~f.g~), *Outer product* (~∘.f~)
 
 Inner product (generalised matrix product):
 : <vl> <g>.<f> <vr>
@@ -712,17 +905,41 @@ Examples:
 Equivalences:
 : p+.×q ←→ +/p×q
 
-*** ~∘~ → *Matrix multiplication* / *Beside and Bind* (dya.) / *Compose/Jot* (dya.)
+*** ~∘~ → *Beside and Bind* (dya.), *Compose {Jot}* (dya.)
 
 ~A∘B~ (matrix mult.) is essentially ~A +.× B~ optimized for space and speed.
 
-Apply dyadic function ~f~ like ~⍺f⍵~ (swap arguments):
-: (<f>∘<⍵>)<⍺>
+Apply dyadic function ~f~ like ~XfY~ (swap arguments):
+: (<f>∘<Y>)<X>
 - e.g. ~(>∘0 1 4) 1 2 3~ results in ~1 1 0~
 
 Compose two functions to apply them like ~g(f⍵):~
 : <g>∘<f>
 - in case of a left argument, applies ~g~ dyadically like ~⍺g(f⍵)~
+
+*** ~⍨~ → *Commute/Switch* (mon., func.), *Constant* (mon.)
+Swap arguments of a function:
+: <f>⍨
+- in case of a single argument to a dyadic function, passes the same
+  argument twice, e.g. ~×⍨3~ is the same as ~3×3~
+
+*** ~⌸~ → *Key* (mon.)
+
+Take unique items from vector ~keys~ and match/associate them via the dyadic
+function ~f~ with items at the same index in vector ~vals~:
+: <keys> <f>⌸ <vals>
+
+Example:
+#+begin_src gnu-apl
+      1 2 2 3 1 {⍺ ⍵}⌸ 'abede'
+┌→┬──┐
+↓1│ae│
+├─┼─→┤
+│2│be│
+├─┼─→┤
+│3│d │
+└─┴─→┘
+#+end_src
 
 ** System Functions
 Write a vector of character vectors to a text file:
@@ -732,6 +949,28 @@ Example:
 #+begin_src gnu-apl
 ⎕←(⊂'apple' 'pie') ⎕NPUT 'writing.txt'
 #+end_src
+
+* Patterns/Idioms
+Also see:
+- [[https://aplcart.info][APLcart]]
+
+Rank of an array:
+: ≢⍴ <arr>
+
+Average:
+: +⌿÷≢ <arr>
+
+Check if all elements are equal in an array:
+: ⊃∧.=⊢ <arr>
+
+Catenate rows of totals to the bottom of a matrix ~m~:
+: <m>,[1] +/[1]<m>
+
+Flatten a nested array (joins sub-arrays):
+: ,/ <nested-arr>
+
+*Boolean masks* can be used to /count/ (~/+b~) or /select/ (~b/v~) corresponding true
+elements from the original array.
 
 * Dyalog implementation
 https://www.dyalog.com
