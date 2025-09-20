@@ -86,6 +86,9 @@ Dyalog Mac APL/en-GB keyboard:
 - Rank :: integer that specifies the number of dimensions of an array
 - Axis :: integer that selects a specific dimensional axis of an array
   (as the corresponding index for its /shape/)
+- (k-)Cell :: a /sub-array/ of rank /k<r/ of an array of rank /r/
+  - Major Cell :: /(r-1)/-cell
+    - e.g. /vectors/ are major cells of /matrices/
 
 - Scalar Function :: function that applies to each scalar of an array and
   returns an array of the same shape as its input
@@ -353,6 +356,9 @@ Positive exponent:
 Negative exponent:
 : <n>e¯<exp>
 
+Examples:
+- ~1e6 = 1000000~
+
 *Complex Numbers*
 
 : <real>J<imag>
@@ -525,6 +531,13 @@ Equivalences:
 
       ⍬⍴5 3 6
 5  ⍝ the vector collapses to a zero-dim. point, the first element
+
+⍝ maximum/minimum reduction over an empty list returns the identity element
+⍝ which is the elem. that doesn’t affect the outcome for any other argument
+      ⌈/⍬
+¯1.797693135E308  ⍝ smallest 64 bit float (there is always a greater number)
+      ⌊/⍬
+1.797693135E308  ⍝ biggest 64 bit float (there is always a smaller number)
 #+end_src
 
 **** ~?~ → *Roll* (mon.), *Deal* (dya.)
@@ -552,6 +565,11 @@ Example: boolean matrix function ~T←{(⍵⍴2)⊤(⍳2⋆⍵)-1}~
 - adapted from snippet A.2 in Iversons [[https://www.jsoftware.com/papers/tot.htm][“Notation as a Tool of Thought”]],
   which doesn’t work in GNU APL
     
+**** ~⊥~ → Decode (dya.)
+
+
+: |-(0 60⊥,)/<n> 2⍴<h1> <m1> <h2> <m2> …
+
 *** Logic
 **** ~∼~ → *Not* (mon., bool.), *Without* (dya.)
 
@@ -648,6 +666,11 @@ Check if two arrays are different:
 - returns a boolean scalar
 
 **** ~↑~ → *First* (mon.), *Take* (dya.)
+
+If ~|n~ is greater than the number of items in the array, padds with
+~(|n)-≢arr~ *fill items* (~0~ for numbers, ~' '~ for chars) from the /left/ (if
+~n<0~) or from the /right/ (if ~n>0~).
+
 **** ~↓~ → *Drop* (dya.)
 **** ~⊂~ → *Enclose* (mon.), *Partitioned Enclose* (dya.)
 
@@ -895,8 +918,8 @@ results of a single reduction!
 *** ~.~ → *Product* (dya.): *Inner product* (~f.g~), *Outer product* (~∘.f~)
 
 Inner product (generalised matrix product):
-: <vl> <g>.<f> <vr>
--  applies function args like ~g/vl f vr~
+: <g>.<f>
+-  applies function args like ~g/⍺f⍵~
 
 Examples:
 - dot product: ~+.×~
@@ -913,9 +936,42 @@ Apply dyadic function ~f~ like ~XfY~ (swap arguments):
 : (<f>∘<Y>)<X>
 - e.g. ~(>∘0 1 4) 1 2 3~ results in ~1 1 0~
 
-Compose two functions to apply them like ~g(f⍵):~
+Compose two functions to apply them like ~g(f⍵)~ (mon.) or ~⍺g(f⍵)~ (dya.)
+(preprocesses the right argument):
 : <g>∘<f>
-- in case of a left argument, applies ~g~ dyadically like ~⍺g(f⍵)~
+- works just like ~<g>⍤<f>~
+
+*** ~⍤~ → *Atop* (dya.), *Rank* (dya.)
+
+Apply the result of (dyadic or monadic) function ~g~ to monadic function ~f~,
+i.e. ~f(⍺g⍵)~:
+: <f>⍤<g>
+
+Apply ~f~ monadically to each /sub-array (~k~-cell)/ of the input array, sliced
+according to a given /rank/ ~k~:
+: <f>⍤<k>⊢
+- ~k=0~: scalar-wise
+- ~k=1~: vector-wise
+- ~k=2~: matrix-wise
+- …
+- if ~k~ is negative, a ~k~-cell of an array of rank ~r~ is an ~r+k~-cell, which
+  allows ~k~ to be specified relative to the rank of the original array
+
+Apply ~f~ dyadically to each /sub-array (~i~-cell / ~j~-cell)/ of both input
+arrays, sliced according to given /ranks/ ~i~ for ~⍺~ and ~j~ for ~⍵~:
+: <f>⍤<i> <j>⊢
+- sub-arrays of both ~⍺~ and ~⍵~ don’t have to be the same rank
+- the /frames/ of ~⍺~ and ~⍵~ must be the same:
+  - ~f⍺ ← (-<i>)↓⍴⍺~ (frame of left arg.)
+  - ~f⍵ ← (-<j>)↓⍴⍵~ (frame of right arg.)
+  - /either/ ~f⍺ ≡ f⍵~ must be true
+  - /or/ one of the frames is ~⍬~ (~i~ / ~j~ is the same as the rank of ~⍺~ / ~⍵~)
+
+*** ~⍥~ → *Over* (dya.)
+
+Preprocess ~⍺~ and ~⍵~ with monadic function ~g~ before applying dyadic function
+~f~ to both, i.e. ~(g⍺)f(g⍵)~:
+: <f>⍥<g>
 
 *** ~⍨~ → *Commute/Switch* (mon., func.), *Constant* (mon.)
 Swap arguments of a function:
@@ -956,6 +1012,10 @@ Also see:
 
 Rank of an array:
 : ≢⍴ <arr>
+
+Check if ~x~ is a scalar:
+: 0=≢⍴ <x>
+: ⍬≡⍴ <x>
 
 Average:
 : +⌿÷≢ <arr>
@@ -1093,6 +1153,7 @@ Boxing:
 
 Utilities:
 - ~]Map~ displays the content and structure of the current workspace
+- ~]Defs~ shows all function definitions
 - ~]Plot <data>~ draws simple graphs (see ~]Plot -??~)
 - ~]Open <filename>~ opens a target file or web address in its default app
 - ~]CD <dir>~ to change directory inside the APL session
@@ -1149,6 +1210,18 @@ Load:
 : )copy DISPLAY
 Use:
 : DISPLAY <x>
+
+*Benchmark functions*
+
+Import the “compare executions” (~cmpx~) function from the ~dfns~ workspace:
+: 'cmpx'⎕CY'dfns'
+
+*Custom operators*
+
+Example:
+: ]get github.com/abrudz/dyalog_vision/blob/main/QuadEqual.aplo
+- use ~#.QuadEqual~ just like a built-in operator or assign to a symbol
+
 
 * GNU APL implementation
 - based on APL2
