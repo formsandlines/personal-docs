@@ -1908,6 +1908,9 @@ Query disk space:
 : $ df -h
 
 ** Images
+*** Pixel graphics
+External tools:
+- [[*ImageMagick][ImageMagick]] can manipulate and convert pixel images
 *** Vector graphics
 External tools:
 - [[Inkscape]] can convert between vector formats
@@ -2254,6 +2257,13 @@ Install with Homebrew:
 
 To scan a QR code and print the URL:
 : $ zbarimg --quiet --raw qrcode.png
+
+** ImageMagick
+- https://imagemagick.org
+
+Convert all jpegs in directory to lower resolution and without metadata, so
+they are easily uploadable on social media, save in =out/= directory:
+: for i in *.jpeg; do magick "$i" -auto-orient -strip -resize 1200x1200\> -quality 90 "out/$i"; done
 
 * Gnu Coreutils
 Install on macOS:
