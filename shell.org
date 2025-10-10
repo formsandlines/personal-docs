@@ -71,7 +71,7 @@ Change right on all your Kirby files and folders:
 : $ sudo find myfolder -type d -exec chmod 755 {} \;
 : $ sudo find myfolder -type f -exec chmod 644 {} \;
 
-Remove quarantine attribute:
+Remove quarantine attribute for macOS:
 : $ sudo xattr -r -d com.apple.quarantine <path>
 
 * Concepts

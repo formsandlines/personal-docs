@@ -84,14 +84,19 @@ Dyalog Mac APL/en-GB keyboard:
 - Shape :: vector that specifies the number of elements for each dimension
   in an array
 - Rank :: integer that specifies the number of dimensions of an array
+- Depth :: ?
 - Axis :: integer that selects a specific dimensional axis of an array
   (as the corresponding index for its /shape/)
 - (k-)Cell :: a /sub-array/ of rank /k<r/ of an array of rank /r/
   - Major Cell :: /(r-1)/-cell
     - e.g. /vectors/ are major cells of /matrices/
 
+- Fill Item :: neutral element that is used in place of a missing item
+  - ~0~ for numbers, ~' '~ for characters
+
 - Scalar Function :: function that applies to each scalar of an array and
   returns an array of the same shape as its input
+  - see [[https://help.dyalog.com/19.0/index.htm#Language/Primitive%20Functions/Scalar%20Functions.htm][Dyalog APL Lang. Reference Guide / Scalar Functions]]
   - if *dyadic*, either its arguments must be the same shape or one/both of
     them must be a single value, in which case the returned shape matches
     the non-singleton array (if not both are singleton)
@@ -100,6 +105,15 @@ Dyalog Mac APL/en-GB keyboard:
   - pervasive :: permeates down through the structure of nested arrays,
     until it reaches the lowest-level items, and then applies itself at this
     level
+- Mixed Function :: mixed rank function
+  - see [[https://help.dyalog.com/19.0/index.htm#Language/Primitive%20Functions/Mixed%20Functions.htm][Dyalog APL Lang. Reference Guide / Mixed Functions]]
+  - Structural … :: change the structure of arguments in some way
+  - Selection … :: select elements from an argument
+  - Selector … :: identify specific elements by a boolean map or by an
+    ordered set of indices
+  - Miscellaneous … :: transform arguments in some way to provide
+    information about the arguments
+  - Special … :: symbols with special properties
 
 ** Conditionals
 
@@ -665,13 +679,33 @@ Check if two arrays are different:
 : <arr> ≢ <arr>
 - returns a boolean scalar
 
-**** ~↑~ → *First* (mon.), *Take* (dya.)
+**** ~↑~ → *Mix* (mon.), *Take* (dya.)
 
-If ~|n~ is greater than the number of items in the array, padds with
-~(|n)-≢arr~ *fill items* (~0~ for numbers, ~' '~ for chars) from the /left/ (if
-~n<0~) or from the /right/ (if ~n>0~).
+Take ~n~ items from ~arr~:
+: <n>↑<arr>
+- if ~(|n)>≢arr~, padds with ~(|n)-≢arr~ /fill items/ from the /left/ (if ~n<0~)
+  or from the /right/ (if ~n>0~).
 
-**** ~↓~ → *Drop* (dya.)
+Mix items of a /nested array/ into rows of a matrix:
+: ↑<nested-arr>
+: ↑[n]<nested-arr>
+- returns an array of higher /rank/ and lower /depth/ than its argument
+- a nested /sub-array/ will become a row in the matrix
+- if the /sub-arrays/ differ in length, extra elements in the matrix will
+  be filled/padded with /fill-items/
+
+**** ~↓~ → *Split* (mon.), *Drop* (dya.)
+
+Drop ~n~ items from ~arr~:
+: <n>↓<arr>
+
+Split array …
+: ↓<arr>
+- returns an array of lower /rank/ and higher /depth/ than its argument
+
+*Note*: /mix/ can be followed by /split/ to create a /nested array/ that has the
+same number of elements in its /sub-arrays/.
+
 **** ~⊂~ → *Enclose* (mon.), *Partitioned Enclose* (dya.)
 
 Enclose/“zip” an array for nesting (returns a scalar):
@@ -743,6 +777,13 @@ Check if elements in ~match~ array are members of ~arr~:
 
 Enlist all elements in the array (even nested ones):
 : ∊<arr>
+- unnests nested arrays
+
+**** ~⍷~ → *Find* (dya.)
+
+Check where in ~arr~ the /whole/ ~find~ array is found:
+: <find>⍷<arr>
+- returns a boolean array where 1 is the first index of the found array
 
 **** ~⍳~ → *Index generator* (mon.), *Index of* (dya.)
 
@@ -760,6 +801,13 @@ Index all items in vector by their index in search vector:
 
 Equivalences:
 : +/⍳n ←→ ((n+1)×n)÷2
+
+**** ~⍸~ → *Where* (mon.), *Interval Index* (dya.)
+
+Get /n/ indices for all /n>0/ in a boolean/integer array:
+: ⍸ <arr>
+- doesn’t work for nested arrays
+- returns a vector of nested indices for arrays of rank > 1
 
 **** ~⌽~ ~⍉~ ~⊖~ → Reversal / Rotation / Transposition
 - ~⌽~ → *Reversal* (mon.), *Rotation* (dya.)
@@ -814,7 +862,6 @@ Note: elements will repeat if ~(≢x) < m×n~
 e.g. ~+/¨(1 2) (3 4)~ will take the sum for each subvector
 
 **** ~⌹~ → *Matrix inverse* (mon.), *Matrix divide* (dya.)
-
 **** ~⍋~ ~⍒~ → *Grade Up/Down* (mon.), *Dyadic Grade Up/Down* (dya.)
 
 Return indices which would select items in ascending order:
@@ -853,9 +900,13 @@ for /axis/ ~n~:
   reducing its /rank/ by 1 (the origin of the term “reduce”)
 - for /axis 1/, ~<f>⌿<arr>~ is equivalent to ~<f>/[1]<arr>~
 
-~n~-wise reduction (calls ~f~ on ~n~ successive items of ~arr~):
+~n~-wise reduction (puts ~f~ between ~n~ pairs of successive items from ~arr~):
 : <n><f>/<arr>
 - e.g. ~3,/⍳5~ ⇒ ~1 2 3  2 3 4  3 4 5~
+
+*Note:* ~3{⍺ ⍵}/⍳5~ will be evaluated like ~(1 (2 3)) (2 (3 4)) (4 (5 6))~,
+because ~f←{⍺ ⍵}~ will be applied like ~(1 f 2 f 3) (2 f 3 f 4) (4 f 5 f 6)~.
+- the pairwise rightward-nesting is just an effect of evaluation order
 
 ---
 
@@ -897,9 +948,19 @@ the array.
 
 *** ~\~ ~⍀~ → *Scan / …first* (mon.)
 
+Use cases:
+
 Isolate the first “true” (~1~) value in a boolean vector:
 : <\<b>
 - e.g. ~<\0 0 1 1 0 1 1~ results in ~0 0 1 0 0 0 0~
+
+Keep only the leading 1’s in a boolean vector:
+: ∧\<b>
+- e.g. ~∧\1 1 0 1~ results in ~1 1 0 0~
+
+Switch the boolean vector to all 1’s from the first 1:
+: ∨\<b>
+- e.g. ~∨\0 0 1 0 0~ results in ~0 0 1 1 1~
 
 Sum scan (vector of intermediate sums):
 : +\<v>
@@ -984,6 +1045,7 @@ Swap arguments of a function:
 Take unique items from vector ~keys~ and match/associate them via the dyadic
 function ~f~ with items at the same index in vector ~vals~:
 : <keys> <f>⌸ <vals>
+- if ~keys~ is not specified, takes ~vals~ as keys/⍺ and ~⍳≢vals~ as vals/⍵
 
 Example:
 #+begin_src gnu-apl
@@ -997,6 +1059,16 @@ Example:
 └─┴─→┘
 #+end_src
 
+*** ~⍣~ → *Power* (dya.)
+
+Apply function ~f~ ~n~ times:
+: <f>⍣<n>
+- if ~n~ is negative,
+  - e.g. ~⍸⍣¯1~ creates the shortest possible boolean/integer vector for a
+    vector of indices (i.e. the inversion of /where/ ~⍸~)
+    - in case of duplicate indices, the 1’s are added up, exactly like
+      /where/ would duplicate the indices as many times
+
 ** System Functions
 Write a vector of character vectors to a text file:
 : <char-vecs> ⎕NPUT <path>
@@ -1007,8 +1079,11 @@ Example:
 #+end_src
 
 * Patterns/Idioms
-Also see:
+Idiom lists:
 - [[https://aplcart.info][APLcart]]
+- [[https://docs.dyalog.com/latest/CheatSheet%20-%20Idioms.pdf][Dyalog Idioms CheatSheet]]
+- [[https://www.ibm.com/support/pages/system/files/support/swg/swgdocs.nsf/0/819cd2373bb755d98525716c004c108e/$FILE/APL2IDIOMS.pdf][IBM APL2 Idioms Library]]
+- [[https://aplwiki.com/wiki/FinnAPL_idiom_library][FinnAPL idiom library]]
 
 Rank of an array:
 : ≢⍴ <arr>
@@ -1016,6 +1091,9 @@ Rank of an array:
 Check if ~x~ is a scalar:
 : 0=≢⍴ <x>
 : ⍬≡⍴ <x>
+
+Sum of squares:
+: +/×⍨ <arr>
 
 Average:
 : +⌿÷≢ <arr>
@@ -1029,6 +1107,13 @@ Catenate rows of totals to the bottom of a matrix ~m~:
 Flatten a nested array (joins sub-arrays):
 : ,/ <nested-arr>
 
+Symmetric iota (¯n…0…n):
+: symiota ← (-1+⊢)+(⍳1+2×⊢)
+Symmetric normalized (¯1…0…1):
+: symnorm ← (⊢÷⍨(-1+⊢)+(⍳1+2×⊢))
+In a polar unit matrix:
+: polarum ← (∘.,⍨symiota÷⊢)
+
 *Boolean masks* can be used to /count/ (~/+b~) or /select/ (~b/v~) corresponding true
 elements from the original array.
 
@@ -1040,6 +1125,13 @@ https://www.dyalog.com
 - namespaces
 - lexical scoping
 - different paradigms like OOP, FP, etc.
+
+Tacit functions in Dyalog APL:
+
+Tacit code is parsed at definition time, while explicit code is parsed at run
+time. In addition, the interpreter can recognise certain tacit constructs and
+take shortcuts.
+- [[https://www.youtube.com/watch?v=YMDClM03zyQ&lc=UgyISRlaDrty46lMWOB4AaABAg.9yaWiB7WsMr9yjswhlaXgd][source]]
 
 Resources:
 - [[https://help.dyalog.com/19.0/index.htm][Dyalog APL 19.0 Help]] (documentation on functions, etc.)
@@ -1202,7 +1294,7 @@ Example file:
 :EndNamespace
 #+end_src
 
-** Libraries
+** Libraries/Workspaces
 *DISPLAY*
 Like ~]box on.~
 
@@ -1216,12 +1308,56 @@ Use:
 Import the “compare executions” (~cmpx~) function from the ~dfns~ workspace:
 : 'cmpx'⎕CY'dfns'
 
-*Custom operators*
+** Plotting
+
+*SharpPlot*
+- https://xpqz.github.io/cultivations/Plotting.html
+
+The user command ~]Plot <data>~ draws simple graphs using SharpPlot.
+: ]Plot x y …
+: ]Plot x y … -type=<charttype>
+- ~]Plot -??~ help for basic usage
+- ~]plot -???~ description/list of chart types
+- also works with the Dyalog Jupyter kernel
+- limited compared to direct SharpPlot code
+
+On MacOS and Linux, the ~View~ function will render an SVG in the default
+viewer, on Windows it draws a raster image.
+
+Simple example:
+#+begin_src gnu-apl
+⍝ 1. Import functions from sharpplot workspace:
+'InitCauseway' 'View' ⎕CY'sharpplot'
+
+⍝ 2. Initialize plot:
+InitCauseway ⍬
+sp ← ⎕NEW Causeway.SharpPlot
+sp ← ⎕NEW Causeway.SharpPlot (800 600)  ⍝ optional paper size (w h in pts)
+
+⍝ 3. Draw the plot:
+line ← 4 3 8 2 4 5
+sp.DrawLineGraph ⊂line  ⍝ Single argument must be enclosed
+
+⍝ Save as svg:
+sp.SaveSvg 'plot.svg' Causeway.SvgMode.FixedAspect  ⍝ Write graph image to disk
+⍝ View in a graphical window:
+View sp
+#+end_src
+
+Set different markers like this:
+: sp.SetMarkers Causeway.Marker.Bullet
+
+Set no markers in scatterplot:
+: sp.ScatterPlotStyle ← Causeway.ScatterPlotStyles.NoMarkers
+
+Set lines between points in scatterplot:
+: sp.ScatterPlotStyle ← Causeway.ScatterPlotStyles.Lines
+
+** Custom operators
 
 Example:
 : ]get github.com/abrudz/dyalog_vision/blob/main/QuadEqual.aplo
 - use ~#.QuadEqual~ just like a built-in operator or assign to a symbol
-
 
 * GNU APL implementation
 - based on APL2
