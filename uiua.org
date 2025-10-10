@@ -1,0 +1,413 @@
+#+title: Docs/Uiua
+
+- https://www.uiua.org
+- https://github.com/uiua-lang/
+
+Online REPL: https://www.uiua.org/pad
+
+Docs: https://www.uiua.org/docs/
+- [[https://www.uiua.org/docs/combinators][Combinators]]
+
+/Array-oriented/ programming language with a /stack-based/ execution model and a
+/flat array/ model.
+- arrays must be rectangular and cannot have mixed types
+- mixed or deep arrays can be emulated using [[Boxes]]
+
+Editor support:
+- Emacs: [[https://github.com/crmsnbleyd/uiua-mode][uiua-mode]]
+
+Install the interpreter from the latest [[https://github.com/uiua-lang/uiua/releases][GitHub release]].
+
+* Definitions
+To assign a name to a value:
+: x ← <v>
+- names are case-sensitive, can only contain letters
+- ~=~ will be converted to ~←~ by the formatter
+
+~←~ pops the first thing off the stack and assigns it to the name on the left:
+#+begin_src uiua
+×2 [2 3 4]
+x ←
+x  #=> [4 6 8]
+#+end_src
+
+To assign a name to a function:
+: x ← <f>
+where ~f~ does not have enough arguments to run.
+
+#+begin_src uiua
+F ← +1
+F5
+#=> 6
+
+👋 ← ⊂"Hello, "
+👋"World"
+#=> "Hello, World"
+#+end_src
+
+* Arrays
+An array is a rectangular collection of elements arranged along some number of
+axes. Nesting creates arrays of higher rank, not nested arrays (like in APL),
+so all nested arrays must be of the same length.
+
+Arrays are /0-indexed/.
+
+Notations:
+: [1 2 3 4]
+: 1_2_3_4
+
+#+begin_src uiua
+[1_2_3 [4 5 6] 7_8_9]
+# =>
+╭─       
+╷ 1 2 3  
+  4 5 6  
+  7 8 9  
+        ╯
+#+end_src
+
+Arrays can have arbitrary code inside brackets, which is evaluated just like
+any other code:
+#+begin_src uiua
+[×3. 4_5_6]
+# =>
+╭─          
+╷ 12 15 18  
+   4  5  6  
+           ╯
+#+end_src
+
+* Boxes
+Array elements with different shapes can be put into /boxes/ to emulate
+nested/deep arrays:
+: [□x □y …]
+
+Instead of calling ~□~ on each item, the curly brace syntax automatically box
+each item in the array:
+: {x y …}
+
+To /unbox/ the contents of a boxed array, use /un/ + /boxed/ ~°□~:
+: °□boxed_x
+
+/Pervasive functions/ work on /boxed/ elements without the need to /unbox/ them.
+
+For other functions, the /inventory/ ~⍚~ modifier can be used to operate on
+temporarily /unboxed/ values in /boxed/ arrays.
+
+#+begin_src uiua
+□42    # => □42
+
+□[]     # => □[]
+°□□[]  # => []
+□1_2    # => □[1 2]
+°□□1_2 # => [1 2]
+
+[□1 □2_3_4 □5_6] # => [∙1│2 3 4│5 6]
+{1 2_3_4 5_6}    # => [∙1│2 3 4│5 6]
+#+end_src
+
+Unbox
+
+* Functions
+** Stack Functions
+*** ~?~ stack [noa., 0-out] & ~ₙ~
+
+Prints all stack values at insertion, without popping them.
+
+*** ~.~ duplicate [mon., 2-out]
+
+Duplicates top value on the stack.
+
+*** ~∘~ identity [mon.] {id}
+Does nothing with one value (monadic).
+
+#+begin_src uiua
+∘ 5
+# =>
+5
+#+end_src
+
+** Monadic Pervasive
+*** ~¯~ negate {neg}
+Negates a number.
+- like monadic ~-~ (negate) in APL
+- backtick ~`~ will be converted to a /negate/ ~¯~ by the formatter
+
+** Dyadic Pervasive
+*** ~+~ ~-~ add, subtract {sub}
+*** ~×~ ~÷~ multiply {mul, ~*~} & ~°~, divide {div} & ~°~
+*** ~↥ ↧~ maximum {max}, minimum {min}
+Takes the max./min. of two arrays.
+- like dyadic ~⌈~ (maximum) / ~⌊~ (minimum) in APL
+
+** Monadic Array
+*** ~⧻~ length {len} & ~(°⊸)ₙ~
+Returns the number of items along the first axis of the array.
+- like monadic ~≢~ (tally) in APL
+
+*** ~△~ shape {sha} & ~°ₙ⍜~
+Returns the dimensions of the array.
+- like monadic ~⍴~ (shape) in APL
+
+#+begin_src uiua
+△5               #=> []
+△[]              #=> [0]
+△[9 1 6]         #=> [3]
+△[4_π_9 1_5_∞]   #=> [2 3]
+△[[1_2_3 3_4_5]] #=> [1 2 3]
+#+end_src
+
+*** ~⊢~ ~⊣~ first {fir} & ~⍜ₙ~, last {las} & ~⍜ₙ~
+Returns the first/last element of the first axis of an array.
+- like dyadic ~1↑~ / ~¯1↑~ (take) in APL
+
+*** ~⇌~ reverse {rev}
+Reverses the array along the first axis.
+- like monadic ~⊖~ (reverse first) in APL
+- ~≡⇌~ behaves like monadic ~⌽~ (reverse) in APL
+  
+*** ~⍉~ transpose {tra} & ~°~
+Transposes/rotates the axes of the array.
+- like ~⍉~ in APL
+
+*** ~□~ box & ~°(⍜°)ₙ~
+See [[Boxes]].
+
+** Dyadic Array
+*** ~↯~ reshape {res} & ~⬚~
+Reshape the array to fit the given shape.
+- like ~⍴~ (reshape) in APL
+- repeats elements when overcounting the input array (like in APL)
+
+*** ~↙~ ~↘~ take {tak} & ~⬚(°⬚)~, drop {dro} & ~⬚⌝~
+Takes/drops /n/ elements along the first axis of the array.
+- like dyadic ~↑~ (take) / ~↓~ (drop) in APL
+
+/antidrop/ pads an array with fill elements.
+
+*** ~⊏~ select {sel} & ~⬚°⍜⌝~
+Selects items from an array using an index vector.
+
+#+begin_src uiua
+⊏ [1 2 5] "abcdef" #=> "bcf"
+⬚@-⌝⊏ [1 2 5] "bcf" #=> "-bc--f"
+#+end_src
+
+*** ~▽~ keep {kee} & ~⊸⬚°ₙ⍜⌝~
+Discards or copies items in an array:
+: ▽ <mask> <arr>
+- like dyadic /replicate first/ ~⌿~ in APL
+
+Example:
+#+begin_src uiua
+▽ [0 1 0 1] [1_2 3_4 5_6 7_8]
+#=>
+╭─     
+╷ 3 4  
+  7 8  
+      ╯
+#+end_src
+
+~⍜▽~ modifies part of an array according to a mask:
+: ⍜▽<f> <mask> <arr>
+
+Example:
+#+begin_src uiua
+⍜▽(×.) [0 1 1 0 1] [1 2 3 4 5]
+#=>
+[1 4 9 4 25]
+#+end_src
+
+*** ~⊂~ join {joi} & ~⬚°ₙ~
+Concatenates two arrays/scalars.
+- like dyadic ~⍪~ (catenate first) in APL
+- ~≡⊂~ behaves like dyadic ~,~ (catenate) in APL
+
+*** ~⊟~ couple {cou} & ~⬚°ₙ~
+Combine two arrays as items of a new array (increases the rank).
+
+The *inverse* ~°⊟~ separates combined arrays.
+
+** Misc
+*** ~&ims~ image - show
+Shows an image, depending on the system backend.
+
+*Note:* In the (Ghostty) terminal, the image does not always shows up with
+lower row/column lengths (bug?).
+- better use /window mode/ ~-w~ for graphic output
+*** ~&gifs~ gif - show
+*** ~&ap~ audio - play
+*** ~&s~ show
+Prints a nicely formatted representation of a value to stdout.
+*** ~&p~ print with newline
+Print a value to stdout followed by a newline.
+* Modifiers (→Operators)
+** Stack Modifiers
+*** ~˜~ backward [mon.] {bac}
+Swaps arguments in function call.
+- like monadic operator ~⍨~ (commute) in APL
+
+: ˜ -3 10  =  -10 3  =  -7
+
+*** ~⊃~ fork [dya.] {for}
+Calls two functions on the same values and puts both outputs on the stack.
+- the functions can be of any arity
+
+#+begin_src uiua
+⊃⇌⧻ 1_2_3_4
+# =>
+4
+[4 3 2 1]
+
+⊃↧↥ ⇡4 ⇌⇡4
+# =>
+[3 2 2 3]
+[0 1 1 0]
+#+end_src
+
+*** ~∩~ both [mon.] {bot} & ~ₙ~
+Calls the /n/-ary function on two sequences of the next top /n/ values on the
+stack.
+- just the top 2 values in case of a unary function
+- for a dyadic function ~f~ on ~a b c d~, calls ~f a b~ and ~f c d~
+
+#+begin_src uiua
+∩⇡ 4 6
+# =>
+[0 1 2 3 4 5]
+[0 1 2 3]
+
+∩+ 1 2 3 4
+# =>
+7
+3
+#+end_src
+
+*** ~⊙~ dip [mon.]
+Temporarily pops the top value off the stack and calls the function.
+- stacking multiple /dips/ enables operating on lower stack values without
+  touching the top ones
+
+#+begin_src uiua
+⊙+ 1 2 3 4
+# =>
+4
+5
+1
+
+[⊙⊙+ 1 2 3 4]
+# =>
+[1 2 7]
+
+⊙(/↥) 1_2_3 4_5_6
+# =>
+6
+[1 2 3]
+#+end_src
+
+Combines well with /fork/ ~⊃~ to keep values on the stack after/before
+operating on them:
+- use /gap/ ~⋅~ to drop subsequent stack values
+#+begin_src uiua
+[⊃⊙⊙∘(++) 3 5 10]
+# =>
+[3 5 10 18]
+
+[⊃⊙⋅∘(++) 3 5 10]
+# =>
+[3 10 18]
+#+end_src
+
+*** ~⋅~ gap [mon.]
+Discards the top stack value before calling the function.
+- also see the function /pop/ ~◌~
+
+#+begin_src uiua
+⋅+ 3 5 10
+# =>
+15
+#+end_src
+
+*** ~˙~ self [mon.] {slf}
+Calls a function with the same array as all arguments.
+
+#+begin_src uiua
+˙+ 5
+# =>
+10
+
+˙⊞+ 1_2_3
+# =>
+╭─       
+╷ 2 3 4  
+  3 4 5  
+  4 5 6  
+        ╯
+#+end_src
+
+** Iterating Modifiers
+*** ~≡~ rows {row}
+Applies the function to each /row/ of the array(s).
+: ≡<f> <arr …>
+
+*** ~⊞~ table {tab}
+Applies ~f~ on all combinations of rows from arrays ~a~ and ~b~:
+: ⊞<f> <a> <b>
+- there seems to be no analog in APL, /outer product/ only works scalar-wise
+
+#+begin_src uiua
+⊞(⊂⇌) [1_2 3_4] [5 6 7]
+#=>
+╭─              
+╷ 2 1 5  4 3 5  
+╷ 2 1 6  4 3 6  
+  2 1 7  4 3 7  
+               ╯
+#+end_src
+*** ~⍚~ inventory
+Applies the function to each /unboxed/ row of an array and re-/boxes/ the
+result.
+: ⍚<f>
+
+** Aggregating Modifiers
+*** ~/~ reduce {red}
+Applies reducing function ~f~ to the array (“between” its items):
+: /<f> <arr>
+- reduces along the /first/ axis (across columns in a matrix)
+- like monadic op. ~⌿~ (reduce first) in APL
+
+** Inversion Modifiers
+*** ~°~ un
+Inverts the behaviour of a function.
+- e.g. for unboxing: ~°□~
+
+*** ~⌝~ anti
+Inverts the behaviour of a function, treating its first argument as a
+constant(?)
+
+*** ~⍜~ under
+Operates (~g~) on a transformed (~f~) array, then reverses the transformation.
+: ⍜<f><g>
+- more powerful version of /un/ ~°~
+
+** Other Modifiers
+*** ~⬚~ fill {fil}
+Fill missing values of an array that has mismatched shapes with ~fill-value~
+so it becomes a valid array:
+: ⬚<fill-value> <arr/f>
+- partially like monadic ~↑~ (mix) in APL, but not with nested arrays and with
+  function argument
+
+#+begin_src uiua
+⬚0[1 2_3_4 5_6]
+#=>
+╭─       
+╷ 1 0 0  
+  2 3 4  
+  5 6 0  
+        ╯
+
+⬚π↙ 5 [1 2 3]
+#=>
+[1 2 3 π π]
+#+end_src
