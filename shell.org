@@ -2005,6 +2005,7 @@ Finds difference between two files.
 : diff <old-file> <new-file>
 
 ** Inkscape
+https://inkscape.org
 
 CLI path:
 =/Applications/Inkscape.app/Contents/Resources/bin/inkscape=
@@ -2188,6 +2189,10 @@ A simple, fast and user-friendly alternative to 'find'
 Log analyzer on Linux.
 ** ffmpeg
 To encode and decode videos and (to some extend) images.
+
+Simple conversion from macOS screenrecording =.mov= to uploadable =.mp4=:
+: ffmpeg -i "source.mov" -c:v h264 "target.mp4"
+
 ** convert
 Image manipulation
 ** coltrane

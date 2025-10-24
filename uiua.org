@@ -26,31 +26,79 @@ Install the interpreter from the latest [[https://github.com/uiua-lang/uiua/rele
 Extensions:
 - [[https://github.com/uiua-lang/uiua-modules][Curated list of Uiua Modules]]
 
-* Definitions
-To assign a name to a value:
+* Bindings
+/Bindings/ are global names that can be assigned to values:
 : x ← <v>
-- names are case-sensitive, can only contain letters
+- binding names are /case-sensitive/, they can only contain letters
+- no numbers or underscores are allowed, but /subscript/ numbers at the end of
+  the name (e.g. ~Foo,123~ / ~Foo₁₂₃~) are possible
+- to indicate related bindings, names can end with multiple ~′~ characters
+  (typed with apostrophe ~'~)
+- it is recommended to use /PascalCase/ for binding names with 2+ characters to
+  avoid name clashes with built-in functions and their abbreviations
 - ~=~ will be converted to ~←~ by the formatter
 
-~←~ pops the first thing off the stack and assigns it to the name on the left:
+~←~ pops the first thing off the stack and assigns it to the name on the left,
+therefore it can also bind to values on previous lines:
 #+begin_src uiua
 ×2 [2 3 4]
 x ←
 x  #=> [4 6 8]
 #+end_src
 
-To assign a name to a function:
+Bindings can only bind a single value once for the entire lifetime of the
+program. However, a name can be bound to another value/function:
+#+begin_src uiua
+X ← 42
+X ## 42 
+X ← @a
+X ## @a 
+#+end_src
+
+But names cannot refer back to their previous values (which will be
+interpreted as a recursive function):
+#+begin_src uiua
+X ← 12
+X ## "3:1: Recursive function `X` must have a signature declared after the ←." 
+X ← ×2 X
+X
+#+end_src
+
+
+Functions can also be bound to names. If the right side of ~←~ requires more
+than 0 values to be on the stack, it doesn’t get evaluated right away but will
+instead be bound as a function:
 : x ← <f>
-where ~f~ does not have enough arguments to run.
+- to create a 0-arity function, sorround the right side with ~()~
 
 #+begin_src uiua
 F ← +1
-F5
-#=> 6
+F5 ## 6
 
 👋 ← ⊂"Hello, "
 👋"World"
-#=> "Hello, World"
+## "Hello, World"
+
+F ← ⚂ # a value, not a function!
+F ## 0.8136374781735876 
+F ## 0.8136374781735876 
+
+F′ ← (⚂) # 0-arity function
+F′ ## 0.8018080663476463 
+F′ ## 0.5432016624161957 
+#+end_src
+
+* Inline Functions
+/Inline functions/ are defined in parentheses and are evaluated like any other
+expression after being applied to their arguments. They can be broken up into
+multiple lines, running from top to bottom:
+#+begin_src uiua
+⊸≡(+⊸⇌) [2_5_3 0_2_1 0_0_2]
+
+X ← (
+  ˙⊞=⇡ # First this line runs
+  ↥⊸⇌  # Then this one
+)
 #+end_src
 
 * Arrays
@@ -149,10 +197,14 @@ a b
 ##                                                     ╯ 
 #+end_src
 
-* Boxes
+* Array Boxing
 Array elements with different shapes can be put into /boxes/ to emulate
 nested/deep arrays:
-: [□x □y …]
+: [□xs □ys □z …]
+
+In the output, the elements of the boxed arrays are separated by ~|~:
+: [x1 x2…|y1 y2…|∙z|…]
+- scalars are marked with a ~∙~ to be distinguished from single-row lists
 
 Instead of calling ~□~ on each item, the curly brace syntax automatically box
 each item in the array:
@@ -161,24 +213,164 @@ each item in the array:
 To /unbox/ the contents of a boxed array, use /un/ + /boxed/ ~°□~:
 : °□boxed_x
 
-/Pervasive functions/ work on /boxed/ elements without the need to /unbox/ them.
-
-For other functions, the /inventory/ ~⍚~ modifier can be used to operate on
-temporarily /unboxed/ values in /boxed/ arrays.
-
 #+begin_src uiua
-□42    # => □42
+□42 ## □42 
 
-□[]     # => □[]
-°□□[]  # => []
-□1_2    # => □[1 2]
-°□□1_2 # => [1 2]
+□[]    ## □[] 
+°□□[]  ## [] 
+□1_2   ## □[1 2] 
+°□□1_2 ## [1 2] 
 
-[□1 □2_3_4 □5_6] # => [∙1│2 3 4│5 6]
-{1 2_3_4 5_6}    # => [∙1│2 3 4│5 6]
+[□1 □2_3_4 □5_6] ## [∙1│2 3 4│5 6] 
+{1 2_3_4 5_6}    ## [∙1│2 3 4│5 6] 
 #+end_src
 
-Unbox
+/Pervasive functions/ work on /boxed/ elements without the need to /unbox/ them.
+They preserve the maximum /box depth/ of their arguments:
+#+begin_src uiua
++1 4    ## 5 
++1 □4   ## □5 
++1 □□4  ## □□5 
++□□1 □4 ## □□5 
+
+×10 {1_2_3 4_5 6} ## [10 20 30│40 50│∙60]
+#+end_src
+
+As an exception, /comparison functions/ lexicographically compare boxed arrays
+as a whole:
+#+begin_src uiua
+= [1 2 3] [1 2 5]   ## [1 1 0] 
+= □[1 2 3] □[1 2 5] ## 0 
+= □[1 2 3] □[1 2 3] ## 1 
+#+end_src
+
+For /non-pervasive/ functions, the arguments often have to be /unboxed/. The
+/inventory/ ~⍚~ modifier can be used to operate on temporarily /unboxed/ values.
+
+Unboxing each boxed element in an array generally requires a way to homogenize
+the elements so that the array can stay rectangular and flat.
+
+The /content/ ~◇~ modifier takes a function and calls it on the unboxed arguments.
+It can be combined with /reduce/ ~/~ to join all elements into a normal array:
+#+begin_src uiua
+/◇⊂{@a @b @c} ## "abc" 
+/◇⊂{1 2 3} ## [1 2 3] 
+#+end_src
+
+To decompose a list of boxed elements into individual stack items, /un-box/ ~°□~
+can be /subscripted/ with the exact number of elements in the list, which will
+then appear one-by-one on the stack:
+#+begin_src uiua
+°□₃ {@a @b @c}
+#### @c 
+#### @b 
+#### @a 
+#+end_src
+
+* Types
+There are four types of arrays:
+- Number
+  - IEEE-754 double-precision floating-point format
+  - can be written as integers, with decimals, as fractions (e.g. ~3π/2~)
+  - scientific notation (e.g. ~6e3~ = ~6000~) is supported
+  - can contain numeric constants like ~π~, ~τ~, ~η~, ~e~, and ~∞~
+- Complex
+  - printed like ~5+3i~
+  - can be written as literals by suffixing the real part with ~r~ and/or the
+    imaginary part with ~i~ (e.g. ~5r3i~)
+  - support the same math operations as normal numbers
+- Character
+  - represented as 32-bit Unicode codepoints
+  - character literals marked with ~@~ denote rank-0 (scalar) char arrays
+  - string literals delimited by ~"…"~ denote rank-1 char arrays (strings)
+  - some chars must be escaped, e.g. newline ~@\r~, null ~@\0~, but not space
+  - /raw string literals/ marked with ~$~ (followed by a space) need no escaping
+    - the string runs to the end of the line
+    - if the next line is another raw string literal, a newline gets inserted
+  - chars can also be specified with 2 (e.g. ~@\x41~) or 4 (e.g. ~@\u2665~) hex
+    digits by using escape codes
+    - longer/shorter sequences must be wrapped in ~{…}~ (e.g. ~@\u{1f600}~)
+    - escape sequences do not work in /raw strings/
+  - ~&p~ can be used for pretty-printing
+- Box
+
+The ~type~ function gets the /type/ of an array on the stack, encoded as an
+integer:
+- ~0~: real numbers
+- ~1~: characters
+- ~2~: boxes
+- ~3~: complex numbers
+
+#+begin_src uiua
+type [1 2]   ## 0 
+type "ab"    ## 1 
+type {@a @b} ## 2 
+type [i 2r1] ## 3 
+#+end_src
+
+An empty array always has the /shape/ ~[0].~ It can have different types:
+#+begin_src uiua
+type [] ## 0 
+type "" ## 1 
+type {} ## 2 
+#+end_src
+
+/Format strings/ are created by prefixing a string with ~$~. It is a special kind
+of function that takes an argument for each ~_~ in the string and replaces it
+with the stringified version.
+- a ~_~ can be inserted by escaping it with ~/_~
+- /raw strings/ can be turned into format strings with an additional ~$~.
+- being functions, format strings can be used with modifiers like /reduce/
+
+#+begin_src uiua
+Oracle ← $"The meaning of _ is _!"
+Oracle "life" 42
+## "The meaning of life is 42!" 
+Oracle @π π
+## "The meaning of π is 3.141592653589793!"
+
+3 2 1
+$$ Explosion in _,
+$$ _,
+$$ _…
+$$ BOOM!
+## "Explosion in 3,\n2,\n1…\nBOOM!"
+
+/$"_ _" {"Separated" "by" "spaces"}
+## "Separated by spaces" 
+#+end_src
+
+Characters and numbers exist in an /affine space/ (like in BQN):
+- ~+n c~ / ~+c n~ returns another character
+- ~-n c~ returns another character
+- ~-c c~ returns a number
+- ~×n c~ / ~×c n~ or ~÷n c~ toggles the case of some characters, if ~n~ is negative
+  - see /sign/ ~±~ to /get the case/ of a character as a number
+  - see /negate/ ~¯~ to /toggle the case/ of a character
+  - see /absolute value/ ~⌵~ to /uppercase/ (/lowercase/ with  ~¯⌵~) a character
+- no other dyadic arithmetic operations are possible with characters
+
+* Signatures
+[[Bindings]] and [[Inline Functions]] can have a /signature/ declared like:
+: … = |<input #>.<output #> …  <- for bindings
+: (|<input #>.<output #> …)    <- for inline functions
+- e.g. ~|2.1~ means the function takes 2 arguments and returns one
+- the second number is optional and defaults to 1 if not given
+
+A /declared/ signature always overrides the /inferred/ signature. If they don’t
+match, there will be a warning.
+
+* Modules
+
+Import a function from a local module:
+: ~ "<filename>" ~ <fn-name>
+and call it like this:
+: <fn-name> …
+
+Import the local module as a namespace, using an alias:
+: <alias> ~ "<filename>"
+and call a function from it like this:
+: <alias>~<fn-name>
 
 * Comments
 A comment ~#~ with additional ~#~'s is an /output comment/. Each additional ~#~ prints
@@ -206,6 +398,18 @@ debugging.
 + 3 4 ## 12
 #+end_src
 
+Output comments inside [[Inline Functions][inline functions]] will show the values for each time the
+function is called.
+#+begin_src uiua
+F ← (
+  ## 5 6
+  + 1 ## 6 7 
+)
+F 5
+F 6
+
+#+end_src
+
 * Constants
 - ~η~ eta (pi/2; tau/4)
 - ~π~ pi (2 eta; tau/2)
@@ -220,12 +424,7 @@ Prints all stack values at insertion, without popping them.
 
 With a /subscript/, will print only that number of values from the stack.
 
-*** ~.~ duplicate [mon., 2-out]
-Duplicates the top value on the stack.
-
-Can be used to square a number, e.g. ~×.4~ results in ~16~.
-
-*** ~∘~ identity [mon.] {id}
+*** ~∘~ identity [mon.] {id / i(→planet)}
 Does nothing with one value (monadic).
 
 #+begin_src uiua
@@ -234,7 +433,7 @@ Does nothing with one value (monadic).
 5
 #+end_src
 
-*** ~◌~ pop [mon., 0-out] {po} & ~°~
+*** ~◌~ pop [mon., 0-out] {po / p(→planet)} & ~°~
 Discards the top stack value.
 
 ** Monadic Pervasive
@@ -459,17 +658,42 @@ With a /subscript/, flattens it to /rank n/.
 Returns the first/last /row/ (first axis) of an array.
 - like dyadic ~1↑~ / ~¯1↑~ (take) in APL
 
+*** ~⇡~ range {ran} & ~ₙ~
+Creates an array of all natural numbers less than /n/.
+- like monadic /iota/ ~⍳~ in APL
+
+/range/ with /subscript/ changes the /offset/ of the range:
+#+begin_src uiua
+⇡₁ 5 ## [1 2 3 4 5] 
+⇡₂ 5 ## [2 3 4 5 6] 
+#+end_src
+
 *** ~⇌~ reverse {rev}
 Reverses the array along the first axis.
 - like monadic ~⊖~ (reverse first) in APL
 - ~≡⇌~ behaves like monadic ~⌽~ (reverse) in APL
   
 *** ~⍉~ transpose {tra} & ~°~
-Transposes/rotates the axes of the array.
+Transposes/rotates the axes/shape of the array so that the /leading axis/
+will become the /last axis/ of the shape.
 - like ~⍉~ in APL
+- e.g. the shape of ~⍉°△5_4_3_2_1~ will become ~[4 3 2 1 5]~
+
+/un-transpose/ ~°⍉~ instead rotates the /last axis/ to become the /leading axis/
+of the shape.
+- e.g. the shape of ~°⍉°△5_4_3_2_1~ will become ~[1 5 4 3 2]~
+
+#+begin_src uiua
+⍉ . [1_2_3 4_5_6]
+## ╭─      
+## ╷ 1 4   
+##   2 5   
+##   3 6   
+##       ╯ 
+#+end_src
 
 *** ~□~ box & ~°(⍜°)ₙ~
-See [[Boxes]].
+See [[Array Boxing]].
 
 *** ~⋯~ bits & ~°⍜ₙ~
 Encode a number/array as bits (LSB-first).
@@ -497,8 +721,12 @@ Takes/drops /n/ elements along the first axis of the array.
 
 /antidrop/ pads an array with fill elements.
 
+*** ~⊡~ pick {pic} & ~°⍜⌝~
+Picks a /row/ or /element/ of the array, given a single index or a list of
+indices (to reach into higher-ranked arrays).
+
 *** ~⊏~ select {sel} & ~⬚°⍜⌝~
-Selects items from an array using an index vector.
+Selects /rows/ from an array according to an index vector.
 
 #+begin_src uiua
 ⊏ [1 2 5] "abcdef" #=> "bcf"
@@ -531,7 +759,7 @@ Example:
 #+end_src
 
 *** ~⊂~ join {joi} & ~⬚°ₙ~
-Concatenates two arrays/scalars.
+Concatenates two arrays or appends a new /row/ in case of a scalar.
 - like dyadic ~⍪~ (catenate first) in APL
 - ~≡⊂~ behaves like dyadic ~,~ (catenate) in APL
 
@@ -578,41 +806,24 @@ Swaps the arguments of a dyadic function.
 
 : ˜ -3 10  =  -10 3  =  -7
 
-*** ~⊃~ fork [dya.] {for}
-Calls two functions on the same values and puts both outputs on the stack.
-- the functions can be of any arity
+*** ~˙~ self [mon.] {slf}
+Calls a function with the same array as all arguments.
 
 #+begin_src uiua
-⊃⇌⧻ 1_2_3_4
+˙+ 5
 # =>
-4
-[4 3 2 1]
+10
 
-⊃↧↥ ⇡4 ⇌⇡4
+˙⊞+ 1_2_3
 # =>
-[3 2 2 3]
-[0 1 1 0]
+╭─       
+╷ 2 3 4  
+  3 4 5  
+  4 5 6  
+        ╯
 #+end_src
 
-*** ~∩~ both [mon.] {bot} & ~ₙ~
-Calls the /n/-ary function on two sequences of the next top /n/ values on the
-stack.
-- just the top 2 values in case of a unary function
-- for a dyadic function ~f~ on ~a b c d~, calls ~f a b~ and ~f c d~
-
-#+begin_src uiua
-∩⇡ 4 6
-# =>
-[0 1 2 3 4 5]
-[0 1 2 3]
-
-∩+ 1 2 3 4
-# =>
-7
-3
-#+end_src
-
-*** ~⊙~ dip [mon.]
+*** ~⊙~ dip [mon.] {d(→planet)}
 Temporarily pops the top value off the stack and calls the function.
 - stacking multiple /dips/ enables operating on lower stack values without
   touching the top ones
@@ -647,7 +858,7 @@ operating on them:
 [3 10 18]
 #+end_src
 
-*** ~⋅~ gap [mon.]
+*** ~⋅~ gap [mon.] {g(→planet)}
 Discards the top stack value before calling the function.
 - also see the function /pop/ ~◌~
 
@@ -657,26 +868,108 @@ Discards the top stack value before calling the function.
 15
 #+end_src
 
-*** ~˙~ self [mon.] {slf}
-Calls a function with the same array as all arguments.
+*** ~⊃~ fork [dya.] {for / f(→planet)}
+Calls two functions on the same value(s) and puts both outputs on the
+stack.
+- the functions can be of any arity; if one function takes fewer
+  arguments, it just uses that many arguments from the top of the stack
+- important for threading data through a program and for /planet notation/
 
 #+begin_src uiua
-˙+ 5
+⊃⇌⧻ 1_2_3_4
 # =>
-10
+4
+[4 3 2 1]
 
-˙⊞+ 1_2_3
+⊃↧↥ ⇡4 ⇌⇡4
 # =>
-╭─       
-╷ 2 3 4  
-  3 4 5  
-  4 5 6  
-        ╯
+[3 2 2 3]
+[0 1 1 0]
+#+end_src
+
+With a /function pack/, /fork/ can take any number of functions instead of
+just two:
+#+begin_src uiua
+[⊃(+|-|×|÷) 2 5]
+## [7 3 10 2.5] 
+#+end_src
+
+*** ~∩~ both [mon.] {bot} & ~ₙ⌞⌟~
+Calls the /n/-ary function on two sequences of the next top /n/ values on the
+stack.
+- just the top 2 values in case of a unary function
+- for a dyadic function ~f~ on ~a b c d~, calls ~f a b~ and ~f c d~
+
+#+begin_src uiua
+∩⇡ 4 6
+### [0 1 2 3 4 5]
+### [0 1 2 3]
+[∩+ 1 2 3 4] ## [3 7] 
+#+end_src
+
+With /numbered subscripts/, /both/ calls its function on /n/ sets of arguments:
+#+begin_src uiua
+[∩₃⊟ 1 2 3 4 5 6]
+## ╭─      
+## ╷ 1 2   
+##   3 4   
+##   5 6   
+##       ╯ 
+#+end_src
+
+/both/ can be used with /sided subscripts/ to apply the /left-most/ ~⌞~ or
+/right-most/ ~⌟~ argument twice:
+#+begin_src uiua
+[∩⊟ @a @b @c @d]
+## ╭─       
+## ╷ "ab"   
+##   "cd"   
+##        ╯ 
+[∩⌞⊟ @a @b @c]
+## ╭─       
+## ╷ "ab"   
+##   "ac"   
+##        ╯ 
+[∩⌟⊟ @a @b @c]
+## ╭─       
+## ╷ "ac"   
+##   "bc"   
+##        ╯ 
+#+end_src
+
+/sided/ and /numeric subscripts/ can also be mixed.
+
+*** ~⊓~ bracket [dya.] {bra} & ~⌞⌟~
+Calls two /n/-ary functions on two sequences of the next top /n/ values on the
+stack.
+- just the top 2 values in case of a unary function
+- for dyadic functions ~f~ and ~g~ on ~a b c d~, calls ~f a b~ and ~g c d~
+
+Like /fork/, /bracket/ can take any number of functions instead of just two
+when using a /function pack/:
+#+begin_src uiua
+[⊓(+|-|×|÷) 10 20 5 8 3 7 2 5]
+## [30 3 21 2.5] 
+#+end_src
+
+/bracket/ (like /both/) can be used with /sided subscripts/ to apply the
+/left-most/ ~⌞~ or /right-most/ ~⌟~ argument twice:
+#+begin_src uiua
+{⊓⊟□₂ @a @b @c @d}
+## ["ab"│[@c│@d]] 
+{⊓⌞⊟□₂ @a @b @c}
+## ["ab"│[@a│@c]] 
+{⊓⌟⊟□₂ @a @b @c}
+## ["ac"│[@b│@c]] 
+
+⊓⌟≥≤5 8 [6 2 5 9 6 5 0 4]
+### [1 1 1 0 1 1 1 1] 
+### [1 0 1 1 1 1 0 0] 
 #+end_src
 
 ** Iterating Modifiers
 *** ~≡~ rows {row}
-Applies the function to each /row/ of the array(s).
+Applies the function to /each row/ of the array(s).
 : ≡<f> <arr …>
 
 *** ~⊞~ table {tab}
@@ -740,3 +1033,12 @@ so it becomes a valid array:
 #=>
 [1 2 3 π π]
 #+end_src
+* Idioms
+Sources:
+- https://tankorsmash.unison-services.cloud/s/uiuisms-service/
+
+Upscale a 2d matrix or colored image:
+: ▽⟜≡▽
+
+Create a checkerboard of size N:
+: ◿2⊞+.⇡ 8
