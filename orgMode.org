@@ -734,7 +734,14 @@ Field reference symbols:
 - ~@~ → row
 - ~$~ → column
 - ~>~ → (?) last element in a range
+- ~I~ → /hline/
 - *Note:* use ~C-c }~ or ~C-c ?~ to see field reference information.
+
+Relative references:
+- ~@x~ / ~@xx~ / … → row of the first / second / … /x/
+- ~@-x~ / ~@+x~ → row of the first /x/ /above/ / /below/ the current line
+- ~@-n~ / ~@+n~ → row /n/ rows /above/ / /below/ the current line
+- these can be combined
 
 Special combinations:
 - ~@#~ → current row number
@@ -751,6 +758,7 @@ Different functions can be used in formulas:
 |-------------------------+-------------------------------------|
 | ~<x>..<y>~                | create range from cell ~x~ to ~y~       |
 | ~vsum(<list>)~            | sum all numbers in a list           |
+| ~vlen(<list>)~            | count all numbers in a list         |
 | ~remote(<TBLNAME>,<fml>)~ | reference values from another table |
 
 *Ranges* are lists of numbers, e.g. ~[1, 2, 3]~
@@ -772,6 +780,28 @@ _Commands_
 *Toggle formula debugger*:
 : C-c C- { : org-table-toggle-formula-debugger
 - shows debug info on recalculation
+
+Example to sum all data rows of a column:
+
+| Name  | Amount |
+|-------+--------|
+| A     |     12 |
+| B     |      6 |
+| C     |      3 |
+|-------+--------|
+| Total |     21 |
+#+TBLFM: $2=vsum(@I..@II)
+
+Example to count all data rows of a column:
+
+| Name | Amount |
+|------+--------|
+| A    |     12 |
+| B    |      6 |
+| C    |      3 |
+|------+--------|
+| Rows |      3 |
+#+TBLFM: $2=vlen(@I..@II)
 
 *** Graphs /(Org Plot)/
 See [[info:org#Org Plot][org#Org Plot]] and [[file:emacs-calc.org::#graphs][Emacs Calc / Graph Output]]
@@ -1414,7 +1444,6 @@ For customization of image export to other formats, see:
 - [[info:org#Images in HTML export][org#Images in HTML export]]
 - [[info:org#Images in LaTeX export][org#Images in LaTeX export]]
 - [[info:org#Images in ODT export][org#Images in ODT export]]
-
 
 * Export to other formats
 

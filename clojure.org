@@ -179,6 +179,14 @@ Default path for a local Maven repository:
 
 ** To push a JAR to Clojars:
 
+Clojars requires a license in the =POM.xml= file:
+- https://github.com/clojars/clojars-web/wiki/Pushing#licenses
+
+This can be added in the ~tools.build~ as Hiccup using the ~:pom-data~ option:
+- https://clojure-doc.org/articles/cookbooks/cli_build_projects/#the-generated-pomxml-file
+
+As a POM reference see https://maven.apache.org/pom.html.
+
 must have a Clojars account first
 
 1. add deps-deploy library: https://github.com/slipset/deps-deploy

@@ -445,7 +445,7 @@ Logical /not/ operation.
 Negates a number.
 - like monadic ~-~ (negate) in APL
 - backtick ~`~ will be converted to a /negate/ ~¯~ by the formatter
-*** ~±~ sign {sig}
+*** ~±~ sign {sig / sgn}
 Returns the numeric sign (~1~, ~¯1~ or ~0~).
 
 On a *complex number*, /normalizes/ it to magnitude 1.
@@ -514,7 +514,17 @@ Rounds to the nearest integer /(round)/: towards ~¯∞~ /(floor)/ or towards ~�
 
 ** Dyadic Pervasive
 *** ~+~ ~-~ add, subtract {sub}
-*** ~×~ ~÷~ multiply {mul, ~*~} & ~°~, divide {div} & ~°~
+Adds/subtracts two values.
+
+/un-add/ ~°+~ splits a number into fractional and integer parts:
+#+begin_src uiua
+[°+ 1/3]   ## [0.333… 0] 
+[°+ 3/2]   ## [0.5 1] 
+[°+ 2.5]   ## [0.5 2] 
+[°+ ¯5.25] ## [0.75 ¯6] 
+#+end_src
+
+*** ~×~ ~÷~ multiply {mul, ~*~} & ~⍜°~, divide {div} & ~°~
 
 Division by 0 results in infinity ~∞~.
 
@@ -634,7 +644,7 @@ Returns the dimensions of the array.
 ##                          ╯ 
 #+end_src
 
-*** ~♭~ deshape {flat / des}
+*** ~♭~ deshape {flat / des} & ~⍜~
 Flattens the array to /rank 1/.
 - like monadic ~,~ (ravel) in APL
 
@@ -654,13 +664,83 @@ With a /subscript/, flattens it to /rank n/.
 △ ♭₋₃ °△2_3_4_5 ## [120] 
 #+end_src
 
+/under-deshape/ ~⍜♭<f>~ flattens the array, applies a function and puts it
+back to its original shape. This can be useful to reverse higher-ranked
+arrays:
+#+begin_src uiua
+⊸⍜♭⇌ ↯3_4⇡12
+### ╭─            
+### ╷ 0 1  2  3   
+###   4 5  6  7   
+###   8 9 10 11   
+###             ╯ 
+### ╭─            
+### ╷ 11 10 9 8   
+###    7  6 5 4   
+###    3  2 1 0   
+###             ╯ 
+#+end_src
+
 *** ~⊢~ ~⊣~ first {fir} & ~⍜ₙ~, last {las} & ~⍜ₙ~
 Returns the first/last /row/ (first axis) of an array.
 - like dyadic ~1↑~ / ~¯1↑~ (take) in APL
 
+*** ~⊚~ where {whe} & ~°~
+Returns an array of indices where array values are not equal to ~0~.
+- like monadic ~⍸~ (where) in APL
+- e.g. to get indices from a binary mask
+- works with multi-dimensional arrays (result is always rank 2)
+- on a list it is equivalent to ~˜▽°⊏~
+- for boolean masks, /select where/ ~⊏⊚~ is equivalent to /keep/ ~▽~
+
+#+begin_src uiua
+⊸⊚ > 4 [2 8 3 9 1 7 2]
+### [0 1 0 1 0 1 0] 
+### [1 3 5]         
+
+⊸⊚ > 4 [2_8_3 9_1_7]
+### ╭─        
+### ╷ 0 1 0   
+###   1 0 1   
+###         ╯ 
+### ╭─        
+### ╷ 0 1     
+###   1 0     
+###   1 2     
+###       ╯   
+#+end_src
+
+/un-where/ ~°⊚~ takes an array of indices (can be unordered) and returns an
+array of counts at the position each index indicates.
+#+begin_src uiua
+°⊚ [3 2 8 2 2 5]
+## [0 0 3 1 0 1 0 0 1] 
+
+°⊚ [3_4 2_1 0_3]
+## ╭─            
+## ╷ 0 0 0 1 0   
+##   0 0 0 0 0   
+##   0 1 0 0 0   
+##   0 0 0 0 1   
+##             ╯ 
+#+end_src
+
+/under-where/ ~⍜⊚~ allows for manipulation of the index array from /where/
+before it is inverted (via /un-where/) to an array of positions based on
+these indices.
+#+begin_src uiua
+[1_1_0 0_1_1 0_1_1]
+⍜⊚(▽≡/×¬⊸◿2)
+## ╭─        
+## ╷ 1 0 0   
+##   0 0 0   
+##   0 0 1   
+##         ╯ 
+#+end_src
+
 *** ~⇡~ range {ran} & ~ₙ~
 Creates an array of all natural numbers less than /n/.
-- like monadic /iota/ ~⍳~ in APL
+- like monadic /index generator/ (iota) ~⍳~ in APL
 
 /range/ with /subscript/ changes the /offset/ of the range:
 #+begin_src uiua
@@ -676,23 +756,49 @@ Reverses the array along the first axis.
 *** ~⍉~ transpose {tra} & ~°~
 Transposes/rotates the axes/shape of the array so that the /leading axis/
 will become the /last axis/ of the shape.
-- like ~⍉~ in APL
+- like monadic ~⍉~ (transpose) in APL
 - e.g. the shape of ~⍉°△5_4_3_2_1~ will become ~[4 3 2 1 5]~
+
+#+begin_src uiua
+⍉ [1_2_3
+   4_5_6]
+## ╭─
+## ╷ 1 4
+##   2 5
+##   3 6
+##       ╯
+#+end_src
 
 /un-transpose/ ~°⍉~ instead rotates the /last axis/ to become the /leading axis/
 of the shape.
 - e.g. the shape of ~°⍉°△5_4_3_2_1~ will become ~[1 5 4 3 2]~
 
 #+begin_src uiua
-⍉ . [1_2_3 4_5_6]
-## ╭─      
-## ╷ 1 4   
-##   2 5   
-##   3 6   
-##       ╯ 
+X ← °△2_3_4
+X # 2×3×4
+## ╭─
+## ╷ 0 1  2  3  12 13 14 15
+## ╷ 4 5  6  7  16 17 18 19
+##   8 9 10 11  20 21 22 23
+##                          ╯
+⍉ X # 3×4×2
+## ╭─
+## ╷ 0 12  4 16   8 20
+## ╷ 1 13  5 17   9 21
+##   2 14  6 18  10 22
+##   3 15  7 19  11 23
+##                     ╯
+°⍉ X # 4×2×3
+## ╭─
+## ╷  0  4  8   1  5  9   2  6 10   3  7 11
+## ╷ 12 16 20  13 17 21  14 18 22  15 19 23
+##                                          ╯
 #+end_src
 
-*** ~□~ box & ~°(⍜°)ₙ~
+*** ~¤~ fix {fx / f(→planet)}
+Adds a /length-1/ axis to the array.
+
+*** ~□~ box {bx} & ~°(⍜°)ₙ~
 See [[Array Boxing]].
 
 *** ~⋯~ bits & ~°⍜ₙ~
@@ -714,29 +820,182 @@ incorrect results due to floating point imprecision.
 Reshape the array to fit the given shape.
 - like ~⍴~ (reshape) in APL
 - repeats elements when overcounting the input array (like in APL)
+*** ~↻~ rotate {rot} & ~⬚⍜~
+Rotates the elements of the array by /n/ places /left-//upwards/.
+- like dyadic ~⌽~ (rotate) in APL
+
+/under-rotate/ ~⍜↻<f>~ rotates the array, applies a function to it and
+reverses the rotation:
+#+begin_src uiua
+⍜(↻3|⊂0) [1 2 3 4 5] ## [1 2 3 0 4 5] 
+#+end_src
+
+*** ~⤸~ orient {ori} & ~⬚(⍜⌝)°⌝~
+Changes the order of the axes of the array given a list of unique /axis
+indices/.
+- ~⤸¯1~ is equivalent to /un-transpose/ ~°⍉~
 
 *** ~↙~ ~↘~ take {tak} & ~⬚(°⬚)~, drop {dro} & ~⬚⌝~
 Takes/drops /n/ elements along the first axis of the array.
 - like dyadic ~↑~ (take) / ~↓~ (drop) in APL
 
-/antidrop/ pads an array with fill elements.
+With a given /fill/ ~⬚~ item, any excess amount /taken/ will add that many fill
+items to the array:
+#+begin_src uiua
+⬚@.↙10 "Iverson"  ## "Iverson..." 
+⬚@.↙¯10 "Iverson" ## "...Iverson" 
+#+end_src
+
+Similarly, /anti-drop/ ~⌝↘~ pads an array with /n/ fill elements:
+- uses a default fill item, when no /fill/ ~⬚~ modifier is given
+#+begin_src uiua
+⬚@.⌝↘¯3 "Iverson" ## "Iverson..." 
+⬚@.⌝↘3 "Iverson"  ## "...Iverson" 
+
+↘2 [1 2 3 4 5]        ## [3 4 5] 
+⌝↘2 [1 2 3 4 5]       ## [0 0 1 2 3 4 5] 
+
+↘ 1_2 [1_2_3_4
+       5_6_7_8]
+## ╭─
+## ╷ 7 8
+##       ╯
+⌝↘ 1_2 [1_2_3_4
+        5_6_7_8]
+## ╭─
+## ╷ 0 0 0 0 0 0
+##   0 0 1 2 3 4
+##   0 0 5 6 7 8
+##               ╯
+#+end_src
+
+/under-take/ / /under-drop/ ~⍜↙<f>~ ~⍜↘<f>~ takes/drops items from the array,
+calls a function on them and puts them back into the array:
+#+begin_src uiua
+⍜(↙2)/× [3 5 4 2] ## [15 4 2] 
+#+end_src
 
 *** ~⊡~ pick {pic} & ~°⍜⌝~
 Picks a /row/ or /element/ of the array, given a single index or a list of
 indices (to reach into higher-ranked arrays).
 
+If the index array is /rank 2/ or greater, multiple rows or elements will be
+picked:
+#+begin_src uiua
+⊡ 1 [1_2_3 4_5_6]         ## [4 5 6] 
+⊡ 1_1 [1_2_3 4_5_6]       ## 5 
+⊡ [1_2 0_1] [1_2_3 4_5_6] ## [6 2] 
+#+end_src
+
+/anti-pick/ ~⌝⊡~ inserts the elements of an array at their corresponding
+indices:
+- requires a /fill/ ~⬚~ value if not all indices are present
+#+begin_src uiua
+⬚@-⌝⊡ 3 @a ## "---a" 
+⬚0⌝⊡ 2 [1 2 3 4]
+## ╭─
+## ╷ 0 0 0 0
+##   0 0 0 0
+##   1 2 3 4
+##           ╯
+⬚@X⌝⊡ [1 2] ["cat" "eye"]
+## ╭─
+## ╷ "XXX"  "XXX"  "XXX"
+## ╷ "XXX"  "XXX"  "XXX"
+## ╷
+##   "XXX"  "XXX"  "cat"
+##   "XXX"  "XXX"  "eye"
+##                       ╯
+⬚@X⌝⊡ [1_1 0_3] ["cat" "eye"]
+## ╭─
+## ╷ "XXX"  "XXX"
+## ╷ "XXX"  "cat"
+##   "XXX"  "XXX"
+##   "eye"  "XXX"
+##                ╯
+⌝⊡ 0_0_0 "ab"
+## ╭─       
+## ╷        
+## ╷ "ab"   
+## ╷        
+##        ╯ 
+#+end_src
+
+/un-pick/ ~°⊡~ enumerates the indices of the array:
+- equivalent to /range-by-shape/ ~⇡⊸△~
+#+begin_src uiua
+°⊡ "wow"
+### "wow"
+### ╭─
+### ╷ 0
+###   1
+###   2
+###     ╯
+°⊡ ["pow" "wow"]
+### ╭─
+### ╷ "pow"
+###   "wow"
+###         ╯
+### ╭─
+### ╷ 0 0  1 0
+### ╷ 0 1  1 1
+###   0 2  1 2
+###            ╯
+#+end_src
+
+/under-pick/ ~⍜⊡<f>~ picks an item from the array, applies a function on it
+and puts it back into the original array:
+- if the values passed to /under/ are not constants, they can be put
+  outside, in a different order
+- to replace the value at the index, use /pop/ ~◌~ or /gap/ ~⋅~
+#+begin_src uiua
+⍜(⊡2|×10) [1 2 3 4] ## [1 2 30 4]
+⍜⊡× 2 [1 2 3 4] 10 ## [1 2 30 4]
+
+⍜(⊡2)⋅∞ [1 2 3 4] ## [1 2 ∞ 4] 
+⍜⊡◌ 2 [1 2 3 4] ∞ ## [1 2 ∞ 4] 
+#+end_src
+
 *** ~⊏~ select {sel} & ~⬚°⍜⌝~
 Selects /rows/ from an array according to an index vector.
 
+/anti-select/ ~⌝⊏~ creates an array where each element of the input array is
+arranged according to the given index vector:
+- a /fill/ ~⬚~ modifier can be attached to fill empty positions
+- without a /fill/, it is essentially a permutation
+
 #+begin_src uiua
-⊏ [1 2 5] "abcdef" #=> "bcf"
-⬚@-⌝⊏ [1 2 5] "bcf" #=> "-bc--f"
+⊏ [2 0 1 1] "abc"   ## "cabb" 
+⬚@-⌝⊏ [5 2 1] "bcf" ## "-fc--b" 
+⌝⊏ [2 0 1] "abc"    ## "bca" 
 #+end_src
+
+/un-select/ ~°⊏~ produces an array of indices for the rows of the input array
+while leaving it on the stack:
+#+begin_src uiua
+°⊏ "enumerate"
+### "enumerate"         
+### [0 1 2 3 4 5 6 7 8] 
+
+≡°⊏ ["hello" "world"]
+### ╭─            
+### ╷ "hello"     
+###   "world"     
+###           ╯   
+### ╭─            
+### ╷ 0 1 2 3 4   
+###   0 1 2 3 4   
+###             ╯ 
+#+end_src
+
+/under-select/ ~⍜⊏<f>~ selects items from the array, applies a function on
+them and puts them back into the original array.
+- works similar to /under-pick/
 
 *** ~▽~ keep {kee} & ~⊸⬚°ₙ⍜⌝~
 Discards or copies items in an array:
 : ▽ <mask> <arr>
-- like dyadic /replicate first/ ~⌿~ in APL
+- like dyadic ~⌿~ (replicate first) in APL
 
 Example:
 #+begin_src uiua
@@ -758,6 +1017,52 @@ Example:
 [1 4 9 4 25]
 #+end_src
 
+*** ~⌕~ find
+Returns a boolean array that marks (the start of) each occurrence of the
+first array in the second.
+- like dyadic ~⍷~ (find) in APL
+
+*** ~⦷~ mask
+*** ~∊~ memberof {mem / elem}
+Checks if each row in the second array exists in the first one and returns
+an array of boolean numbers.
+- like dyadic ~∊~ (membership) in APL (arg. order swapped!)
+
+#+begin_src uiua
+∊ [1 2 3] 2           ## 1 
+∊ [1 2 3] 4           ## 0 
+∊ [0 3 4 5 1] [1 2 3] ## [1 0 1] 
+∊ [3 4 5] [1_2_3 4_5_6]
+## ╭─
+## ╷ 0 0 1
+##   1 1 0
+##         ╯
+#+end_src
+
+/keep-by-memberof/ ~▽⊸∊~ gets the /intersection/ of two arrays/sets.
+
+*** ~⊗~ indexin {idx / ind} & ~⬚~
+Finds the first index in the first array of each row of the second array.
+- like dyadic ~⍳~ (index of) in APL, except that this only applies to /major
+  cells/ for higher-ranked arrays, while /indexin/ applies to each /k-cell/ of
+  the first arg. for a second arg. of rank /k/
+- returns the /length/ of the searched-in array if the index cannot be found
+  or a /fill-item/ if the /fill/ ~⬚~ modifier is specified
+
+#+begin_src uiua
+⨂ [1 2 3] 2     ## 1 
+⨂ [1 2 3] [2 3] ## [1 2] 
+
+⨂ [[1_2 3_4] [5_6 7_8]] 4
+## ╭─
+## ╷ 2 1
+##   2 2
+##       ╯
+⨂ [[1_2 3_4] [5_6 7_8]] [3 4]
+## [1 2]
+#+end_src
+
+*** ~≍~ match
 *** ~⊂~ join {joi} & ~⬚°ₙ~
 Concatenates two arrays or appends a new /row/ in case of a scalar.
 - like dyadic ~⍪~ (catenate first) in APL
@@ -765,10 +1070,44 @@ Concatenates two arrays or appends a new /row/ in case of a scalar.
 
 *** ~⊟~ couple {cou} & ~⬚°ₙ~
 Combine two arrays as /rows/ of a new array (increases the rank).
+- with a /subscript/, more than 2 arrays can be coupled
+- can be combined with /rows/ ~≡~ to couple pairs of rows from both arrays
 
-The *inverse* ~°⊟~ separates combined arrays.
+#+begin_src uiua
+⊟ 1 2       ## [1 2] 
+⊟₃ @f @u @n ## "fun" 
+⊟ [1 2 3] [4 5 6]
+## ╭─
+## ╷ 1 2 3
+##   4 5 6
+##         ╯
+≡⊟ [1 2 3] [4 5 6]
+## ╭─
+## ╷ 1 4
+##   2 5
+##   3 6
+##       ╯
+#+end_src
 
-Use /fill/ ~⬚~ if shapes don’t match:
+/un-couple/ ~°⊟~ separates combined arrays:
+#+begin_src uiua
+°⊟ [1 2]
+### 2 
+### 1 
+
+°⊟ [0_1_2
+    3_4_5]
+### [3 4 5] 
+### [0 1 2] 
+
+≡°⊟₃ [0_1_2
+      3_4_5]
+#### [2 5] 
+#### [1 4] 
+#### [0 3] 
+#+end_src
+
+/fill/ ~⬚~ completes the coupled array when shapes don’t match:
 #+begin_src uiua
 ⬚@ ⊟ "Apple" "Pie"
 ## ╭─          
@@ -777,7 +1116,42 @@ Use /fill/ ~⬚~ if shapes don’t match:
 ##           ╯ 
 #+end_src
 
+*** ~⊥~ base
+Returns the base digits of the number in the second argument, given a
+single base or a list of bases for each digit in the first argument.
+- like binary ~⊤~ (encode) in APL, except that the shape of the output shape
+  is reversed and each number reads from left to right instead rtl. So
+  prepending ~⇌⍉~ makes them equal
+- digits are listed /least-significant/ to /most-significant/ and are
+  represented by integers only (no letters)
+- with a list of bases, any unlisted remaining digit will be truncated
+  - an ~∞~ at the end of the list collects the remainder in that “digit”
+
+#+begin_src uiua
+⊥ 2 38       ## [0 1 1 0 0 1] 
+⊥ [2 2 2] 38 ## [0 1 1] 
+⊥ [2 2 ∞] 38 ## [0 1 9] 
+
+⊥ 16 18      ## [2 1] 
+
+⊥ 2 ⇡ⁿ2 3
+## ╭─
+## ╷ 0 0 0 0
+##   1 0 0 0
+##   0 1 0 0
+##   1 1 0 0
+##   0 0 1 0
+##   1 0 1 0
+##   0 1 1 0
+##   1 1 1 0
+##   0 0 0 1
+##           ╯
+#+end_src
+
 ** Misc
+*** ~repr~ {rpr}
+Converts a value to its code representation.
+
 *** ~&ims~ image - show
 Shows an image, depending on the system backend.
 
@@ -858,7 +1232,7 @@ operating on them:
 [3 10 18]
 #+end_src
 
-*** ~⋅~ gap [mon.] {g(→planet)}
+*** ~⋅~ gap [mon.] {ga / g(→planet)}
 Discards the top stack value before calling the function.
 - also see the function /pop/ ~◌~
 
@@ -967,10 +1341,111 @@ when using a /function pack/:
 ### [1 0 1 1 1 1 0 0] 
 #+end_src
 
+*** ~⟜~ ~⤚~ on, off
+Keeps the first argument before /(on)/ / behind /(off)/ the output.
+
+*** ~⊸~ ~⤙~ by, with
+Keeps the last argument behind /(by)/ / before /(with)/ the output.
+
+With /with/, multiple dyadic functions can be called with the same last
+argument:
+#+begin_src uiua
++1⤙×2 5
+### 10 
+### 6  
+#+end_src
+
+Combined with /planet notation/, /with/ can copy or move items lower in the
+stack to the top:
+#+begin_src uiua
+[⤙⊙⊙⊙∘ 1 2 3 4] ## [4 1 2 3 4] 
+[⤙⊙⊙⊙◌ 1 2 3 4] ## [4 1 2 3] 
+[⤙⊙⊙∘ 1 2 3 4]  ## [3 1 2 3 4] 
+[⤙⊙⊙◌ 1 2 3 4]  ## [3 1 2 4] 
+#+end_src
+
+*** ~◠~ ~◡~ above, below
+
 ** Iterating Modifiers
-*** ~≡~ rows {row}
+*** ~≡~ rows {row} & ~ₙ⌞⌟~
 Applies the function to /each row/ of the array(s).
 : ≡<f> <arr …>
+- similar to monadic operator ~¨~ (each) in APL
+
+Using a /numeric subscript/ specifies the /rank/ of the subarrays the function
+operates on:
+- this is equivalent to stacking multiple ~≡~
+- positive subscripts count from bottom to top
+- negative subscripts count from top to bottom, like normal/stacked ~≡~
+#+begin_src uiua
+≡₀□ °△ 2_3_4 # Scalars <=> ≡₋₃□ <=> ≡≡≡□
+## ┌─
+## ╷ ∙0│∙1│∙2 │∙3 ║∙12│∙13│∙14│∙15
+## ╷ ──┼──┼───┼───╫───┼───┼───┼───
+##   ∙4│∙5│∙6 │∙7 ║∙16│∙17│∙18│∙19
+##   ──┼──┼───┼───╫───┼───┼───┼───
+##   ∙8│∙9│∙10│∙11║∙20│∙21│∙22│∙23
+##                                 ┘
+≡₁□ °△ 2_3_4 # Vectors <=> ≡₋₂□ <=> ≡≡□
+## ┌─
+## ╷ 0 1 2 3    │4 5 6 7    │8 9 10 11
+##   ───────────┼───────────┼───────────
+##   12 13 14 15│16 17 18 19│20 21 22 23
+##                                       ┘
+≡₂□ °△ 2_3_4 # Matrices <=> ≡₋₁□ <=> ≡□
+## ┌─
+##   0 1  2  3│12 13 14 15
+##   4 5  6  7│16 17 18 19
+##   8 9 10 11│20 21 22 23
+##                         ┘
+≡₃□ °△ 2_3_4
+##  ╭─
+##  ╷ 0 1  2  3  12 13 14 15
+## □╷ 4 5  6  7  16 17 18 19
+##    8 9 10 11  20 21 22 23
+##                           ╯
+#+end_src
+
+With a /sided subscript/, either the first ~⌞~ or the last ~⌟~ argument will be
+/fix/'ed ~¤~:
+- can be followed by a number to specify how many arguments to fix
+- can be combined with a /numeric subscript/ before the /sided subscr./
+#+begin_src uiua
+≡⌞⊂ "ro" "wt" # reuses "ro" 
+## ╭─
+## ╷ "row"
+##   "rot"
+##         ╯
+≡⌟⊂ "cm" "at" # reuses "at"
+## ╭─
+## ╷ "cat"
+##   "mat"
+##         ╯
+
+≡⌞₂(⊂⊂) 1_2 3_4 5_6
+## ╭─            
+## ╷ 1 2 3 4 5   
+##   1 2 3 4 6   
+##             ╯ 
+≡⌟₂(⊂⊂) 1_2 3_4 5_6
+## ╭─            
+## ╷ 1 3 4 5 6   
+##   2 3 4 5 6   
+##             ╯
+
+⤚≡₂⌟₁□₃ °△2_2_3 "hi" "there"
+### ╭─                      
+### ╷ 0 1 2  6  7  8        
+### ╷ 3 4 5  9 10 11        
+###                  ╯      
+### ┌─                      
+### ╷ 0 1 2  │∙@h│"there"   
+###   3 4 5  │   │          
+###   ───────┼───┼───────   
+###   6  7  8│∙@i│"there"   
+###   9 10 11│   │          
+###                       ┘ 
+#+end_src
 
 *** ~⊞~ table {tab}
 Applies ~f~ on all combinations of rows from arrays ~a~ and ~b~:
@@ -986,6 +1461,22 @@ Applies ~f~ on all combinations of rows from arrays ~a~ and ~b~:
   2 1 7  4 3 7  
                ╯
 #+end_src
+
+*** ~⧈~ stencil {st} & ~⬚ₙ~
+Applies function ~f~ on /shape/-~s~ sized /sliding windows/ of the array:
+: ⧈<f><s> <arr>
+- scalar sizes can also be specified by /subscript/
+- if ~f~ is not /monadic/, window size will be determined by its arity
+
+With a window size of ~[[n]]~, stencil can be used to partition an array
+into equally-sized chunks:
+#+begin_src uiua
+⧈□[[2]] "lorem ipsum"
+## ["lo"│"re"│"m "│"ip"│"su"] 
+⬚@ ⧈□[[3]] "lorem ipsum"
+## ["   "│"   "│"lor"│"em "│"ips"│"um "│"   "] 
+#+end_src
+
 *** ~⍚~ inventory
 Applies the function to each /unboxed/ row of an array and re-/boxes/ the
 result.
@@ -997,15 +1488,103 @@ Applies reducing function ~f~ to the array (“between” its items):
 : /<f> <arr>
 - reduces along the /first/ axis (across columns in a matrix)
 - like monadic op. ~⌿~ (reduce first) in APL
+*** ~\~ scan {sca}
+Like /reduce/ ~/~, but keeps intermediate values.
+: \<f> <arr>
+- scans along the /first/ axis (across columns in a matrix)
+- like monadic op. ~⍀~ (scan first) in APL
+*** ~∧~ fold {fol}
+*** ~⊕~ group {gro} & ~°⍜⬚~
+Splits the array into groups of items matching the same integer in a given
+~indices~ list and applies function ~f~ to each group.
+: ⊕<f> <indices> <arr>
+- kind-of like dyadic ~⌸~ (key) in APL, but keys would be implicit as
+  indices of the matrix rows and there is no nested array
+  - maybe together with /classify/ ~⊛~ it behaves more like key
+- the resulting array is ordered by the indices in the list
+- indices/keys less than 0 are omitted
+
+The values returned by the function must all have the same /shape/ to be
+properly concatenated in the resulting array. If this is not the case, a
+/fill/ ~⬚~ item can be provided to fix the shapes:
+#+begin_src uiua
+⬚∞⊕∘ [0 1 0 2 1 1] [1 2 3 4 5 6]
+## ╭─        
+## ╷ 1 3 ∞   
+##   2 5 6   
+##   4 ∞ ∞   
+##         ╯ 
+#+end_src
+
+Or just /box/ ~□~ each group to encapsulate different shapes:
+#+begin_src uiua
+⊕□ [0 1 0 2 1 1] [1 2 3 4 5 6]
+## [1 3│2 5 6│4] 
+#+end_src
+
+*** ~⊜~ partition {par} & ~°⍜⬚~
+Groups sequential sections of ~arr~ according to a ~markers~ list of integers
+and applies function ~f~ to each group.
+: ⊜<f> <markers> <arr>
+- like dyadic ~⊆~ (partition) in APL, except ~⊆~ doesn’t take a function
+- markers don’t imply any ordering, they can be any integer
+  - e.g. the list can be a boolean mask ~[1 1 0 0 1 1 0 0]~
+- markers less than or equal to 0 are omitted
+- both arguments must be the same length
+
+The values returned by the function must all have the same /shape/ to be
+properly concatenated in the resulting array. If this is not the case, a
+/fill/ ~⬚~ item can be provided to fix the shapes:
+#+begin_src uiua
+⬚∞⊜∘ [0 2 3 3 3 0 1 1] [1 2 3 4 5 6 7 8]
+## ╭─        
+## ╷ 2 ∞ ∞   
+##   3 4 5   
+##   7 8 ∞   
+##         ╯ 
+#+end_src
+
+Or just /box/ ~□~ each partition to encapsulate different shapes:
+#+begin_src uiua
+⊜□ [0 2 3 3 3 0 1 1] [1 2 3 4 5 6 7 8]
+## [2│3 4 5│7 8] 
+
+⊜□ ⊸≠@  $ Hey there friendo
+## ["Hey"│"there"│"friendo"] 
+#+end_src
+
+The idiom ~⍜⊜□⍚<f>~ can be used to apply an operation to partitions of an
+array before restoring the original array structure:
+#+begin_src uiua
+⍜⊜□⍚⇌⊸≠@  "get in the racecar" ## "teg ni eht racecar" 
+#+end_src
 
 ** Inversion Modifiers
 *** ~°~ un
 Inverts the behaviour of a function.
-- e.g. for unboxing: ~°□~
+- e.g. for /un-boxing/: ~°□~
+- the inverse must always have the opposite signature of the function
+  - e.g. signature ~|2.1~ must become ~|1.2~
+
+/un-by/ ~°⊸<f>~ applies the “undo” part of a function’s /under/ ~⍜~ inverse
+without the “do” part.
+- works only for /monadic/ functions
+
+#+begin_src uiua
+⍜⊢(×10) [2 3 4] ## [20 3 4] 
+°⊸⊢ 0 [2 3 4]   ## [0 3 4] 
+
+⍜(⊡2)(⋅5) [1 2 3 4] ## [1 2 5 4] 
+°⊸(⊡2) 5 [1 2 3 4]  ## [1 2 5 4] 
+#+end_src
 
 *** ~⌝~ anti
 Inverts the behaviour of a function, treating its first argument as a
 constant(?)
+- similar to /un/ ~°~, but allows the use of external arguments
+- for dya. func. ~F~ and values ~A~ and ~B~, ~⌝F A B~ is equivalent to ~°(F A) B~
+- the /anti inverse/ of a function with signature ~|a.b~ is ~|(b+1).(a-1)~
+  - e.g. signature ~|2.1~ will stay ~|2.1~
 
 *** ~⍜~ under
 Operates (~g~) on a transformed (~f~) array, then reverses the transformation.
@@ -1033,12 +1612,102 @@ so it becomes a valid array:
 #=>
 [1 2 3 π π]
 #+end_src
-* Idioms
+* Pattern Matching
+See https://www.uiua.org/tutorial/Pattern%20Matching
+
+The /un/ ~°~ modifier can be applied to constants to pattern-match them. If the
+constant is not equal to the argument, an error is thrown. Otherwise, the
+argument is popped from the stack.
+
+Using /planet notation/, arrays can be destructured to match certain values and
+extract others:
+#+begin_src uiua
+°[1⊙3] [1 5 3]             ## 5 
+°[1 2⊙⊙(5∘)] [1 2 3 4 5 6] #### 6 
+                           #### 4 
+                           #### 3 
+°[1_2 [⊙4]] [1_2 3_4]      ## 3 
+#+end_src
+
+/un-join/ ~°⊂~ with a constant can be used to match arrays with a certain
+/prefix/ or /suffix/ (using /backward/ ~˜~):
+#+begin_src uiua
+°(⊂1) [1 2 3] ## [2 3]
+°(˜⊂3) [1 2 3] ## [1 2] 
+#+end_src
+
+* Idioms/Recipes
 Sources:
+- https://www.uiua.org/docs/idioms
 - https://tankorsmash.unison-services.cloud/s/uiuisms-service/
+
+Duplicate a value on the stack:
+: ⟜∘
+
+Check if all rows in an array are equal:
+: ≍⊸↻1
+
+Create an array of indices with the given ~shape~:
+: °△<shape>
+
+Get prime factors of a number:
+: °/×
+Check if a number is prime:
+: =1⧻°/×
+
+Partition a string by spaces:
+: ⊜□⊸≠@\s
+
+Get the lowercase/uppercase alphabet:
+: +⇡26@a
+: +⇡26@A
+Get the digits from 0-9 as a string:
+: +⇡10@0
+
+Linear interpolation (lerp):
+: Lerp ← ⌅(
+:   +⊃⊢(×/-) # normal <[min max]> <ratio> -> <result>
+: | ÷⊃/-(-⊢) # inverse <[min max]> <result> -> <ratio>
+: )
 
 Upscale a 2d matrix or colored image:
 : ▽⟜≡▽
 
+Rotate a 2d matrix or colored image 90°:
+: ⤸1
+
+Separate an RGB image into its channels:
+: °⊟₃⬚0⤸2_0_1_2 <img-arr>
+
 Create a checkerboard of size N:
 : ◿2⊞+.⇡ 8
+
+Convert RGB array (e.g. ~[150 255 210]~) to hex code:
+: ⊂@#♭˜⊏HexDigits≡⇌⊥[16 16]
+
+Check for leap year:
+: ↧↥⊃(=0◿400|≠0◿100|=0◿4)
+
+* Constants & Easter Eggs
+Placeholder Text (445 characters):
+: Lorem
+
+Colors:
+: Black White
+: => [0 0 0] [1 1 1]
+: Red Green Blue
+: => [1 0 0] [0 1 0] [0 0 1]
+: Cyan Magenta Yellow
+: => [0 1 1] [1 0 1] [1 1 0]
+: Purple Orange
+: => [0.5 0 1] [1 0.5 0]
+
+Images:
+: Lena Cats Logo
+
+Audio:
+: Amen Music
+
+Fun:
+: # Boo!
+
