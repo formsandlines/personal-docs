@@ -721,6 +721,14 @@ Extract the first item of an array (“unzips” an /enclosed array/):
 Pick an item in ~arr~ by index/indices:
 : <idx>⊃<arr>
 
+**** ~⊆~ → Nest (mon.), Partition (dya.)
+
+Turn an array into a nested array:
+: ⊆<arr>
+
+Partition an array according to equal subsequences in a ~parts~ vector:
+: <parts>⊆<arr>
+
 **** ~, ⍪~ → *Ravel* (mon.), *Catenate {Join} / …first* (dya.)
 
 Join (“ravel”) scalars of an array into a vector (“row-major” order):
@@ -803,11 +811,24 @@ Equivalences:
 : +/⍳n ←→ ((n+1)×n)÷2
 
 **** ~⍸~ → *Where* (mon.), *Interval Index* (dya.)
-
 Get /n/ indices for all /n>0/ in a boolean/integer array:
 : ⍸ <arr>
 - doesn’t work for nested arrays
 - returns a vector of nested indices for arrays of rank > 1
+
+Given an ordered set of intervals/ranges, determine for each scalar in
+the array the index of one of the intervals it belong to:
+: <interval-vec> ⍸ <arr>
+- returns an array of the same shape of the original array
+
+The interval conditions for each index of a vector /a b c/ are as follows:
+
+| i | condition |
+|---+-----------|
+| 0 | X < a     |
+| 1 | a ≥ X < b |
+| 2 | b ≥ X < c |
+| 3 | X ≥ c     |
 
 **** ~⌽~ ~⍉~ ~⊖~ → Reversal / Rotation / Transposition
 - ~⌽~ → *Reversal* (mon.), *Rotation* (dya.)

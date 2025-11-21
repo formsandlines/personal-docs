@@ -1810,6 +1810,13 @@ For a list of available themes and to toggle between them:
 To disable a theme:
 : M-x disable-theme
 
+When a custom face has been defined (via ~defface~) and is being redefined
+later (e.g. by changing and reloading the config), it may not get updated
+due to caching. Clearing the face cache or resetting the face-spec fixes
+that:
+: (clear-face-cache)
+: (face-spec-reset-face 'some-face)
+
 Accessible and highly customizable themes:
 - [[#modus-themes][(built-in) modus-themes]]
 
