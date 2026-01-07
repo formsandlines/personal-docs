@@ -2,14 +2,6 @@
 
 - [[https://geogebra.github.io/docs/manual/en/][Manual with list of Commands]]
 
-* Usage
-
-Press ~ESC~ to switch from any tool back to the selection tool.
-
-Start typing after selecting an object to rename it.
-- if the name is already taken by another object, this object will be renamed
-  by appending ‘_n’ (where /n/ is an integer starting with 1)
-  
 * Data
 
 Point:
@@ -100,6 +92,14 @@ that tool (also applies to the last created object).
 Sources:
 - https://geogebra.github.io/docs/manual/en/Keyboard_Shortcuts/
 - https://help.geogebra.org/hc/en-us/articles/20048444963869-Accessibility
+
+Press ~ESC~ to switch from any tool back to the selection tool.
+
+Hold ~Ctrl~ to add/remove objects to a selection.
+
+Start typing after selecting an object to rename it.
+- if the name is already taken by another object, this object will be renamed
+  by appending ‘_n’ (where /n/ is an integer starting with 1)
 
 | Shortcut          | Description                                          |
 |-------------------+------------------------------------------------------|

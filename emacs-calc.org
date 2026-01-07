@@ -632,20 +632,20 @@ Intervals are always ascending and will be flipped accordingly when their
 bounds values change to descending, keeping open/closed bounds.
 
 ** Date & Time
-| <16>           | <12>       | <38>                                                                             |
-| Command key(s) | Formula    | Meaning                                                                          |
-|----------------+------------+----------------------------------------------------------------------------------|
-|                | ~<…>~        | enter date form (various input formats)                                          |
-| ~<h>@ <m>' <s>"~ | same       | enter HMS form                                                                   |
-|----------------+------------+----------------------------------------------------------------------------------|
-| ~t N~            |            | current date and time in date form                                               |
-| ~x time~         |            | current time of day in HMS/modulo form                                           |
-| (~M-<1-9>~) ~t P~  |            | extract part (prefix 1-9) of a date form                                         |
-| ~t I~            |            | increment month                                                                  |
-| ~t +~ / ~t -~      |            | add/subtract /x/ business days                                                     |
-| ~t W~            |            | find beginning of the week from date                                             |
-|----------------+------------+----------------------------------------------------------------------------------|
-| ~t D~            |            | date to/from number (days since Jan 1, 1 AD)                                     |
+| <16>           | <12>       | <38>                                                                               |
+| Command key(s) | Formula    | Meaning                                                                            |
+|----------------+------------+------------------------------------------------------------------------------------|
+|                | ~<…>~        | enter date form (various input formats)                                            |
+| ~<h>@ <m>' <s>"~ | same       | enter HMS form                                                                     |
+|----------------+------------+------------------------------------------------------------------------------------|
+| ~t N~            |            | current date and time in date form                                                 |
+| ~x time~         |            | current time of day in HMS/modulo form                                             |
+| (~M-<1-9>~) ~t P~  |            | extract part (prefix 1-9) of a date form                                           |
+| ~t I~            |            | increment month                                                                    |
+| ~t +~ / ~t -~      |            | add/subtract /x/ business days                                                       |
+| ~t W~            |            | find beginning of the week from date                                               |
+|----------------+------------+------------------------------------------------------------------------------------|
+| ~t D~            |            | date to/from number (days since Jan 1, 1 AD)                                       |
 | ~c h~            | ~hms(h,m,s)~ | convert real number(s) to HMS form (interpreted according to current angular mode) |
 
 The /trigonometric/ functions accept HMS forms directly as input.

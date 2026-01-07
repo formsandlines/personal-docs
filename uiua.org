@@ -6,7 +6,9 @@
 Online REPL: https://www.uiua.org/pad
 
 Docs: https://www.uiua.org/docs/
+- [[https://www.uiua.org/docs#tutorial][Tutorial]]
 - [[https://www.uiua.org/docs/combinators][Combinators]]
+- [[https://www.uiua.org/tutorial/documentation][Documenting Code]]
 
 /Array-oriented/ programming language with a /stack-based/ execution model and a
 /flat array/ model.
@@ -684,6 +686,8 @@ arrays:
 *** ~⊢~ ~⊣~ first {fir} & ~⍜ₙ~, last {las} & ~⍜ₙ~
 Returns the first/last /row/ (first axis) of an array.
 - like dyadic ~1↑~ / ~¯1↑~ (take) in APL
+- with /subscript/, puts that many rows/elements on the stack
+  - stack order is reversed for /last/
 
 *** ~⊚~ where {whe} & ~°~
 Returns an array of indices where array values are not equal to ~0~.
@@ -958,6 +962,7 @@ and puts it back into the original array:
 
 *** ~⊏~ select {sel} & ~⬚°⍜⌝~
 Selects /rows/ from an array according to an index vector.
+- like an index selection ~arr[…]~ or the idiom ~⊂⍛⌷~ in Dyalog APL
 
 /anti-select/ ~⌝⊏~ creates an array where each element of the input array is
 arranged according to the given index vector:
@@ -1247,6 +1252,7 @@ Calls two functions on the same value(s) and puts both outputs on the
 stack.
 - the functions can be of any arity; if one function takes fewer
   arguments, it just uses that many arguments from the top of the stack
+- always executes the right branch before the left
 - important for threading data through a program and for /planet notation/
 
 #+begin_src uiua
@@ -1341,10 +1347,10 @@ when using a /function pack/:
 ### [1 0 1 1 1 1 0 0] 
 #+end_src
 
-*** ~⟜~ ~⤚~ on, off
+*** ~⟜~ ~⤚~ on, off [mon.]
 Keeps the first argument before /(on)/ / behind /(off)/ the output.
 
-*** ~⊸~ ~⤙~ by, with
+*** ~⊸~ ~⤙~ by, with {wit} [mon.]
 Keeps the last argument behind /(by)/ / before /(with)/ the output.
 
 With /with/, multiple dyadic functions can be called with the same last
@@ -1364,10 +1370,10 @@ stack to the top:
 [⤙⊙⊙◌ 1 2 3 4]  ## [3 1 2 4] 
 #+end_src
 
-*** ~◠~ ~◡~ above, below
+*** ~◠~ ~◡~ above {abo}, below {bel} [mon.]
 
 ** Iterating Modifiers
-*** ~≡~ rows {row} & ~ₙ⌞⌟~
+*** ~≡~ rows [mon.] {row} & ~ₙ⌞⌟~
 Applies the function to /each row/ of the array(s).
 : ≡<f> <arr …>
 - similar to monadic operator ~¨~ (each) in APL
@@ -1447,10 +1453,11 @@ With a /sided subscript/, either the first ~⌞~ or the last ~⌟~ argument will
 ###                       ┘ 
 #+end_src
 
-*** ~⊞~ table {tab}
+*** ~⊞~ table [mon.] {tab}
 Applies ~f~ on all combinations of rows from arrays ~a~ and ~b~:
 : ⊞<f> <a> <b>
 - there seems to be no analog in APL, /outer product/ only works scalar-wise
+- always operates on the rows /(leading axis)/, regardless of the ranks
 
 #+begin_src uiua
 ⊞(⊂⇌) [1_2 3_4] [5 6 7]
@@ -1462,7 +1469,7 @@ Applies ~f~ on all combinations of rows from arrays ~a~ and ~b~:
                ╯
 #+end_src
 
-*** ~⧈~ stencil {st} & ~⬚ₙ~
+*** ~⧈~ stencil [mon.] {st} & ~⬚ₙ~
 Applies function ~f~ on /shape/-~s~ sized /sliding windows/ of the array:
 : ⧈<f><s> <arr>
 - scalar sizes can also be specified by /subscript/
@@ -1477,24 +1484,75 @@ into equally-sized chunks:
 ## ["   "│"   "│"lor"│"em "│"ips"│"um "│"   "] 
 #+end_src
 
-*** ~⍚~ inventory
+*** ~⧅~ tuples [mon.] {tup} & ~⬚ₙ~
+
+: ⧅<f><n> <arr>
+
+*** ~⍚~ inventory [mon.] {inv}
 Applies the function to each /unboxed/ row of an array and re-/boxes/ the
 result.
 : ⍚<f>
 
+*** ~⍥~ repeat [mon.] {rep}
+Iterates a function ~n~ times.
+: ⍥<f> <n>
+
+/repeat/ can be used to conditionally call a function when ~n~ gets replaced
+with a predicate. The returned boolean will either call the function 0 or
+1 times:
+#+begin_src uiua
+F ← ⍥(×10)⊸<10
+F 5  ## 50 
+F 12 ## 12 
+#+end_src
+
+*** ~⍢~ do [dya.]
+Repeatedly calls ~f~ as long as the ~condition~ function returns ~1~.
+- the condition is evaluated first (like a /while loop)/
+- only way to do an infinite loop in Uiua (using ~1~ as the ~condition~)
+- array ops are almost always faster, so only use when necessary
+: ⍢(<f>|<condition>)
+
+If ~f~ is part of the ~condition~ instead of the first argument (which is then
+the identity function), ~⍢~ can be used as a /do-while/ loop instead:
+#+begin_src uiua
+# as a while loop:
+⍢(⊂+1⊸⊢|<3⊢) [3] ## [3] 
+# as a do-while loop:
+⍢(∘|⊙⊂⊸<3+1⊸⊢) [3] ## [4 3] 
+#+end_src
+
+Depending on the /net signature/ of the /composed signature/ from the two
+input functions, either:
+- arguments will be reused (net negative)
+- nothing else happens (net 0)
+- last outputs get collected in an array (net positive)
+#+begin_src uiua
+[⍢(+1|>) 0 10]    # Net negative, 10 is reused
+⍢(+1|<10) 0       # Net 0, just calls functions
+⍢(⤚(+₁⊙∘)|>) 0 10 # Net positive, last outputs collected
+#### [10 10]
+#### 10
+#### [0 1 2 3 4 5 6 7 8 9]
+#+end_src
+- example modified from [[https://discord.com/channels/1156339038748413952/1156817423048118343/1454927866218414325][Uiua Discord]] (posted by Kaikalii)
+
 ** Aggregating Modifiers
-*** ~/~ reduce {red}
+*** ~/~ reduce [mon.] {red}
 Applies reducing function ~f~ to the array (“between” its items):
 : /<f> <arr>
 - reduces along the /first/ axis (across columns in a matrix)
 - like monadic op. ~⌿~ (reduce first) in APL
-*** ~\~ scan {sca}
+*** ~\~ scan [mon.] {sca}
 Like /reduce/ ~/~, but keeps intermediate values.
 : \<f> <arr>
 - scans along the /first/ axis (across columns in a matrix)
 - like monadic op. ~⍀~ (scan first) in APL
-*** ~∧~ fold {fol}
-*** ~⊕~ group {gro} & ~°⍜⬚~
+
+Use the ~⬚~ /fill/ operator to add a different initial value.
+
+*** ~∧~ fold [mon.] {fol}
+*** ~⊕~ group [mon.] {gro} & ~°⍜⬚~
 Splits the array into groups of items matching the same integer in a given
 ~indices~ list and applies function ~f~ to each group.
 : ⊕<f> <indices> <arr>
@@ -1522,7 +1580,7 @@ Or just /box/ ~□~ each group to encapsulate different shapes:
 ## [1 3│2 5 6│4] 
 #+end_src
 
-*** ~⊜~ partition {par} & ~°⍜⬚~
+*** ~⊜~ partition [mon.] {par} & ~°⍜⬚~
 Groups sequential sections of ~arr~ according to a ~markers~ list of integers
 and applies function ~f~ to each group.
 : ⊜<f> <markers> <arr>
@@ -1560,7 +1618,7 @@ array before restoring the original array structure:
 #+end_src
 
 ** Inversion Modifiers
-*** ~°~ un
+*** ~°~ un [mon.]
 Inverts the behaviour of a function.
 - e.g. for /un-boxing/: ~°□~
 - the inverse must always have the opposite signature of the function
@@ -1578,7 +1636,7 @@ without the “do” part.
 °⊸(⊡2) 5 [1 2 3 4]  ## [1 2 5 4] 
 #+end_src
 
-*** ~⌝~ anti
+*** ~⌝~ anti [mon.] {ant}
 Inverts the behaviour of a function, treating its first argument as a
 constant(?)
 - similar to /un/ ~°~, but allows the use of external arguments
@@ -1586,10 +1644,13 @@ constant(?)
 - the /anti inverse/ of a function with signature ~|a.b~ is ~|(b+1).(a-1)~
   - e.g. signature ~|2.1~ will stay ~|2.1~
 
-*** ~⍜~ under
+*** ~⍜~ under [dya.] {und}
 Operates (~g~) on a transformed (~f~) array, then reverses the transformation.
 : ⍜<f><g>
 - more powerful version of /un/ ~°~
+
+*** ~⌅~ obverse [mon.] {obv}
+Defines inverses of a function.
 
 ** Other Modifiers
 *** ~⬚~ fill {fil}
@@ -1612,6 +1673,73 @@ so it becomes a valid array:
 #=>
 [1 2 3 π π]
 #+end_src
+*** ~⨬~ switch [dya.] {sw}
+Calls either ~f~ or ~g~ depending on the given ~index~ (selector).
+- may also take a /function pack/ to switch between more than 2 functions
+- the function signatures do not need to match exactly, any excess args
+  will be discarded
+: ⨬<f><g> <index>
+
+The ~index~ can also be a list of indices, in which case a list of results
+from the functions selected by each index is returned for each
+corresponding input /row/ (similar to /rows/ ~≡~).
+- indices may be repeated, which just calls the same function again
+- in this case, the shapes of all returned values must match
+#+begin_src uiua
+⨬+- 0 [1 2 3] [4 5 6]       ## [5 7 9] 
+⨬+- [1 0 1] [1 2 3] [4 5 6] ## [3 7 3]
+
+⨬(+|-|×|÷) [1 2 0 3] 2 5       ## [3 10 7 2.5] 
+⨬(+|-|×|÷) [1 2 0 3] ↯4 2 ↯4 5 ## [3 10 7 2.5] 
+#+end_src
+
+/switch/ can be used to write a switch expression like in non-array
+languages using /index-in/ ~⨂~ to find the index of the first true predicate:
+#+begin_src uiua
+F ← ⨬("small"|"medium"|"large")˜⨂1⊂⊃(<₁₀|<₁₀₀)
+# or equivalently:
+F = ⨬("small"|"medium"|"large")/+≥[10 100]
+
+F 3   ## "small" 
+F 13  ## "medium" 
+F 113 ## "large" 
+#+end_src
+
+/switch/ can be used to write /recursive functions/, where the selector would
+be a predicate to match the base-case ~g~ or recur with ~f~ otherwise.
+- should be avoided if there is an array-based or iterative solution
+- (note that factorial is more idiomatic with ~/×⇡₁~)
+#+begin_src uiua
+Fact ← |1 ⨬(×Fact⊸-1|1)⊸<2
+Fact 5 ## 120 
+#+end_src
+
+*** ~⍣~ try [dya.]
+Attempts to call ~f~ and, if an error is thrown, calls a ~catch~ function to
+handle it with the original arguments and the error value as input.
+: ⍣<f><catch>
+
+#+begin_src uiua
+⍣⋕0 "5"   ## 5 
+⍣⋕0 "dog" ## 0 
+#+end_src
+
+*** ~⍤~ assert [dya.]
+Throws an error (with given ~message~) if a condition is not met, i.e. if
+the ~test-value~ is anything but ~1~.
+- can be used to write tests
+- just prints, but does not return anything
+: ⍤<message> <test-value>
+
+Use /self-assert/ ~˙⍤~ to ignore the message part:
+: ˙⍤ <test-value>
+
+Thrown errors can be caught with /try/ ~⍣~.
+
+With the /semantic comment/ ~# Track caller!~, the error message can refer to
+the call site instead of to the code of the /assert/ function itself for
+more useful error messages.
+
 * Pattern Matching
 See https://www.uiua.org/tutorial/Pattern%20Matching
 
@@ -1636,6 +1764,11 @@ extract others:
 °(˜⊂3) [1 2 3] ## [1 2] 
 #+end_src
 
+* Macros
+*Index Macros*
+
+*Code Macros*
+
 * Idioms/Recipes
 Sources:
 - https://www.uiua.org/docs/idioms
@@ -1643,6 +1776,17 @@ Sources:
 
 Duplicate a value on the stack:
 : ⟜∘
+
+“wrench” — turn boolean list into list of -1/1:
+: -⊸¬
+
+Create an inclusive range from [n,m]:
+: ⍜(⌵-|⇡+₁) <n> <m>
+
+Get a function signature via a macro:
+: SigOf! ←^ ⋅⊢
+use like:
+: SigOf!<f>
 
 Check if all rows in an array are equal:
 : ≍⊸↻1
@@ -1654,6 +1798,10 @@ Get prime factors of a number:
 : °/×
 Check if a number is prime:
 : =1⧻°/×
+
+Successively intersperse ~n~ elements from ~n~ divisions of ~list~:
+- inspired by source: user /arch/ from Uiua Discord
+: ⌝⊏⍏◿<n>°⊏ <list>
 
 Partition a string by spaces:
 : ⊜□⊸≠@\s
@@ -1670,8 +1818,10 @@ Linear interpolation (lerp):
 : | ÷⊃/-(-⊢) # inverse <[min max]> <result> -> <ratio>
 : )
 
-Upscale a 2d matrix or colored image:
-: ▽⟜≡▽
+Upscale a 2d matrix or colored image by factor ~n~:
+: ▽₂ <n><mat>
+equivalent(?):
+: ▽⟜≡▽ <n><mat>
 
 Rotate a 2d matrix or colored image 90°:
 : ⤸1
@@ -1688,7 +1838,31 @@ Convert RGB array (e.g. ~[150 255 210]~) to hex code:
 Check for leap year:
 : ↧↥⊃(=0◿400|≠0◿100|=0◿4)
 
+Compactify coordinates in a matrix (bring them close together):
+- source: user /shadow/ from Uiua Discord
+: ⊸⍜⍉≡⍜⍆⊛
+
 * Constants & Easter Eggs
+See [[https://www.uiua.org/docs/constants][Constants]] for a list of all constants
+
+Math:
+: e (Euler) φ (golden ratio) γ (Euler-Mascheroni)
+: r (real complex) i (imaginary)
+: NaN (IEEE 754-2008) W (wildcard NaN → equals any other number)
+: MaxInt (max. exact integer) ε (machine epsilon for Uiua)
+: HexDigits (hexadecimal digits)
+
+Adjacent neighbors offsets:
+: A₁ A₂ A₃
+Corner neighbors offsets:
+: C₂ C₃
+Edge neighbors offsets:
+: E₃
+
+Time:
+: Days Months
+: MonthDays LeapMonthDays
+
 Placeholder Text (445 characters):
 : Lorem
 
@@ -1702,12 +1876,40 @@ Colors:
 : Purple Orange
 : => [0.5 0 1] [1 0.5 0]
 
+System:
+: ThisFile ThisFileName ThisFileDir
+: WorkingDir
+
 Images:
-: Lena Cats Logo
+: Lena LenaDepth
+: Cats CatsDepth
+: Elevation
+: Logo
 
 Audio:
-: Amen Music
+: Amen
+: Music
+
+[[https://en.wikipedia.org/wiki/Bad_Apple!!][Bad Apple!!]]
+: Apple (frames at 24fps)
+: Bad (audio)
+
+Flags:
+: Rainbow Lesbian Gay Bi Trans Pan Ace Aro AroAce Enby Fluid Queer Agender
+: PrideFlags PrideFlagNames
 
 Fun:
+: Planets PlanetSymbols
+: Zodiac ZodiacSymbols
+: Suits Cards Chess
+: Moon
+: Skin People Hair
+: Elements ElementSymbols
+
+Easter eggs:
 : # Boo!
 
+JSON:
+: True False
+NULL pointer for use in ~&ffi~:
+: NULL

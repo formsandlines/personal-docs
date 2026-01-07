@@ -12,4 +12,12 @@ For me, _Org mode_ (Emacs) has been the most useful tool for personal docs, but 
 
 ---
 
-**Note:** There are a few images from various public websites linked locally in my docs. Links to their sources have been included in all those places and I will continue to include them. If you find the source of your own image incorrectly mentioned or want to have it removed from the repo, please let me know.
+**Note:** There are a few images from various public websites linked locally in my docs. Links to their sources have been included in all those places, but the files themselves will be excluded from the repo.
+
+---
+
+## License
+
+© 2021–2026 by Peter Hofmann
+
+Dedicated to the public domain under CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/).

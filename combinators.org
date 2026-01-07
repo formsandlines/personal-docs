@@ -1,0 +1,59 @@
+#+title: Docs/Combinators
+
+Combinators in programming languages:
+- [[https://www.uiua.org/docs/combinators][Uiua Combinators]]
+- [[https://mlochbaum.github.io/BQN/doc/birds.html][BQN for birdwatchers]], [[https://mlochbaum.github.io/BQN/doc/tacit.html#combinators][BQN Combinator Diagrams]]
+
+Combinator lists:
+- https://combinatorylogic.com/table.html
+- https://www.angelfire.com/tx4/cus/combinator/birds.html
+
+Note: ~f~ is the primary/final function, ~g~ and ~h~ are secondary/preparatory. So the
+order of application is (roughly) ~h~ → ~g~ → ~f~.
+
+| id | bird            | f | n | Uiua  | APL             | Haskell  | Clojure |
+|----+-----------------+---+---+-------+-----------------+----------+---------|
+| I  | Identity        | 0 | 1 | ~∘~     | ~⊣~ / ~⊢~           |          |         |
+| K  | Kestrel         | 0 | 2 | ~⊙◌~    | ~⊣~               |          |         |
+| KI | Kite            | 0 | 2 | ~◌~ / ~⋅∘~ | ~⊢~               |          |         |
+| W  | Warbler         | 1 | 1 | ~˙f~    | ~f⍨~ (commute^1)  | ~join~     |         |
+| C  | Cardinal        | 1 | 2 | ~~f~    | ~f⍨~ (commute^2)  | ~flip~     |         |
+| B  | Bluebird        | 2 | 1 | ~fg~    | ~(fg)~ 2T         | ~.~        | ~comp~    |
+|    |                 |   |   |       | ~f∘g~ (beside^1)  |          |         |
+|    |                 |   |   |       | ~f⍤g~ (atop^1)    |          |         |
+|    |                 |   |   |       | ~f⍥g~ (over^1)    |          |         |
+| B_{1} | Blackbird       | 2 | 2 | ~fg~    | ~f⍤g~ (atop^2)    | ~.:~       |         |
+| S  | Starling        | 2 | 1 | ~f⟜g~   |                 | ~ap~ / ~<*>~ |         |
+| Σ  | Violet Starling | 2 | 1 | ~f⊸g~   | ~g⍛f~ (behind^1)  | ~=<<~      |         |
+| D  | Dove            | 2 | 2 | ~f⊙g~   | ~f∘g~ (beside^2)  |          |         |
+| *Δ*  | Zebra Dove      | 2 | 2 | ~fg~    | ~g⍛f~ (behind^2)  |          |         |
+| Ψ  | Psi             | 2 | 2 | ~f∩g~   | ~f⍥g~ (over^2)    | ~on~       | -       |
+| Φ  | Phoenix         | 3 | 1 | ~f⊃gh~  | ~(gfh)~ 3T/fork^1 | ~liftA2~   | ~juxt~    |
+| Φ_{1} | Pheasant        | 3 | 2 | ~f⊃gh~  | ~(gfh)~ 3T/fork^2 |          |         |
+| D_{2} | Dovekie         | 3 | 2 | ~f⊓gh~  | ~g⍛f∘h~           |          |         |
+|    |                 |   |   |       | (beh^2 & bes^2) |          |         |
+| Ê  | Bald Eagle      | 3 | 4 | ~f⊓gh~  |                 |          |         |
+
+* Notes on Dyalog APL
+Use /tacks/ (~⊣~, ~⊢~) and /atop/ (~⍤~) to specialize forks.
+- e.g. ~(⊣ g h)~ or ~(f g h⍤⊢)~ (only right arg. goes into ~h~)
+
+Ambiguous function compositions in forks can often be resolved with either
+parens or preprocessing operators like /beside/ ~∘~, e.g.:
+:       (⌽,-⌊/)
+: ┌─┴─┐
+: ⌽ ┌─┼─┐
+:   , - /
+:     ┌─┘
+:     ⌊
+:       (⌽,(-⌊/))
+: ┌─┼──┐
+: ⌽ , ┌┴┐
+:     - /
+:     ┌─┘
+:     ⌊
+:       (⌽,∘-⌊/)
+: ┌─┼────┐
+: ⌽ ∘    /
+:  ┌┴┐ ┌─┘
+:  , - ⌊

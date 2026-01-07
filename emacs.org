@@ -857,7 +857,7 @@ affecting its visibility.
 
 More infos: [[info:emacs#Indirect Buffers][emacs#Indirect Buffers]]
 
-* Files
+* Filesystem
 ** General
 
 Load file into buffer:
@@ -870,6 +870,36 @@ Write buffer to different file /(save as…)/:
 Save all modified file-visiting buffers:
 : C-x s : save-some-buffers
 -  will ask, in turn, for each unsaved file
+
+List files/folders in a directory (via minibuffer):
+: C-x C-d : list-directory
+- temporary read-only buffer, unlike [[#dired]]
+- with a /universal argument/, a verbose listing gets made (like ~ls -l~)
+- with a /file name pattern/ in the minibuffer, a filter can be applied to
+  listed file names (e.g. =/u2/emacs/src/*.c= to list all C files)
+
+Create/delete directories (via minibuffer):
+: M-x make-directory
+: M-x delete-directory
+- asks to delete recursively if directory isn’t empty
+- setting the variable ~delete-by-moving-to-trash~ to ~t~ moves a removed
+  directory to the trash can instead
+** Comparing Files
+- see [[info:emacs#Comparing Files][emacs#Comparing Files]]
+
+Display differences between two (minibuffer-prompted) files:
+: M-x diff
+- opens a ~*diff*~ buffer in the major mode ~Diff Mode~
+- uses GNU Diffutils
+
+Compare contents of the current buffer with a selected file:
+: M-x diff-buffer-with-file
+- useful e.g. to compare unsaved changes in the buffer to its file
+
+Compare contents of two buffers:
+: M-x diff-buffers
+
+Feature-rich alternative: [[#ediff]]
 
 ** Coding system
 
@@ -1986,6 +2016,7 @@ Undo changes to a window arrangement:
 : C-c <left> : winner-undo
 Redo undone changes:
 : C-c <right> : winner-redo
+
 ** Lisp interaction mode
 Mode to interact with elisp:
 : (lisp-interaction-mode 1)
@@ -2173,6 +2204,11 @@ Integration into [[#use-package]] as a standalone package:
 - https://github.com/slotThe/vc-use-package
 Since /Emacs 30/ it is built-in:
 - https://tony-zorman.com/posts/use-package-vc.html
+
+For more information on the specific syntax:
+- ~C-h v package-vc-selected-packages RET~
+- [[info:emacs#Fetching Package Sources][emacs#Fetching Package Sources]] (description of keywords, etc.)
+
 *** Elpaca
 :PROPERTIES:
 :CUSTOM_ID: elpaca
@@ -2855,6 +2891,29 @@ See [[file:emacs-calc.org][Docs / GNU Emacs Calculator]] for reference.
 :PROPERTIES:
 :CUSTOM_ID: dired
 :END:
+
+*** [built-in] WDired (writable Dired mode)
+:PROPERTIES:
+:CUSTOM_ID: wdired-mode
+:END:
+Allows to edit filenames, link targets and file permissions from a dired
+buffer directly. Applying changes modifies the files/directories on disk,
+which affects any files already opened in Emacs. Deleted filenames get
+flagged for deletion in Dired.
+
+To enter wdired mode from dired mode:
+: wdired-change-to-wdired-mode
+- ~C-c C-c~ to exit and apply all changes
+- ~C-c ESC~ to abort, discarding changes
+
+*** [built-in] Ediff (file comparison)
+:PROPERTIES:
+:CUSTOM_ID: ediff
+:END:
+Comprehensive visual interface to Unix diff and patch utilities.
+- info page: [[info:ediff#Top][ediff]]
+
+: M-x ediff
 
 *** sudo-edit
 Enables editing a file with sudo privileges or switch to editing with such

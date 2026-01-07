@@ -256,6 +256,15 @@ As an ad-hoc definition:
 :  …
 : ∇
 
+** Notations
+*Vector/Strand Notation*
+- [[https://aplwiki.com/wiki/Strand_notation][Strand notation (APL Wiki)]]
+- see [[#dyalog_vectornot][Dyalog Vector Notation]]
+
+*Array Notation* (APLAN)
+- [[https://aplwiki.com/wiki/Array_notation][Array notation (APL Wiki)]]
+- see [[#dyalog_arraynot][Dyalog Array Notation]]
+
 ** Data Structures
 *** Array
 
@@ -411,6 +420,16 @@ Assign the value of an expression to a variable name:
 
 Returns a character representation of its argument.
 
+**** ~⍎~ → Execute (mon./dya.)
+
+Executes a string of expressions.
+
+Can be assigned an execution context (a namespace):
+:       (foo bar)←⍳2
+:       'foo' 'bar' ⎕NS⍛⍎ 'foo + bar'
+:  
+: 3
+
 **** ~⊣~ / ~⊢~ → *Same* (mon.), *Left / Right* (dya.)
 
 In the monadic case, returns its argument as is (identity function).
@@ -560,6 +579,7 @@ Select random number from ~⍳n~:
 : ?<n>
 … for each integer in vector:
 : ?<v>
+- if ~n~ = ~0~, gets a random value between 0 and 1
 - e.g. to roll 10 dices: ~?10⍴6~
 - note that selecting from ~⍳n~ means 0 is not included!
 
@@ -713,6 +733,17 @@ Enclose/“zip” an array for nesting (returns a scalar):
 - can be used to assign a nested array to an index in another array:
   - e.g. ~a ← 1 2 3 ⋄ a[2] ← ⊂15 20 25 ⋄ ⎕ ← a~ results in ~1 15 20 25 3~
 
+Partition an array on each ~1~ of a boolean vector:
+: <boolv>⊂<arr>
+
+Example:
+:       'AppleBananaMelonPear' ∊ ⎕A
+: 1 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 1 0 0 0
+:       ∊∘⎕A⍛⊂ 'AppleBananaMelonPear'
+: ┌─────┬──────┬─────┬────┐
+: │Apple│Banana│Melon│Pear│
+: └─────┴──────┴─────┴────┘
+
 **** ~⊃~ → *First* (mon.), *Pick* (dya.)
 
 Extract the first item of an array (“unzips” an /enclosed array/):
@@ -769,6 +800,13 @@ Filter by boolean vector:
 - e.g. ~0 1 0 1/'tesa'~ results in ~ea~
 - e.g. ~'aeiou'{(⍵∊⍺)/⍵}~ will filter a word for vowels
 
+Example filter-in:
+:       1 0 0 0 1 1 1 / 'octopus'
+: 'opus'
+Example filter-out, using /NOT-behind/:
+:       1 0 0 0 1 1 1 ~⍛/ 'octopus'
+: 'cto'
+
 Replicate elements in ~vr~ according integer counts in ~vl~:
 : <vl>/<vr>
 - e.g. ~1 2 3/'abc'~ results in ~abbccc~
@@ -787,11 +825,28 @@ Enlist all elements in the array (even nested ones):
 : ∊<arr>
 - unnests nested arrays
 
+**** ~≠~ → *Unique Mask* (mon.)
+
+Matches first unique elements as a boolean vector.
+
+Example:
+
+:       ≠ 'Mississippi'
+: 1 1 1 0 0 0 0 0 1 0 0
+
+Combined with compress, this is equivalent to /unique/ (mon. ~∪~):
+:       ≠⍛/ 'Mississippi'
+: Misp
+
 **** ~⍷~ → *Find* (dya.)
 
 Check where in ~arr~ the /whole/ ~find~ array is found:
 : <find>⍷<arr>
 - returns a boolean array where 1 is the first index of the found array
+
+Example:
+:       'ana' ⍷ 'banana'
+: 0 1 0 1 0 0
 
 **** ~⍳~ → *Index generator* (mon.), *Index of* (dya.)
 
@@ -799,6 +854,7 @@ Generate a number sequence [ 1, ~n~ ]:
 : ⍳<n>
 Multi-dimensional:
 : ⍳<n> <m> …
+- returns an array of “coordinate” vectors/tuples
 
 Index all items in vector by their index in search vector:
 : <search>⍳<v>
@@ -809,6 +865,10 @@ Index all items in vector by their index in search vector:
 
 Equivalences:
 : +/⍳n ←→ ((n+1)×n)÷2
+
+In Dyalog APL, the index origin can be set like this (since v20):
+:       (⎕IO:0).⍳10
+: 0 1 2 3 4 5 6 7 8 9
 
 **** ~⍸~ → *Where* (mon.), *Interval Index* (dya.)
 Get /n/ indices for all /n>0/ in a boolean/integer array:
@@ -887,6 +947,15 @@ e.g. ~+/¨(1 2) (3 4)~ will take the sum for each subvector
 
 Return indices which would select items in ascending order:
 : ⍋ <arr>
+
+Example:
+:       ⍋ 8 4 2 9 1 2 4 7
+: 5 3 6 2 7 8 1 4
+To actually sort:
+:       {⍵[⍋⍵]} 8 4 2 9 1 2 4 7
+or in tacid version using /behind/:
+:       ⊂∘⍋⍛⌷ 8 4 2 9 1 2 4 7
+: 1 2 2 4 4 7 8 9
 
 Can be used to sort an array via sort indices from a different array of
 the same shape:
@@ -1090,6 +1159,10 @@ Apply function ~f~ ~n~ times:
     - in case of duplicate indices, the 1’s are added up, exactly like
       /where/ would duplicate the indices as many times
 
+*** ~⍠~ → Variant (dya.)
+Changes settings for [[#dyalog_systemfunc][System Functions]].
+- should not be a primitive – prefer ~⎕OPT~!
+
 ** System Functions
 Write a vector of character vectors to a text file:
 : <char-vecs> ⎕NPUT <path>
@@ -1138,6 +1211,10 @@ In a polar unit matrix:
 *Boolean masks* can be used to /count/ (~/+b~) or /select/ (~b/v~) corresponding true
 elements from the original array.
 
+To define the /under/ operator:
+: _U_←{⍺←{⍵ ⋄ ⍺⍺} ⋄ ⍵⍵⍣¯1⊢(⍵⍵ ⍺)⍺⍺(⍵⍵ ⍵)}
+- source: [[https://www.youtube.com/watch?v=JnExPhse9iM&lc=UgxlAy3GGeD83cu2QYZ4AaABAg.9zis5R8tHoY9zjAlr1xFj8][YT comment from Adám]]
+
 * Dyalog implementation
 https://www.dyalog.com
 
@@ -1154,11 +1231,105 @@ time. In addition, the interpreter can recognise certain tacit constructs and
 take shortcuts.
 - [[https://www.youtube.com/watch?v=YMDClM03zyQ&lc=UgyISRlaDrty46lMWOB4AaABAg.9yaWiB7WsMr9yjswhlaXgd][source]]
 
-Resources:
+Learning:
+- [[https://www.dyalog.com/getting-started.htm][Getting Started]] (links to various learning resources)
+- [[https://www.dyalog.com/getting-started/tips.htm][Tips]] (helpful tips for the RIDE editor and Dyalog APL environment)
+
+Documentation:
+- [[https://www.dyalog.com/documentation_200.htm][Documentation Centre]]
+- [[https://docs.dyalog.com/20.0/][Documentation for Dyalog v20.0]] (wip → added from Documentation Centre)
 - [[https://help.dyalog.com/19.0/index.htm][Dyalog APL 19.0 Help]] (documentation on functions, etc.)
-- https://www.dyalog.com/getting-started/tips.htm
+  
+** Specific Notation
+*** Vector Notation
+:PROPERTIES:
+:CUSTOM_ID: dyalog_vectornot
+:END:
+- [[https://docs.dyalog.com/20.0/programming-reference-guide/introduction/arrays/vector-notation/][Vector Notation (Dyalog Docs)]]
+- also known as /strand notation/
+
+A series of 2+ adjacent expressions forms a vector where each element is
+an array resulting from its expression.
+
+Vector:
+: 1 2 3 4
+: 'hello'
+
+Nested vectors:
+: (1 2) (3 4 5) (6)
+: 'form' 'a' 'sentence'
+: 'take' 5
+
+*** Array Notation
+:PROPERTIES:
+:CUSTOM_ID: dyalog_arraynot
+:END:
+In Dyalog APL since v20.0.
+- [[https://docs.dyalog.com/20.0/programming-reference-guide/introduction/arrays/array-notation/#formal-syntax][Array Notation (Dyalog Docs)]]
+
+Extension of [[#dyalog_vectornot][Vector Notation]] to higher ranks (e.g. matrices) and
+/namespaces/. Both can be written across multiple lines or on one line
+separated by ~⋄~ (or both).
+- *note:* enclosing parantheses will be /broken/ by separators, which can be
+  prevented by encapsulating them in a /dfn/ or if they are further
+  contained in array notation
+
+/Higher-rank arrays/ (≥2) are defined with 2+ value exprs. enclosed by ~[…]~:
+: [1 2
+:  3 4]
+: [1 2 ⋄ 3 4]
+- *note:* a single expr. without separators is a syntax error!
+- the value exprs. constitute the major cells of the array
+- scalars are treated as length-1 vectors
+- if the number of elements entered does not fit the array shape,
+  additional /fill-items/ will be used to pad it
+- at least one value expression must be non-empty
+
+/Vectors/ are defined with 2+ value exprs. enclosed by ~(…)~:
+: ('I'
+:  'love'
+:  'APL')
+: ('I' ⋄ 'love' ⋄ 'APL')
+: ('Singleton' ⋄)  ⍝ single-element vector
+- *note:* a single expr. without separators is equivalent to [[#dyalog_vectornot][Vector Notation]]
+- empty value expressions define no vector elements
+- at least one value expression must be non-empty
+
+/Namespaces/ are defined with 0+ name-value pairs enclosed by ~(…)~:
+: (
+:   FirstName:'Kenneth'
+:   LastName:'Iverson'
+: )
+: (question:'what is it?' ⋄ answer:7×6)
+: (y:(x:'hello'))  ⍝ nested namespace
+: ()               ⍝ empty namespace
+: ()()             ⍝ vector of empty namespaces
+: ( () ⋄ () )      ⍝ ↑ same
+- empty name-value pairs define no namespace members
+- see [[#dyalog_namespaces][Namespaces]] for more details
+
+Functions can be evaluated directly inside the array/ns literal:
+:       [2× 1 2 3 ⋄ ⌽ 4 5 6]
+: 2 4 6
+: 6 5 4
+: 
+:       (⍎⌽⍕2×12 ⋄ ⌽ 'stressed')
+: 42  desserts
+:
+:       (foo:100 ⋄ bar:200).(foo+bar)
+: 300
+:
+:       (⎕IO:0 ⋄ ⎕CT:0).⍳10
+: 0 1 2 3 4 5 6 7 8 9
 
 ** RIDE Editor
+=========================================================================
+*WARNING:* save workspace regularly because Ride on macOS might crash the
+interpreter when some GUI action is performed that confuses it.
+=========================================================================
+
+The Ride editor is /not/ an IDE but a front-end for the interpreter
+(communication via protocols).
 
 By default, ~`~ is used as a prefix key to enter symbols. Type ~``~ and a name
 to have RIDE suggest the appropriate glyph.
@@ -1180,12 +1351,94 @@ to have RIDE suggest the appropriate glyph.
 *Note:* lines in the session log cannot be deleted from within RIDE on macOS
 
 ** System Functions
+:PROPERTIES:
+:CUSTOM_ID: dyalog_systemfunc
+:END:
+- [[https://docs.dyalog.com/20.0/language-reference-guide/system-functions/system-functions-and-variables-colwise/][Dyalog APL Language > System Functions (A-Z)]]
+- [[https://docs.dyalog.com/20.0/language-reference-guide/system-functions/system-functions-by-category/#settings-affecting-behaviour-of-primitive-functions][Dyalog APL Language > System Functions (by Category)]]
 
 Dyalog built-in functions which provide services related to both the APL and
 the external environment.
 - case-insensitive names beginning with the ~⎕~ symbol.
 - implicitly available in a clear workspace
 - see ch. 4 “System Functions” in =Dyalog APL Language Reference Guide.pdf=
+
+| Name               | Description                                    |
+|--------------------+------------------------------------------------|
+| ~<?case>⎕C<str>~     | Case convert (1: AZ / ¯1: az / ¯3: like default) |
+| ~<x>⎕DT<y>~          | Datetime                                       |
+| ~<str …>⎕NPUT<file>~ | Writes strings (lines) in (created) file       |
+| ~<?x>⎕JSON<y>~       | JSON convert                                   |
+| ~<ns>⎕VSET<str …>~   | Set val. of a var. in ns                       |
+| ~<ns>⎕VGET<str …>~   | Get val. of a var. in ns                       |
+
+- ~⎕VSET~ and ~⎕VGET~ have been added in v20.0
+
+
+Examples:
+:       (foo:42 ⋄ bar:'hello') ⎕VGET 'foo' 'bar'
+: (       
+:  42     
+:  'hello'
+: )
+
+:      ⊣(foo:42 ⋄ bar:'hello') ⎕VSET ('bar' 93 ⋄)
+: (      
+:  bar:93
+:  foo:42
+: )    
+
+** System Variables
+- [[https://docs.dyalog.com/20.0/language-reference-guide/system-functions/system-functions-and-variables-colwise/][Dyalog APL Language > System Functions (A-Z)]]
+- [[https://docs.dyalog.com/20.0/language-reference-guide/system-functions/system-functions-by-category/#settings-affecting-behaviour-of-primitive-functions][Dyalog APL Language > System Functions (by Category)]]
+
+Other than with [[System Commands]], these can be used as part of APL
+expressions.
+- ~⎕WSID~ → like ~)WSID~
+
+Useful constants:
+
+| Name  | Description    |
+|-------+----------------|
+| ~⎕A~    | Alphabet (A-Z) |
+| ~⎕D~    | Digits (0-9)   |
+| ~⎕NULL~ | Null Item      |
+
+Behaviour of primitive functions:
+
+| Name | Description                   | Scope |
+|------+-------------------------------+-------|
+| ~⎕IO~  | Index Origin                  | NS    |
+| ~⎕FR~  | Floating-Point Representation | NS    |
+| ~⎕DIV~ | Division Method               | NS    |
+| ~⎕CT~  | Comparison Tolerance          | NS    |
+| ~⎕DCT~ | Decimal Comp Tolerance        | NS    |
+| ~⎕ML~  | Migration Level               | NS    |
+| ~⎕RL~  | Random Link                   | NS    |
+| ~⎕PP~  | Print Precision               | NS    |
+
+Session & workspaces:
+
+| Name   | Description                 | Scope   |
+|--------+-----------------------------+---------|
+| ~⎕PATH~  | Search Path                 | Session |
+| ~⎕OFF~   | End session                 | Session |
+| ~⎕WSID~  | Workspace ID                | WS      |
+| ~⎕LOAD~  | Load a saved WS             | WS      |
+| ~⎕SAVE~  | Save the active WS          | WS      |
+| ~⎕CLEAR~ | Clear workspace             | WS      |
+| ~⎕CY~    | Copy objects into active WS | WS      |
+
+Other variables:
+
+| Name | Description     | Scope   |
+|------+-----------------+---------|
+| ~⎕PW~  | Print Width     | Session |
+| ~⎕TS~  | Timestamp       | -       |
+| ~⎕DL~  | Delay execution | -       |
+
+With [[#dyalog_arraynot][Array Notation]] (≥20.0), can be set in scope via a namespace:
+: (⎕<sysvar>:<val>).<f>
 
 ** System Commands
 
@@ -1223,17 +1476,20 @@ Workspaces & Sessions:
 - ~)CLEAR~ clears the workspace
 - ~)ERASE <x y …>~ erases object(s) ~x y …~ from workspace
 - ~)ED <x>~ opens the editor to change defined object ~x~
+  - /shift+ENTER/ (~ED~ shortcut) also opens the editor
+  - history browsing works just like in the normal editor
+  - ~)ED ⋄<x>~ uses editing with array notation
+    - call “reformat” from the /Edit/ menu to fix indentation of arrays
+      - *note:* reformating loses editing history! (at least on macOS)
+    - /shift+ENTER/ (~ED~ shortcut) also toggles array notation editing
+      - *note:* toggling back to array notation editing may focus on just the
+        part of the array where the caret is placed – place it on the end of
+        a line to edit the whole array
 - ~2⎕NQ⎕SE'FileWrite'~ makes display settings permanent
 - =View > Show Workspace Explorer= shows a tree view of the current workspace
 
 Files:
 - ~)ED "<path>"~ to edit plain text files in Dyalog
-
-** System Variables
-Other than with [[System Commands]], these can be used as part of APL
-expressions.
-
-- ~⎕WSID~ → like ~)WSID~
 
 ** User Commands
 
@@ -1264,6 +1520,10 @@ Boxing:
 - ~-fns=on~ to have boxes display in nested arrays even if they are printed to
   the session from within functions
 
+APLAN (APL array notation):
+- ~]APLAN.Editor on~ to toggle array notation for editing variables
+- ~]APLAN.Output on~ to toggle array notation for session output
+
 Utilities:
 - ~]Map~ displays the content and structure of the current workspace
 - ~]Defs~ shows all function definitions
@@ -1274,6 +1534,9 @@ Utilities:
 - ~]Repr <arr>~ to generate an expression for (almost) any given array
 
 ** Namespaces
+:PROPERTIES:
+:CUSTOM_ID: dyalog_namespaces
+:END:
 Namespaces can be nested and are separated by a ~.~ (dot).
 - relative name: ~NS1.NS2.OBJ~
 - absolute name: ~#.NS.OBJ~
@@ -1288,6 +1551,38 @@ Create a namespace:
 Change current/relative namespace (similar to changing a directory):
 : )CS <nsname>
 : ⎕CS <nsname>
+
+Namespaces can also be created, modified and accessed more conveniently as
+expressions with [[#dyalog_arraynot][Array Notation]].
+
+To access a value by name:
+:       (x:'hello').x
+: hello
+
+To (partially) overwrite a NS by another NS:
+:       ⊢(a:0 ⋄ b:5)⎕NS(a:10)
+: (    
+:  a:10
+:  b:5 
+: )
+To combined multiple NS’s into a new NS:
+:       ⎕NS(a:0 ⋄ b:5)(a:10)
+: (    
+:  a:10
+:  b:5 
+: )  
+
+NS can also be used as arguments, which can even have default values:
+: Range←{(⎕NS(from:0 ⋄ step:1)⍵).(from,from+step×⍳⌊(to-from)÷step)}
+: 
+:       Range(from:4 ⋄ to:10 ⋄ step:2)
+: 4 6 8 10
+:       Range(from:4 ⋄ to:7 ⋄ step:0.5)
+: 4 4.5 5 5.5 6 6.5 7
+:       Range(⋄ to:7 ⋄ step:0.5)
+: 0 0.5 1 1.5 2 2.5 3 3.5 4 4.5 5 5.5 6 6.5 7
+:       Range(⋄ to:7)
+: 0 1 2 3 4 5 6 7
 
 ** Script Files
 For functions/operators/objects.
@@ -1390,6 +1685,14 @@ Example:
 
 Emacs package ~gnu-apl-mode~:
 - http://www.gnu.org/software/apl/
+
+* TinyAPL implementation
+- https://tinyapl.rubenverg.com
+- https://github.com/RubenVerg/tinyapl
+- https://www.aplwiki.com/wiki/TinyAPL
+
+Online REPL:
+- https://tinyapl.rubenverg.com/run/latest/
 
 * J implementation
 https://www.jsoftware.com

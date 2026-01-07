@@ -3,3 +3,6 @@
 .clj-kondo
 ltximg/
 .apl.history
+expectations-acton.org
+src_*.org
+_res/
